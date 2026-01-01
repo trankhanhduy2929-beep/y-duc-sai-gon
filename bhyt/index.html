@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Thống Kê Bảng Kê Pro</title>
+    <!-- Thư viện xử lý Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <!-- Thư viện Biểu đồ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font chữ & Icon -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --text-color: #2d3748;
+            --accent-color: #667eea;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* --- Common Styles --- */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+        .btn-primary:hover { background: #5a6fd6; transform: translateY(-2px); }
+        .btn-danger { background: #fc8181; color: white; }
+        .btn-secondary { background: #e2e8f0; color: #4a5568; }
+
+        .hidden { display: none !important; }
+
+        /* --- Login Section --- */
+        .login-card {
+            background: var(--glass-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .login-card h2 { margin-bottom: 10px; color: var(--accent-color); }
+        .login-subtitle { margin-bottom: 25px; color: #718096; font-size: 0.9rem; }
+        
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: 600; }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            outline: none;
+            transition: border 0.3s;
+            font-size: 1rem;
+        }
+        .input-group input:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+
+        /* --- Dashboard Section --- */
+        .dashboard-container {
+            background: #f7fafc;
+            width: 100%;
+            max-width: 1200px;
+            min-height: 85vh;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .top-bar {
+            background: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent-color); display: flex; align-items: center; gap: 10px; }
+        .user-menu { display: flex; gap: 10px; }
+        
+        @media (max-width: 600px) {
+            .top-bar { flex-direction: column; gap: 15px; }
+            .user-menu { width: 100%; justify-content: space-between; }
+        }
+
+        /* Content */
+        .main-content {
+            padding: 30px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .upload-area {
+            background: white;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .upload-area:hover { border-color: var(--accent-color); background: #f8fbff; transform: scale(1.01); }
+        .upload-icon { font-size: 3rem; color: var(--accent-color); margin-bottom: 10px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr; /* Chart rộng hơn bảng */
+            gap: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+        .card h3 { margin-bottom: 15px; border-left: 4px solid var(--accent-color); padding-left: 10px; font-size: 1.1rem; }
+
+        /* Table Styling */
+        .table-container {
+            flex: 1;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 12px; text-align: left; position: sticky; top: 0; color: #4a5568; font-size: 0.9rem; border-bottom: 2px solid #edf2f7; }
+        td { padding: 10px 12px; border-bottom: 1px solid #edf2f7; font-size: 0.95rem; }
+        tr:hover { background-color: #f1f5f9; }
+        .total-row td { background: #ebf4ff; font-weight: bold; color: var(--accent-color); position: sticky; bottom: 0; }
+
+        /* Modal */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. MÀN HÌNH ĐĂNG NHẬP (CHỈ CÓ PASS) -->
+    <div id="loginSection" class="login-card">
+        <div style="font-size: 3.5rem; color: var(--accent-color); margin-bottom: 15px;">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2>Đăng Nhập</h2>
+        <p class="login-subtitle">Nhập mật khẩu để truy cập hệ thống</p>
+        
+        <div class="input-group">
+            <input type="password" id="password" placeholder="Nhập mật khẩu tại đây..." onkeyup="if(event.key === 'Enter') login()">
+        </div>
+        
+        <button class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="login()">Truy cập ngay</button>
+        <p id="loginError" style="color: #e53e3e; margin-top: 15px; font-size: 0.9rem; min-height: 20px;"></p>
+    </div>
+
+    <!-- 2. GIAO DIỆN CHÍNH (DASHBOARD) -->
+    <div id="dashboardSection" class="dashboard-container hidden">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="logo">
+                <span style="background: var(--accent-color); color: white; padding: 5px 10px; border-radius: 6px;"><i class="fa-solid fa-chart-simple"></i></span>
+                Pro Statistics Tool
+            </div>
+            <div class="user-menu">
+                <button class="btn btn-secondary" onclick="openChangePassModal()"><i class="fa-solid fa-key"></i> Đổi Pass</button>
+                <button class="btn btn-danger" onclick="logout()"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Upload Area -->
+            <div class="upload-area" onclick="document.getElementById('excelFile').click()">
+                <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <h3 style="color: #4a5568;">Click để chọn file Excel (.xlsx, .csv)</h3>
+                <p id="status" style="color: #718096; margin-top: 5px;">Hệ thống sẽ tự động phân tích dữ liệu ngay khi tải lên</p>
+                <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFile(event)" />
+            </div>
+
+            <!-- Result Area -->
+            <div id="resultArea" class="stats-grid hidden">
+                
+                <!-- Cột trái: Bảng dữ liệu -->
+                <div class="card">
+                    <h3><i class="fa-solid fa-list-ol"></i> Bảng Số Liệu Chi Tiết</h3>
+                    <div class="table-container">
+                        <table id="resultTable">
+                            <thead>
+                                <tr>
+                                    <th width="15%">STT</th>
+                                    <th>Ngày ra</th>
+                                    <th width="25%">Số lượng</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td colspan="2">TỔNG CỘNG</td>
+                                    <td id="totalCount">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cột phải: Biểu đồ -->
+                <div class="card">
+                    <h3><i class="fa-solid fa-chart-column"></i> Biểu Đồ Trực Quan</h3>
+                    <div style="position: relative; height: 100%; min-height: 300px; display: flex; align-items: center;">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MODAL ĐỔI MẬT KHẨU -->
+    <div id="changePassModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 5px; color: var(--text-color);">Đổi Mật Khẩu</h3>
+            <p style="margin-bottom: 20px; font-size: 0.85rem; color: #718096;">Nhập mật khẩu cũ và mới để thay đổi.</p>
+            
+            <div class="input-group">
+                <label>Mật khẩu cũ</label>
+                <input type="password" id="oldPass">
+            </div>
+            <div class="input-group">
+                <label>Mật khẩu mới</label>
+                <input type="password" id="newPass">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeChangePassModal()">Hủy bỏ</button>
+                <button class="btn btn-primary" onclick="saveNewPass()">Lưu Thay Đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIG & AUTHENTICATION ---
+        const DEFAULT_PASS = '123456';
+        
+        // Khởi tạo Auth khi load trang
+        (function initAuth() {
+            // Kiểm tra xem đã có pass trong localStorage chưa, nếu chưa thì set mặc định
+            if (!localStorage.getItem('app_pass')) localStorage.setItem('app_pass', DEFAULT_PASS);
+            
+            // Tự động vào nếu đã login trong phiên này
+            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                showDashboard();
+            }
+        })();
+
+        function login() {
+            const p = document.getElementById('password').value;
+            const storedP = localStorage.getItem('app_pass');
+
+            if (p === storedP) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                showDashboard();
+                document.getElementById('password').value = ''; // Xóa pass sau khi login
+                document.getElementById('loginError').innerText = "";
+            } else {
+                document.getElementById('loginError').innerText = "Mật khẩu không đúng. Vui lòng thử lại!";
+                // Hiệu ứng rung nhẹ khi sai pass
+                const card = document.querySelector('.login-card');
+                card.style.transform = "translateX(5px)";
+                setTimeout(() => card.style.transform = "translateX(-5px)", 50);
+                setTimeout(() => card.style.transform = "translateX(0)", 100);
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('isLoggedIn');
+            location.reload();
+        }
+
+        function showDashboard() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+        }
+
+        // --- 2. CHANGE PASSWORD LOGIC ---
+        function openChangePassModal() {
+            document.getElementById('changePassModal').classList.remove('hidden');
+            document.getElementById('oldPass').value = '';
+            document.getElementById('newPass').value = '';
+        }
+
+        function closeChangePassModal() {
+            document.getElementById('changePassModal').classList.add('hidden');
+        }
+
+        function saveNewPass() {
+            const oldP = document.getElementById('oldPass').value;
+            const newP = document.getElementById('newPass').value;
+            const storedP = localStorage.getItem('app_pass');
+
+            if (oldP !== storedP) {
+                alert("Mật khẩu cũ không chính xác!");
+                return;
+            }
+            if (!newP || newP.length < 4) {
+                alert("Mật khẩu mới quá ngắn (tối thiểu 4 ký tự)!");
+                return;
+            }
+
+            localStorage.setItem('app_pass', newP);
+            alert("Đổi mật khẩu thành công! Hãy ghi nhớ mật khẩu mới.");
+            closeChangePassModal();
+        }
+
+        // --- 3. EXCEL PROCESSING & CHART LOGIC ---
+        let myChartInstance = null; // Lưu instance của biểu đồ để hủy khi vẽ lại
+
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const status = document.getElementById('status');
+            const originalText = status.innerText;
+            status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý file ${file.name}...`;
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: false});
+
+                    processData(jsonData);
+                    status.innerHTML = `<i class="fa-solid fa-check-circle" style="color: green;"></i> Đã tải xong: <b>${file.name}</b>`;
+                } catch (error) {
+                    console.error(error);
+                    status.innerText = "Lỗi đọc file! Vui lòng kiểm tra lại định dạng Excel.";
+                    alert("Có lỗi xảy ra. Hãy chắc chắn file Excel đúng định dạng.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData(data) {
+            const dateCounts = {};
+            const colName = "Ngày ra"; // Tên cột cần tìm chính xác
+
+            data.forEach(row => {
+                let dateStr = row[colName];
+                if (dateStr) {
+                    // Cắt lấy ngày, bỏ giờ (VD: "01/11/2025 14:02" -> "01/11/2025")
+                    let justDate = dateStr.split(' ')[0].trim();
+                    if (justDate) {
+                        dateCounts[justDate] = (dateCounts[justDate] || 0) + 1;
+                    }
+                }
+            });
+
+            // Sắp xếp ngày tháng tăng dần
+            let sortedDates = Object.keys(dateCounts).sort((a, b) => {
+                const partsA = a.split('/');
+                const partsB = b.split('/');
+                return new Date(partsA[2], partsA[1] - 1, partsA[0]) - new Date(partsB[2], partsB[1] - 1, partsB[0]);
+            });
+
+            if (sortedDates.length === 0) {
+                alert("Không tìm thấy dữ liệu cột 'Ngày ra'. Vui lòng kiểm tra tiêu đề cột trong file Excel.");
+                return;
+            }
+
+            // Render dữ liệu ra màn hình
+            renderTable(sortedDates, dateCounts);
+            renderChart(sortedDates, dateCounts);
+            
+            // Hiện vùng kết quả
+            document.getElementById('resultArea').classList.remove('hidden');
+        }
+
+        function renderTable(dates, counts) {
+            const tbody = document.getElementById('tableBody');
+            const totalCountEl = document.getElementById('totalCount');
+            tbody.innerHTML = '';
+            
+            let total = 0;
+            let stt = 1;
+
+            dates.forEach(date => {
+                const count = counts[date];
+                total += count;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${stt++}</td>
+                        <td>${date}</td>
+                        <td><strong>${count}</strong></td>
+                    </tr>`;
+            });
+            totalCountEl.innerText = total;
+        }
+
+        function renderChart(dates, counts) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const dataValues = dates.map(d => counts[d]);
+
+            // Hủy biểu đồ cũ nếu có để vẽ cái mới
+            if (myChartInstance) {
+                myChartInstance.destroy();
+            }
+
+            // Tạo màu gradient đẹp cho cột
+            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.9)');
+            gradient.addColorStop(1, 'rgba(118, 75, 162, 0.7)');
+
+            myChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Số lượng hồ sơ',
+                        data: dataValues,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barThickness: 'flex',
+                        maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Biểu đồ biến động số lượng theo ngày',
+                            font: { size: 16, family: 'Inter' },
+                            padding: { bottom: 20 }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(45, 55, 72, 0.9)',
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Số lượng: ${context.raw} hồ sơ`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9', borderDash: [5, 5] },
+                            ticks: { font: { family: 'Inter' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter' } }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
