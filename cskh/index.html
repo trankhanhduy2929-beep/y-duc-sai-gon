@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Y Đức Sài Gòn - CSKH Luxury Compact V9</title>
+    <!-- Core Engine -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --medical-primary: #0F52BA;
+            --medical-secondary: #10B981;
+            --medical-accent: #F43F5E;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #F1F5F9; 
+            color: #0F172A;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .premium-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 1.5rem;
+        }
+
+        .premium-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -10px rgba(15, 82, 186, 0.15);
+            border-color: var(--medical-primary);
+        }
+
+        .glass-header {
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-overlay {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(8px);
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+        
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.97) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-in { animation: fadeInScale(0.4s) ease-out forwards; }
+        
+        .check-pop:active { transform: scale(0.85); }
+
+        .full-name {
+            display: block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+
+        /* Login transition */
+        .login-fade { animation: fadeInScale 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        const removeAccents = (str) => {
+            if (!str) return "";
+            return str.normalize('NFD')
+                      .replace(/[\u0300-\u036f]/g, '')
+                      .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        }
+
+        // --- ICON SYSTEM (SVG BUILT-IN) ---
+        const Icon = ({ name, size = 18, className = "" }) => {
+            const icons = {
+                Heart: <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />,
+                Database: <React.Fragment><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></React.Fragment>,
+                Phone: <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 {2.81.7A2 2 0 0 1 22 16.92z" />,
+                Search: <React.Fragment><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></React.Fragment>,
+                Check: <path d="M20 6 9 17l-5-5" />,
+                X: <path d="M18 6 6 18M6 6l12 12" />,
+                Stethoscope: <React.Fragment><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></React.Fragment>,
+                MapPin: <React.Fragment><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></React.Fragment>,
+                Trash: <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />,
+                User: <React.Fragment><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></React.Fragment>,
+                Layout: <React.Fragment><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M3 9h18M9 21V9"/></React.Fragment>,
+                BarChart: <path d="M12 20V10M18 20V4M6 20v-4" />,
+                IdCard: <React.Fragment><path d="M16 10h.01M16 14h.01M8 10h5M8 14h5M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5Z"/><path d="M2 9h20"/></React.Fragment>,
+                Pill: <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />,
+                Flask: <path d="M6 3h12M8 3v13.5a4 4 0 1 0 8 0V3M6 12h12" />,
+                ArrowRight: <path d="M5 12h14M12 5l7 7-7 7" />,
+                Lock: <React.Fragment><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></React.Fragment>,
+                Unlock: <React.Fragment><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V5a5 5 0 0 1 9.9-1" /></React.Fragment>,
+                Notebook: <React.Fragment><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /><path d="M8 7h6M8 11h8" /></React.Fragment>,
+                Briefcase: <React.Fragment><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></React.Fragment>,
+            };
+            return (
+                <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    {icons[name]}
+                </svg>
+            );
+        };
+
+        const App = () => {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [passInput, setPassInput] = useState('');
+            const [loginError, setLoginError] = useState(false);
+
+            const [file1Data, setFile1Data] = useState([]); 
+            const [file2Data, setFile2Data] = useState([]); 
+            const [mergedData, setMergedData] = useState([]);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterStatus, setFilterStatus] = useState('all');
+            const [typeFilter, setTypeFilter] = useState('all');
+            const [loading, setLoading] = useState(false);
+            const [isProcessed, setIsProcessed] = useState(false);
+            const [selectedPatient, setSelectedPatient] = useState(null); 
+            const [activeTab, setActiveTab] = useState('list');
+
+            const COPYRIGHT = "Bản quyền thuộc về Trần Khánh Duy - Phòng bảo hiểm - Phòng Khám đa khoa Y Đức Sài Gòn";
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (passInput === '1402' || passInput === '2912') {
+                    setIsAuthenticated(true);
+                    setLoginError(false);
+                } else {
+                    setLoginError(true);
+                    setPassInput('');
+                    setTimeout(() => setLoginError(false), 2000);
+                }
+            };
+
+            // Persistence
+            useEffect(() => {
+                const saved = localStorage.getItem('y_duc_secure_storage_v10');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.length > 0) { setMergedData(parsed); setIsProcessed(true); }
+                }
+            }, []);
+
+            useEffect(() => {
+                if (mergedData.length > 0) {
+                    localStorage.setItem('y_duc_secure_storage_v10', JSON.stringify(mergedData));
+                }
+            }, [mergedData]);
+
+            const normalizeGender = (val) => {
+                if (!val) return "Nữ";
+                const s = val.toString().trim().toLowerCase();
+                return (s === "1" || s === "nam") ? "Nam" : "Nữ";
+            };
+
+            const formatMedInstruction = (medLine) => {
+                if (!medLine) return { name: "", instruction: "", days: "" };
+                let days = "";
+                const daysMatch = medLine.match(/Số ngày uống:\s*(\d+)/i);
+                if (daysMatch) days = daysMatch[0];
+                const scheduleIndex = medLine.search(/Sáng\s*-/i);
+                let name = medLine;
+                let schedulePart = "";
+                if (scheduleIndex !== -1) {
+                    name = medLine.substring(0, scheduleIndex).trim();
+                    schedulePart = medLine.substring(scheduleIndex).replace(days, "").trim();
+                }
+                const parts = schedulePart.split(',').map(p => p.trim());
+                const filteredInstructions = parts.filter(p => {
+                    const valMatch = p.match(/-\s*(\d+)/);
+                    return valMatch && valMatch[1] !== "0";
+                }).map(p => p.replace('-', ':').trim());
+                return { name, instruction: filteredInstructions.join(', '), days };
+            };
+
+            const parseMedicalContent = (rawText) => {
+                if (!rawText || typeof rawText !== 'string') return { meds: [], lab: [], imaging: [], procedure: [] };
+                const medicineIndex = rawText.indexOf("* Thuốc:");
+                const labIndex = rawText.indexOf("* Xét nghiệm:");
+                const imagingIndex = rawText.indexOf("* Chẩn đoán hình ảnh:");
+                const procedureIndex = rawText.indexOf("* TTPT-VLTL:") !== -1 ? rawText.indexOf("* TTPT-VLTL:") : rawText.indexOf("* Thủ thuật phẫu thuật:");
+                
+                const getSectionText = (startIndex, labelLength) => {
+                    if (startIndex === -1) return "";
+                    let endIndex = rawText.length;
+                    const nextIndices = [medicineIndex, labIndex, imagingIndex, procedureIndex].filter(i => i > startIndex);
+                    if (nextIndices.length > 0) endIndex = Math.min(...nextIndices);
+                    return rawText.substring(startIndex + labelLength, endIndex).trim();
+                };
+
+                const medsRaw = getSectionText(medicineIndex, 8);
+                const splitB = (t) => t.split(/[;|\n]/).map(i => i.trim()).filter(i => i.length > 1);
+                
+                return {
+                    meds: medsRaw ? medsRaw.split(/(?=\d+[\-\.])/g).filter(m => m.trim().length > 0).map(m => formatMedInstruction(m.trim())) : [],
+                    lab: splitB(getSectionText(labIndex, 13)),
+                    imaging: splitB(getSectionText(imagingIndex, 21)),
+                    procedure: splitB(getSectionText(procedureIndex, rawText.includes("* TTPT-VLTL:") ? 12 : 23))
+                };
+            };
+
+            const handleFileUpload = (e, fileType) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setLoading(true);
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const workbook = XLSX.read(new Uint8Array(event.target.result), { type: 'array' });
+                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                        if (fileType === 1) setFile1Data(jsonData); else setFile2Data(jsonData);
+                    } catch (error) { alert("Lỗi đọc Excel"); }
+                    finally { setLoading(false); e.target.value = ''; }
+                };
+                reader.readAsArrayBuffer(file);
+            };
+
+            const processData = () => {
+                setLoading(true);
+                const patientMap = new Map();
+                file1Data.forEach((row) => {
+                    const id = (row["MA_BENH_NHAN"] || row["Mã BN"] || row["MA_BN"])?.toString().trim();
+                    if (!id) return;
+                    const parsed = parseMedicalContent(row["CHAN_DOAN_KKB"] || row["GHICHU"]);
+                    const bhytVal = (row["SO_THE_BHYT"] || row["Số thẻ"] || row["SỐ THẺ BHYT"] || "N/A").toString().trim();
+                    
+                    patientMap.set(id, {
+                        id,
+                        name: (row["TEN_BENH_NHAN"] || row["TEN_BN"] || row["Họ tên"] || "N/A").toUpperCase(),
+                        age: row["TUOI"] || row["Tuổi"] || "N/A",
+                        gender: normalizeGender(row["GIOITINH"] || row["Giới tính"]),
+                        diagnosis: row["CHAN_DOAN"] || row["Chẩn đoán"] || "Chưa có chẩn đoán",
+                        ...parsed,
+                        address: row["DIA_CHI"] || row["Địa chỉ"] || "N/A",
+                        doctor: row["TEN_BAC_SI"] || row["Bác sĩ"] || "N/A",
+                        date: row["NGAYKB1"] || row["Ngày khám"] || "N/A",
+                        bhyt: bhytVal === "" ? "N/A" : bhytVal,
+                        dept: row["TEN_DV"] || row["Khoa khám"] || "N/A",
+                        phone: "N/A", weight: "-", cccd: "-", cared: false
+                    });
+                });
+
+                file2Data.forEach((row) => {
+                    const id = (row["Mã y tế"] || row["MA_BENH_NHAN"])?.toString().trim();
+                    if (!id) return;
+                    const p = patientMap.get(id);
+                    let phone = (row["Số điện thoại"] || row["SĐT"])?.toString().trim();
+                    if (phone && phone.length === 9 && !phone.startsWith('0')) phone = '0' + phone;
+                    if (p) {
+                        p.phone = phone || p.phone;
+                        p.weight = row["Cân nặng"] || p.weight;
+                        p.cccd = row["CCCD"] || p.cccd;
+                        if (row["Giới tính"]) p.gender = normalizeGender(row["Giới tính"]);
+                        if (row["Số thẻ"] && (p.bhyt === "N/A" || p.bhyt === "")) p.bhyt = row["Số thẻ"].toString().trim();
+                    }
+                });
+
+                setMergedData(Array.from(patientMap.values()));
+                setIsProcessed(true);
+                setLoading(false);
+            };
+
+            const toggleCare = (id, e) => {
+                if (e) e.stopPropagation();
+                setMergedData(prev => prev.map(p => p.id === id ? { ...p, cared: !p.cared } : p));
+            };
+
+            const resetData = () => {
+                if (!window.confirm("Xóa hồ sơ cũ để nhập mới?")) return;
+                localStorage.removeItem('y_duc_secure_storage_v10');
+                setMergedData([]); setIsProcessed(false); setFile1Data([]); setFile2Data([]);
+            };
+
+            const counts = useMemo(() => {
+                const all = mergedData.length;
+                const cared = mergedData.filter(p => p.cared).length;
+                const bhyt = mergedData.filter(p => p.bhyt && p.bhyt !== 'N/A' && p.bhyt.trim().length > 0).length;
+                const service = all - bhyt;
+                return { all, cared, pending: all - cared, bhyt, service };
+            }, [mergedData]);
+
+            const filteredPatients = useMemo(() => {
+                let list = mergedData;
+                if (filterStatus !== 'all') {
+                    list = list.filter(p => filterStatus === 'cared' ? p.cared : !p.cared);
+                }
+                if (typeFilter === 'bhyt') {
+                    list = list.filter(p => p.bhyt && p.bhyt !== 'N/A' && p.bhyt.trim().length > 0);
+                } else if (typeFilter === 'service') {
+                    list = list.filter(p => !p.bhyt || p.bhyt === 'N/A' || p.bhyt.trim().length === 0);
+                }
+                if (searchTerm.trim()) {
+                    const searchNormalized = removeAccents(searchTerm.toLowerCase());
+                    const searchKeywords = searchNormalized.split(/\s+/).filter(x => x.length > 0);
+                    list = list.filter(p => {
+                        const targetString = removeAccents(`${p.name} ${p.id} ${p.phone} ${p.diagnosis} ${p.address} ${p.doctor} ${p.bhyt}`).toLowerCase();
+                        return searchKeywords.every(word => targetString.includes(word));
+                    });
+                }
+                return list;
+            }, [mergedData, searchTerm, filterStatus, typeFilter]);
+
+            const stats = useMemo(() => {
+                const drs = {}; const dpts = {}; let m = 0; let f = 0;
+                mergedData.forEach(p => {
+                    const docName = p.doctor || "N/A";
+                    const deptName = p.dept || "N/A";
+                    drs[docName] = (drs[docName] || 0) + 1;
+                    dpts[deptName] = (dpts[deptName] || 0) + 1;
+                    if (p.gender === "Nam") m++; else f++;
+                });
+                return { 
+                    drs: Object.entries(drs).sort((a,b)=>b[1]-a[1]), 
+                    dpts: Object.entries(dpts).sort((a,b)=>b[1]-a[1]), 
+                    m, f 
+                };
+            }, [mergedData]);
+
+            // --- RENDER LOGIN SCREEN ---
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen bg-indigo-950 flex items-center justify-center p-6 overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-60 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute bottom-0 left-0 p-60 bg-emerald-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+                        
+                        <div className="max-w-md w-full login-fade relative z-10">
+                            <div className="bg-white p-10 rounded-[3rem] shadow-2xl border border-white/20 text-center space-y-8">
+                                <div className="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-700 mx-auto shadow-inner">
+                                    <Icon name="Lock" size={40} />
+                                </div>
+                                <div className="space-y-2">
+                                    <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-800 leading-none">Y ĐỨC SÀI GÒN</h1>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Hệ thống bảo mật CSKH</p>
+                                </div>
+                                
+                                <form onSubmit={handleLogin} className="space-y-4">
+                                    <div className="relative group">
+                                        <input 
+                                            type="password" 
+                                            placeholder="Nhập mã pin để mở khóa" 
+                                            className={`w-full px-6 py-4 rounded-2xl border-2 transition-all outline-none text-center font-bold tracking-[0.5em] text-lg ${loginError ? 'border-rose-500 bg-rose-50' : 'border-slate-100 focus:border-indigo-600 bg-slate-50'}`}
+                                            value={passInput}
+                                            onChange={(e) => setPassInput(e.target.value)}
+                                            autoFocus
+                                        />
+                                        {loginError && <p className="text-[10px] font-black text-rose-500 uppercase mt-2 animate-pulse">Mã Pin không chính xác</p>}
+                                    </div>
+                                    <button 
+                                        type="submit"
+                                        className="w-full py-4 bg-indigo-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-200 hover:bg-black active:scale-95 transition-all"
+                                    >
+                                        Mở khóa ứng dụng
+                                    </button>
+                                </form>
+                                
+                                <div className="pt-4 opacity-40">
+                                    <p className="text-[8px] font-black uppercase tracking-widest leading-none">{COPYRIGHT}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- RENDER MAIN APP ---
+            return (
+                <div className="min-h-screen flex flex-col overflow-hidden animate-in">
+                    <header className="glass-header sticky top-0 z-50 px-6 py-2.5 border-b border-white/10 text-white">
+                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setIsProcessed(false)}>
+                                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 group-hover:bg-white group-hover:text-slate-900 transition-all">
+                                    <Icon name="Heart" size={22} />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-extrabold tracking-tight italic leading-none">Y ĐỨC SÀI GÒN</h1>
+                                    <p className="text-[7px] font-bold opacity-40 uppercase tracking-[0.2em] mt-1 italic">{COPYRIGHT}</p>
+                                </div>
+                            </div>
+                            {isProcessed && (
+                                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner">
+                                    <button onClick={() => setActiveTab('list')} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-2 ${activeTab === 'list' ? 'bg-white text-slate-900 shadow-md' : 'text-white/60 hover:bg-white/10'}`}>
+                                        <Icon name="Layout" size={12}/> Danh sách
+                                    </button>
+                                    <button onClick={() => setActiveTab('stats')} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-2 ${activeTab === 'stats' ? 'bg-white text-slate-900 shadow-md' : 'text-white/60 hover:bg-white/10'}`}>
+                                        <Icon name="BarChart" size={12}/> Thống kê
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    <main className="max-w-7xl mx-auto p-4 md:p-5 flex-1 w-full overflow-y-auto custom-scroll">
+                        {!isProcessed ? (
+                            <div className="max-w-xl mx-auto py-10 animate-in">
+                                <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-200 text-center relative overflow-hidden group">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-500"></div>
+                                    <div className="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center text-medical-primary mx-auto mb-6 shadow-inner"><Icon name="Database" size={40}/></div>
+                                    <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase mb-2 leading-none">Cổng Kết Nối Dữ Liệu</h2>
+                                    <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mb-10 italic">Phòng bảo hiểm - Local Protected Mode</p>
+                                    <div className="grid grid-cols-2 gap-4 mb-10 font-black">
+                                        <div className="group relative p-6 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50 hover:border-indigo-600 hover:bg-white transition-all cursor-pointer">
+                                            <input type="file" accept=".xlsx, .xls, .csv" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => handleFileUpload(e, 1)} />
+                                            <Icon name="Notebook" size={32} className={`mx-auto mb-3 ${file1Data.length > 0 ? 'text-emerald-500' : 'text-slate-300'}`}/>
+                                            <p className="font-bold text-slate-500 text-[9px] uppercase tracking-tighter">1. Sổ khám bệnh</p>
+                                        </div>
+                                        <div className="group relative p-6 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50 hover:border-indigo-600 hover:bg-white transition-all cursor-pointer">
+                                            <input type="file" accept=".xlsx, .xls, .csv" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => handleFileUpload(e, 2)} />
+                                            <Icon name="Phone" size={32} className={`mx-auto mb-3 ${file2Data.length > 0 ? 'text-emerald-500' : 'text-slate-300'}`}/>
+                                            <p className="font-bold text-slate-500 text-[9px] uppercase tracking-tighter">2. Tiếp nhận hồ sơ</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={processData} disabled={file1Data.length === 0} className={`w-full py-5 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3 transition-all ${file1Data.length > 0 ? 'bg-indigo-900 text-white hover:bg-black active:scale-95' : 'bg-slate-100 text-slate-300 shadow-none'}`}>BẮT ĐẦU PHÂN TÍCH <Icon name="ArrowRight" size={20}/></button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-6 pb-24 animate-in">
+                                {activeTab === 'list' ? (
+                                    <>
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex flex-col lg:flex-row gap-4 items-center">
+                                                <div className="relative flex-1 w-full group">
+                                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors"><Icon name="Search" size={20}/></div>
+                                                    <input type="text" placeholder="Tra cứu tên bệnh nhân, SĐT, ID... (không dấu vẫn tìm được)" className="w-full pl-12 pr-6 py-4 rounded-2xl border-none shadow-md focus:ring-4 focus:ring-indigo-500/5 bg-white text-sm font-bold placeholder:text-slate-300" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+                                                </div>
+                                                <button onClick={resetData} className="p-4 bg-white rounded-xl text-slate-300 hover:text-rose-500 border border-slate-200 shadow-md active:scale-90" title="Nhập mới hồ sơ"><Icon name="Trash" size={18}/></button>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center gap-4">
+                                                <div className="flex bg-white p-1 rounded-xl shadow-md border border-slate-200 font-bold">
+                                                    {[{id:'all',l:'Toàn bộ'},{id:'pending',l:'Cần gọi'},{id:'cared',l:'Xong'}].map(s => (
+                                                        <button key={s.id} onClick={() => setFilterStatus(s.id)} className={`px-4 py-2 rounded-lg text-[9px] uppercase transition-all ${filterStatus === s.id ? `bg-indigo-900 text-white shadow-lg` : 'text-slate-400 hover:bg-slate-50'}`}>
+                                                            {s.l} <span className="ml-1 opacity-60">({s.id==='all'?counts.all:(s.id==='pending'?counts.pending:counts.cared)})</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="flex bg-white p-1 rounded-xl shadow-md border border-slate-200 font-bold">
+                                                    {[{id:'all',l:'Tất cả'},{id:'bhyt',l:'BHYT'},{id:'service',l:'Dịch vụ'}].map(t => (
+                                                        <button key={t.id} onClick={() => setTypeFilter(t.id)} className={`px-4 py-2 rounded-lg text-[9px] uppercase transition-all flex items-center gap-2 ${typeFilter === t.id ? `bg-blue-600 text-white shadow-lg` : 'text-slate-400 hover:bg-slate-50'}`}>
+                                                            {t.l} <span className={`px-1.5 py-0.5 rounded ${typeFilter === t.id ? 'bg-white/20' : 'bg-slate-100'}`}>{(t.id==='all'?counts.all:(t.id==='bhyt'?counts.bhyt:counts.service))}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {filteredPatients.map(p => (
+                                                <div key={p.id} onClick={() => setSelectedPatient(p)} className={`group premium-card p-4 cursor-pointer flex flex-col relative ${p.cared ? 'opacity-60 bg-slate-50' : 'bg-white'}`}>
+                                                    <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${p.bhyt && p.bhyt !== 'N/A' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                                                            {p.bhyt && p.bhyt !== 'N/A' ? 'BHYT' : 'Dịch vụ'}
+                                                        </span>
+                                                        <button onClick={(e) => toggleCare(p.id, e)} className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all check-pop ${p.cared ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-200' : 'bg-slate-50 border-slate-100 text-slate-200 hover:border-emerald-500 hover:text-emerald-500'}`}><Icon name="Check" size={20}/></button>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 mb-4 pr-20">
+                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0 ${p.gender === 'Nam' ? 'bg-indigo-600 text-white' : 'bg-rose-500 text-white'}`}>{p.name.charAt(0)}</div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="full-name font-black text-slate-800 text-[13px] uppercase leading-tight group-hover:text-indigo-600 transition-colors">{p.name}</h4>
+                                                            <div className="flex gap-2 mt-1 font-black uppercase text-[8px]">
+                                                                <span className={`px-1.5 py-0.5 rounded border ${p.gender === 'Nam' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>{p.gender}</span>
+                                                                <span className="text-slate-400">{p.age}t • ID: {p.id}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2 flex-1 mb-4 font-black">
+                                                        <div className="flex gap-2 items-start"><Icon name="Stethoscope" size={14} className="text-rose-400 mt-0.5 shrink-0"/><p className="text-[11px] font-bold text-slate-600 line-clamp-2 italic">"{p.diagnosis}"</p></div>
+                                                        <div className="flex gap-2 items-start"><Icon name="MapPin" size={14} className="text-slate-300 mt-0.5 shrink-0"/><p className="text-[10px] font-medium text-slate-400 line-clamp-1 italic tracking-tight">{p.address}</p></div>
+                                                    </div>
+                                                    <div className="pt-3 border-t border-slate-50 flex justify-between items-center">
+                                                        <div><span className="text-[7px] font-black text-slate-300 uppercase block mb-0.5 tracking-widest">SĐT Tư vấn</span><span className="text-base font-black text-indigo-900 tracking-tight flex items-center gap-1.5 leading-none"><Icon name="Phone" size={14}/> {p.phone}</span></div>
+                                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-700 group-hover:text-white transition-all"><Icon name="ArrowRight" size={16}/></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-8 animate-in">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            {[
+                                                { label: 'Hồ sơ BHYT', val: counts.bhyt, icon: 'IdCard', color: 'blue' },
+                                                { label: 'Hồ sơ Dịch vụ', val: counts.service, icon: 'Briefcase', color: 'amber' },
+                                                { label: 'Bệnh nhân Nam', val: stats.m, icon: 'User', color: 'indigo' },
+                                                { label: 'Bệnh nhân Nữ', val: stats.f, icon: 'User', color: 'rose' }
+                                            ].map((st, idx) => (
+                                                <div key={idx} className="bg-white p-5 rounded-3xl shadow-md border border-slate-200 flex items-center gap-4 hover:scale-[1.03] transition-transform">
+                                                    <div className={`w-12 h-12 bg-${st.color}-50 text-${st.color}-600 rounded-xl flex items-center justify-center shadow-inner`}><Icon name={st.icon} size={22}/></div>
+                                                    <div><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5 leading-none">{st.label}</p><h4 className="text-xl font-black text-slate-800 tracking-tight leading-none">{st.val}</h4></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            <div className="bg-white p-6 rounded-[2.5rem] shadow-lg border border-slate-200 flex flex-col max-h-[500px]">
+                                                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6 border-b border-slate-100 pb-3">Lượt khám theo Bác sĩ</h3>
+                                                <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scroll font-black text-[11px]">
+                                                    {stats.drs.map(([name, val], i) => (
+                                                        <div key={i} className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-indigo-700 hover:text-white rounded-2xl transition-all group">
+                                                            <div className="flex items-center gap-4"><span className="w-8 h-8 rounded-lg bg-white text-indigo-900 flex items-center justify-center font-black text-[10px] shadow-sm">{i+1}</span><span className="uppercase">{name}</span></div>
+                                                            <span className="px-3 py-1 bg-white rounded-lg font-black text-indigo-900 text-[10px] group-hover:bg-slate-900 group-hover:text-white transition-colors">{val} Lượt</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-[2.5rem] shadow-lg border border-slate-200 flex flex-col max-h-[500px]">
+                                                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6 border-b border-slate-100 pb-3">Lưu lượng Khoa/Phòng</h3>
+                                                <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scroll font-black text-[11px]">
+                                                    {stats.dpts.map(([name, val], i) => (
+                                                        <div key={i} className="flex items-center justify-between p-3.5 bg-emerald-50 hover:bg-emerald-700 hover:text-white rounded-2xl transition-all group border border-emerald-100">
+                                                            <div className="flex items-center gap-4"><div className="w-2 h-2 rounded-full bg-emerald-500 group-hover:bg-white animate-pulse"></div><span className="uppercase">{name}</span></div>
+                                                            <span className="px-3 py-1 bg-white rounded-lg font-black text-emerald-700 text-[10px] group-hover:bg-slate-900 group-hover:text-white transition-colors">{val} Lượt</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+
+                    <footer className="glass-header px-6 py-6 sticky bottom-0 z-40 text-white font-black shadow-2xl">
+                        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 leading-none">
+                            <div className="space-y-1.5 text-center md:text-left shrink-0">
+                                <p className="text-[8px] font-black opacity-30 uppercase tracking-[0.3em]">{COPYRIGHT}</p>
+                                <div className="flex items-center gap-3 justify-center md:justify-start">
+                                    <span className="px-3 py-1.5 bg-white/10 text-white text-[9px] rounded-full border border-white/10 italic tracking-widest uppercase">Y Đức Sài Gòn • Local V10 Protected</span>
+                                    <p className="text-[11px] opacity-70 italic tracking-tighter">Hệ thống Đối soát & CSKH Bảo mật</p>
+                                </div>
+                            </div>
+                            {isProcessed && (
+                                <div className="flex gap-10 font-black shrink-0 tracking-tighter text-center">
+                                    <div><p className="opacity-30 uppercase text-[8px] mb-1 tracking-widest">Tổng</p><p className="text-3xl leading-none">{counts.all}</p></div>
+                                    <div className="border-l border-white/10 pl-10"><p className="text-emerald-400 uppercase text-[8px] mb-1 tracking-widest">Xong</p><p className="text-3xl text-emerald-400 leading-none">{counts.cared}</p></div>
+                                    <div className="border-l border-white/10 pl-10"><p className="text-rose-400 uppercase text-[8px] mb-1 tracking-widest">Chờ</p><p className="text-3xl text-rose-400 leading-none animate-pulse">{counts.pending}</p></div>
+                                </div>
+                            )}
+                        </div>
+                    </footer>
+
+                    {selectedPatient && (
+                        <div className="fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-4 animate-in overflow-hidden" onClick={() => setSelectedPatient(null)}>
+                            <div className="bg-white w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-white/20" onClick={e => e.stopPropagation()}>
+                                <div className="bg-indigo-950 p-8 text-white shrink-0 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-20 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                                    <button onClick={() => setSelectedPatient(null)} className="absolute top-7 right-7 p-2 rounded-full bg-white/10 hover:bg-white/30 transition-all active:scale-90 shadow-xl border border-white/10 z-50"><Icon name="X" size={24}/></button>
+                                    
+                                    <div className="flex items-center gap-6 relative z-10">
+                                        <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center font-black text-4xl shadow-xl border border-white/10 backdrop-blur-md uppercase shrink-0">{selectedPatient.name.charAt(0)}</div>
+                                        <div className="min-w-0 pr-10">
+                                            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter italic leading-tight break-words">{selectedPatient.name}</h2>
+                                            <div className="flex flex-wrap gap-2.5 mt-3 font-black text-[9px] uppercase tracking-widest opacity-90">
+                                                <span className="bg-white/10 px-3 py-1 rounded-lg border border-white/5 flex items-center gap-1.5"><Icon name="IdCard" size={12}/> ID: {selectedPatient.id}</span>
+                                                <span className="bg-white/10 px-3 py-1 rounded-lg border border-white/5 uppercase">{selectedPatient.gender} • {selectedPatient.age} Tuổi</span>
+                                                <span className={`px-3 py-1 rounded-lg border flex items-center gap-1.5 ${selectedPatient.bhyt !== "N/A" ? 'bg-blue-500' : 'bg-amber-600'} shadow-lg`}>{selectedPatient.bhyt !== "N/A" ? 'BHYT' : 'Dịch vụ'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-8 overflow-y-auto bg-[#F8FAFC]/50 flex-1 space-y-8 custom-scroll font-medium">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-black">
+                                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
+                                            <h3 className="text-[9px] font-black text-indigo-700 uppercase tracking-widest border-b pb-3 flex items-center gap-2 italic"><Icon name="User" size={14}/> Hồ sơ hành chính</h3>
+                                            <div className="space-y-3.5 text-sm font-black">
+                                                <div className="flex justify-between items-center border-b border-slate-50 pb-2"><span className="text-slate-400 text-[10px]">ĐIỆN THOẠI</span><span className="text-indigo-900 text-2xl tracking-tighter leading-none">{selectedPatient.phone}</span></div>
+                                                <div className="flex justify-between items-center border-b border-slate-50 pb-2"><span className="text-slate-400 text-[10px]">GIỚI TÍNH</span><span className="uppercase text-slate-800 tracking-widest text-[11px] font-bold">{selectedPatient.gender}</span></div>
+                                                <div className="flex justify-between items-center border-b border-slate-50 pb-2"><span className="text-slate-400 text-[10px]">MÃ THẺ BHYT</span><span className="font-mono text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">{selectedPatient.bhyt}</span></div>
+                                                <div className="flex justify-between items-center border-b border-slate-50 pb-2"><span className="text-slate-400 text-[10px]">CĂN CƯỚC (CCCD)</span><span className="text-slate-800 tracking-tighter text-[13px]">{selectedPatient.cccd}</span></div>
+                                                <div className="py-1"><span className="text-slate-400 text-[10px] block mb-1 uppercase tracking-widest">Địa chỉ liên hệ</span><span className="text-slate-600 italic text-[11px] block leading-relaxed">{selectedPatient.address}</span></div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-4 font-black">
+                                            <h3 className="text-[9px] font-black text-emerald-700 uppercase tracking-widest border-b pb-3 flex items-center gap-2 italic"><Icon name="Heart" size={14}/> Nhật ký lượt khám</h3>
+                                            <div className="space-y-3.5 text-[13px]">
+                                                <div className="flex justify-between border-b border-slate-50 pb-2"><span className="text-slate-400 text-[10px]">BÁC SĨ PHỤ TRÁCH</span><span className="text-slate-800 uppercase text-[12px]">{selectedPatient.doctor}</span></div>
+                                                <div className="flex justify-between border-b border-slate-50 pb-2"><span className="text-slate-400 text-[10px]">KHOA / PHÒNG</span><span className="text-emerald-700 text-[10px] bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100 uppercase tracking-tighter leading-none">{selectedPatient.dept}</span></div>
+                                                <div className="flex justify-between border-b border-slate-50 pb-2"><span className="text-slate-400 text-[10px]">THỜI GIAN TIẾP NHẬN</span><span className="text-slate-700">{selectedPatient.date}</span></div>
+                                                <div className="flex justify-between items-center"><span className="text-slate-400 text-[10px]">TRỌNG LƯỢNG CƠ THỂ</span><span className="bg-blue-50 text-indigo-700 px-4 py-1 rounded-xl text-[11px] border border-blue-100 italic">{selectedPatient.weight} KG</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-rose-50/50 p-8 rounded-[2.5rem] border-2 border-rose-100/50 text-center shadow-inner relative">
+                                        <h3 className="text-[8px] font-black text-rose-500 uppercase tracking-widest mb-2 flex justify-center gap-2 items-center"><Icon name="Stethoscope" size={12}/> Chẩn đoán của bác sĩ điều trị</h3>
+                                        <p className="text-lg font-black text-slate-800 italic leading-snug tracking-tight uppercase">"{selectedPatient.diagnosis}"</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-12 font-black">
+                                        <div className="bg-white p-8 rounded-[2.5rem] border-2 border-emerald-100 shadow-xl relative overflow-hidden group">
+                                            <h3 className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.2em] mb-8 border-b border-emerald-50 pb-4 flex items-center gap-3 italic"><Icon name="Pill" size={18}/> Đơn thuốc & Hướng dẫn sử dụng</h3>
+                                            <div className="space-y-5 relative z-10">
+                                                {selectedPatient.meds.length > 0 ? selectedPatient.meds.map((m, i) => (
+                                                    <div key={i} className="p-5 bg-emerald-50/30 rounded-[2rem] border border-emerald-100/20 hover:bg-emerald-50 transition-all shadow-sm">
+                                                        <p className="text-[12px] font-black text-slate-900 uppercase leading-tight mb-3 tracking-tighter">{m.name}</p>
+                                                        <div className="flex justify-between items-center bg-white px-4 py-2 rounded-xl border border-emerald-100 shadow-sm">
+                                                            <span className="text-[12px] font-extrabold text-emerald-700 italic leading-none">{m.instruction}</span>
+                                                            <span className="text-[9px] text-slate-400 uppercase tracking-[0.1em] border-l border-slate-50 pl-3 ml-3 shrink-0 font-black">{m.days}</span>
+                                                        </div>
+                                                    </div>
+                                                )) : <p className="text-xs text-slate-300 font-black italic uppercase tracking-widest text-center py-5">Không có dữ liệu đơn thuốc</p>}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-8 font-black">
+                                            <div className="bg-white p-7 rounded-[2.5rem] border border-blue-100 shadow-xl">
+                                                <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-6 border-b border-blue-50 pb-4 flex items-center gap-2 italic"><Icon name="Flask" size={16}/> Chỉ định Xét nghiệm & CĐHA</h3>
+                                                <div className="space-y-3.5 relative z-10">
+                                                    {[...selectedPatient.lab, ...selectedPatient.imaging].map((item, i) => (
+                                                        <div key={i} className="text-[12px] text-slate-700 flex items-start gap-4 p-3 bg-blue-50/30 rounded-2xl border border-blue-100 group">
+                                                            <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0 shadow-lg border-2 border-white animate-pulse"></span> {item}
+                                                        </div>
+                                                    ))}
+                                                    {selectedPatient.lab.length + selectedPatient.imaging.length === 0 && <p className="text-xs text-slate-300 font-black italic tracking-widest text-center">N/A</p>}
+                                                </div>
+                                            </div>
+                                            <div className="bg-white p-7 rounded-[2.5rem] border border-rose-100 shadow-xl">
+                                                <h3 className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-6 border-b border-rose-50 pb-4 flex items-center gap-2 italic">Thủ thuật / Phẫu thuật</h3>
+                                                <div className="space-y-3.5 relative z-10">
+                                                    {selectedPatient.procedure.map((item, i) => (
+                                                        <div key={i} className="text-[12px] text-slate-700 flex items-start gap-4 p-3 bg-rose-50/30 rounded-2xl border border-rose-100">
+                                                            <span className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0 shadow-lg border-2 border-white"></span> {item}
+                                                        </div>
+                                                    ))}
+                                                    {selectedPatient.procedure.length === 0 && <p className="text-xs text-slate-300 font-black italic tracking-widest text-center">N/A</p>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-8 bg-slate-50 border-t flex flex-col md:flex-row gap-5 shrink-0 shadow-inner">
+                                    <button onClick={(e) => {toggleCare(selectedPatient.id, e); setSelectedPatient(null);}} className={`flex-1 py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all shadow-xl active:scale-95 ${selectedPatient.cared ? 'bg-slate-300 text-slate-600 shadow-none' : 'bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700'}`}>
+                                        {selectedPatient.cared ? 'Hủy đánh dấu CSKH' : 'Xác nhận chăm sóc thành công'}
+                                    </button>
+                                    {selectedPatient.phone !== "N/A" && (
+                                        <a href={`tel:${selectedPatient.phone}`} className="flex-1 bg-indigo-950 text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] text-center flex items-center justify-center gap-3 shadow-xl shadow-indigo-300 hover:bg-black transition-all active:scale-95">
+                                            <Icon name="Phone" size={20}/> Kết nối cuộc gọi ngay
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
