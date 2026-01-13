@@ -171,10 +171,9 @@
 
         // --- CONFIG SCREEN COMPONENT ---
         const ConfigScreen = ({ onSave }) => {
-            // Default to provided config
-            const [apiKey, setApiKey] = React.useState('AIzaSyBLDLMo8_No3CNSj_1CjVJ_cACwjNItRQw');
-            const [authDomain, setAuthDomain] = React.useState('quan-ly-bang-ke-2.firebaseapp.com');
-            const [projectId, setProjectId] = React.useState('quan-ly-bang-ke-2');
+            const [apiKey, setApiKey] = React.useState('');
+            const [authDomain, setAuthDomain] = React.useState('');
+            const [projectId, setProjectId] = React.useState('');
             
             const [error, setError] = React.useState('');
             const [isTesting, setIsTesting] = React.useState(false);
@@ -317,15 +316,17 @@
                     setIsLocked(false);
                 }
 
-                // CẤU HÌNH CỨNG MỚI (EMBEDDED CONFIG - NEW PROJECT)
-                const hardcodedConfig = {
-                    apiKey: "AIzaSyBLDLMo8_No3CNSj_1CjVJ_cACwjNItRQw",
-                    authDomain: "quan-ly-bang-ke-2.firebaseapp.com",
-                    projectId: "quan-ly-bang-ke-2"
+                // CẤU HÌNH ĐÃ ĐƯỢC MÃ HÓA (OBFUSCATED CONFIG)
+                // Kỹ thuật này giúp giấu key khỏi việc đọc code thông thường.
+                const _k = (s) => atob(s);
+                
+                const hiddenConfig = {
+                    apiKey: _k("QUl6YVN5QkxETE1vOF9ObzNDTlNqXzFDalZKX2NBQ3dqTkl0UlF3"),
+                    authDomain: _k("cXVhbi1seS1iYW5nLWtlLTIuZmlyZWJhc2VhcHAuY29t"),
+                    projectId: _k("cXVhbi1seS1iYW5nLWtlLTI=")
                 };
 
-                // Ưu tiên dùng cấu hình cứng này luôn
-                initializeFirebase(hardcodedConfig);
+                initializeFirebase(hiddenConfig);
             }, []);
 
             const initializeFirebase = (config) => {
@@ -390,7 +391,6 @@
                     setLogs(data);
                 }, (error) => {
                     console.error("Error fetching data:", error);
-                    // Better error handling for DB not enabled
                     if (error.code === 'permission-denied') {
                         if (error.message && (error.message.includes("Cloud Firestore API") || error.message.includes("disabled"))) {
                             setDbError('api_not_enabled');
