@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BHYT Checker Pro + Gemini AI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-h-screen;
+        }
+        
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-input {
+            background: rgba(243, 244, 246, 0.8);
+            border: 1px solid rgba(209, 213, 219, 1);
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus {
+            background: white;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            outline: none;
+        }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        .spinner { border-top-color: transparent; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* AI Markdown Styles */
+        .prose h1, .prose h2, .prose h3 { color: #4c1d95; font-weight: 700; margin-top: 1em; margin-bottom: 0.5em; }
+        .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+        .prose li { margin-bottom: 0.25em; }
+        .prose p { margin-bottom: 0.75em; line-height: 1.6; }
+        .prose strong { color: #1e3a8a; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <!-- === AUTHENTICATION SCREEN (LOGIN / SETUP) === -->
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-800">
+        <!-- Login Form -->
+        <div id="login-form" class="hidden w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 animate-fade-in text-center">
+            <div class="mb-6">
+                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 shadow-inner">
+                    <i class="fa-solid fa-lock text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Chào mừng trở lại</h2>
+                <p class="text-gray-500 text-sm mt-1">Vui lòng nhập mật khẩu để truy cập</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div class="relative">
+                    <i class="fa-solid fa-key absolute left-4 top-3.5 text-gray-400"></i>
+                    <input type="password" id="login-password" class="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-gray-700" placeholder="Nhập mật khẩu..." required>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transform transition hover:-translate-y-0.5">
+                    Mở Khóa
+                </button>
+            </form>
+            <p id="login-error" class="text-red-500 text-sm mt-3 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Mật khẩu không đúng!</p>
+        </div>
+
+        <!-- Setup Form (First Time) -->
+        <div id="setup-form" class="hidden w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 animate-fade-in text-center">
+            <div class="mb-6">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 shadow-inner">
+                    <i class="fa-solid fa-shield-halved text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Thiết lập bảo mật</h2>
+                <p class="text-gray-500 text-sm mt-1">Tạo mật khẩu để bảo vệ dữ liệu của bạn</p>
+            </div>
+            <form onsubmit="handleSetup(event)" class="space-y-4">
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-3.5 text-gray-400"></i>
+                    <input type="password" id="setup-pass" class="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-gray-700" placeholder="Mật khẩu mới..." required>
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-check absolute left-4 top-3.5 text-gray-400"></i>
+                    <input type="password" id="setup-confirm" class="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-gray-700" placeholder="Nhập lại mật khẩu..." required>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-bold py-3 rounded-xl shadow-lg transform transition hover:-translate-y-0.5">
+                    Tạo Mật Khẩu
+                </button>
+            </form>
+            <p id="setup-error" class="text-red-500 text-sm mt-3 hidden"></p>
+        </div>
+    </div>
+
+    <!-- === MAIN DASHBOARD (HIDDEN UNTIL LOGIN) === -->
+    <div id="main-app" class="hidden flex-grow flex flex-col p-4 md:p-6">
+        
+        <!-- Header Container -->
+        <div class="glass-panel rounded-2xl p-4 mb-6 flex flex-col md:flex-row justify-between items-center text-gray-800">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <i class="fa-solid fa-file-medical-pulse text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">BHYT Checker <span class="text-blue-600">Pro</span> <span class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 shadow-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Gemini AI</span></h1>
+                    <p class="text-gray-500 text-xs font-medium">Công cụ kiểm tra & rà soát lỗi hồ sơ thông minh</p>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-4 md:mt-0">
+                <button onclick="openApiKeyModal()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 border border-purple-200 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-key mr-2"></i> Cài đặt AI Key
+                </button>
+                <button onclick="openChangePasswordModal()" class="bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-lock mr-2"></i> Đổi MK
+                </button>
+                <button onclick="logout()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center shadow-sm">
+                    <i class="fa-solid fa-right-from-bracket mr-2"></i> Thoát
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="glass-panel rounded-2xl p-6 flex-grow flex flex-col shadow-xl">
+            
+            <!-- Upload Area -->
+            <div class="mb-6">
+                <div id="drop-zone" class="border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 hover:bg-blue-50/50 hover:border-blue-400 transition-all duration-300 h-32 flex flex-col items-center justify-center cursor-pointer group relative">
+                    <input type="file" id="fileInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".csv, .xlsx, .xls">
+                    <div class="text-center pointer-events-none group-hover:scale-105 transition-transform duration-300">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-400 group-hover:text-blue-600 mb-2 transition-colors"></i>
+                        <p class="text-gray-600 font-medium text-sm">Kéo thả file Excel/CSV hoặc <span class="text-blue-600 underline">click để chọn</span></p>
+                        <p class="text-gray-400 text-xs mt-2 italic"><i class="fa-solid fa-circle-info mr-1"></i>Dùng file xuất từ XML 130 - Bảng 1 Tổng hợp KCB</p>
+                    </div>
+                </div>
+                <div id="loading" class="hidden mt-4 flex items-center justify-center text-blue-600 gap-2 bg-blue-50 py-2 rounded-lg">
+                    <div class="w-5 h-5 border-2 border-blue-600 rounded-full spinner"></div>
+                    <span class="font-medium text-sm">Hệ thống đang phân tích dữ liệu...</span>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div id="stats-container" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-xl border border-blue-100 shadow-sm">
+                    <div class="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">Tổng hồ sơ</div>
+                    <div class="text-2xl font-bold text-gray-800" id="total-rows">0</div>
+                </div>
+                <div class="bg-gradient-to-br from-green-50 to-white p-4 rounded-xl border border-green-100 shadow-sm">
+                    <div class="text-green-500 text-xs font-bold uppercase tracking-wider mb-1">Hợp lệ</div>
+                    <div class="text-2xl font-bold text-gray-800" id="valid-rows">0</div>
+                </div>
+                <div class="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl border border-red-100 shadow-sm">
+                    <div class="text-red-500 text-xs font-bold uppercase tracking-wider mb-1">Có lỗi</div>
+                    <div class="text-2xl font-bold text-gray-800" id="error-rows">0</div>
+                </div>
+                <div class="bg-gradient-to-br from-yellow-50 to-white p-4 rounded-xl border border-yellow-100 shadow-sm">
+                    <div class="text-yellow-600 text-xs font-bold uppercase tracking-wider mb-1">Lỗi thời gian</div>
+                    <div class="text-2xl font-bold text-gray-800" id="time-errors">0</div>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div id="main-interface" class="hidden flex-grow flex flex-col">
+                <div class="flex space-x-1 bg-gray-100/80 p-1 rounded-xl mb-4 self-start">
+                    <button onclick="switchTab('error')" id="error-tab-btn" class="px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-all bg-white text-red-600 flex items-center">
+                        <i class="fa-solid fa-triangle-exclamation mr-2"></i>DS Lỗi
+                    </button>
+                    <button onclick="switchTab('ai')" id="ai-tab-btn" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-purple-600 hover:text-purple-700 hover:bg-white/50 transition-all flex items-center">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI Phân Tích ✨
+                    </button>
+                    <button onclick="switchTab('all')" id="all-tab-btn" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-700 hover:bg-white/50 transition-all flex items-center">
+                        <i class="fa-solid fa-list mr-2"></i>Tra Cứu
+                    </button>
+                </div>
+
+                <!-- Content Area -->
+                <div class="relative flex-grow overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    
+                    <!-- Error Tab -->
+                    <div id="error-tab-content" class="absolute inset-0 flex flex-col">
+                        <div class="p-3 bg-gray-50 border-b flex justify-between items-center">
+                            <h3 class="font-bold text-gray-700 text-sm">Chi tiết lỗi phát hiện</h3>
+                            <button onclick="exportTableToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow transition flex items-center">
+                                <i class="fa-solid fa-file-excel mr-1.5"></i> Xuất Excel
+                            </button>
+                        </div>
+                        <div class="flex-grow overflow-auto">
+                            <table class="w-full text-sm text-left text-gray-600" id="error-table">
+                                <thead class="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-4 py-3 font-medium">Dòng</th>
+                                        <th class="px-4 py-3 font-medium text-center">Xem</th>
+                                        <th class="px-4 py-3 font-medium">Mã BN</th>
+                                        <th class="px-4 py-3 font-medium">Họ Tên</th>
+                                        <th class="px-4 py-3 font-medium">Vào/Ra</th>
+                                        <th class="px-4 py-3 font-medium text-center">Phút</th>
+                                        <th class="px-4 py-3 font-medium">Nội dung lỗi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- AI Analysis Tab -->
+                    <div id="ai-tab-content" class="hidden absolute inset-0 flex flex-col bg-slate-50 overflow-auto p-6">
+                        <!-- AI Header & Actions -->
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-purple-800"><i class="fa-solid fa-robot mr-2"></i>Gemini Insights</h3>
+                                <p class="text-sm text-gray-500">Phân tích dữ liệu thông minh và phát hiện bất thường</p>
+                            </div>
+                            <button onclick="generateAIReport()" id="btn-generate-report" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-full shadow-lg transform transition hover:scale-105 flex items-center font-bold">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Tạo Báo Cáo Tổng Hợp
+                            </button>
+                        </div>
+
+                        <!-- Gemini Report Container -->
+                        <div id="gemini-report-container" class="hidden mb-8 bg-white p-6 rounded-2xl shadow-lg border border-purple-100 relative">
+                             <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fa-solid fa-quote-right text-6xl text-purple-900"></i></div>
+                             <h4 class="font-bold text-gray-800 mb-4 border-b pb-2">Báo Cáo Tự Động (Bởi Gemini AI)</h4>
+                             <div id="gemini-content" class="prose prose-sm max-w-none text-gray-700">
+                                <!-- AI Content will be injected here -->
+                             </div>
+                             <div id="gemini-loading" class="hidden py-8 flex flex-col items-center justify-center text-purple-600">
+                                <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full spinner mb-3"></div>
+                                <span class="animate-pulse">Đang viết báo cáo...</span>
+                             </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Local Stats Summary (Existing Logic) -->
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-purple-100 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 z-0"></div>
+                                <h3 class="font-bold text-purple-800 text-lg mb-3 relative z-10">Tổng Quan Dữ Liệu</h3>
+                                <div id="ai-summary-text" class="text-sm text-gray-600 space-y-2 relative z-10">
+                                    Đang phân tích dữ liệu...
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between relative z-10">
+                                    <span class="text-xs text-gray-400 font-medium uppercase">Điểm Chất Lượng</span>
+                                    <span id="data-score" class="text-2xl font-bold text-purple-600">--/100</span>
+                                </div>
+                            </div>
+
+                            <!-- Distribution Stats -->
+                            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                <h3 class="font-bold text-gray-700 text-sm mb-4"><i class="fa-solid fa-chart-pie mr-2 text-blue-500"></i>Phân bố thời gian khám</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1"><span>Siêu nhanh (< 10p)</span><span id="stat-fast" class="font-bold">0</span></div>
+                                        <div class="w-full bg-gray-100 rounded-full h-2"><div id="bar-fast" class="bg-red-400 h-2 rounded-full" style="width: 0%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1"><span>Trung bình (10-30p)</span><span id="stat-avg" class="font-bold">0</span></div>
+                                        <div class="w-full bg-gray-100 rounded-full h-2"><div id="bar-avg" class="bg-blue-400 h-2 rounded-full" style="width: 0%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1"><span>Lâu (> 30p)</span><span id="stat-long" class="font-bold">0</span></div>
+                                        <div class="w-full bg-gray-100 rounded-full h-2"><div id="bar-long" class="bg-green-400 h-2 rounded-full" style="width: 0%"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Anomaly Patterns -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                            <h3 class="font-bold text-gray-800 text-sm mb-4 flex items-center">
+                                <i class="fa-solid fa-magnifying-glass-chart mr-2 text-orange-500"></i>Cảnh Báo Nâng Cao & Mẫu Lặp
+                            </h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-600">
+                                    <thead class="text-xs text-gray-500 uppercase bg-orange-50/50">
+                                        <tr>
+                                            <th class="px-4 py-2">Loại Cảnh Báo</th>
+                                            <th class="px-4 py-2">Mức Độ</th>
+                                            <th class="px-4 py-2">Chi Tiết</th>
+                                            <th class="px-4 py-2 text-right">Số Lượng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ai-patterns-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- All Tab -->
+                    <div id="all-tab-content" class="hidden absolute inset-0 flex flex-col">
+                        <div class="p-3 bg-gray-50 border-b flex flex-col md:flex-row justify-between items-center gap-2">
+                            <div class="relative w-full md:w-64">
+                                <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" id="searchInput" onkeyup="searchTable()" class="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Tìm tên hoặc mã BN...">
+                            </div>
+                            <span class="text-xs text-gray-400 italic">Hiển thị 100 kết quả đầu</span>
+                        </div>
+                        <div class="flex-grow overflow-auto">
+                            <table class="w-full text-sm text-left text-gray-600">
+                                <thead class="text-xs text-gray-500 uppercase bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-4 py-3 font-medium">Dòng</th>
+                                        <th class="px-4 py-3 font-medium text-center">Chi tiết</th>
+                                        <th class="px-4 py-3 font-medium">Mã BN</th>
+                                        <th class="px-4 py-3 font-medium">Họ Tên</th>
+                                        <th class="px-4 py-3 font-medium">Ngày Vào</th>
+                                        <th class="px-4 py-3 font-medium">Ngày Ra</th>
+                                        <th class="px-4 py-3 font-medium">Chẩn Đoán</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-table-body" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="intro-message" class="text-center py-12">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                    <i class="fa-solid fa-folder-open text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-600">Chưa có dữ liệu</h3>
+                <p class="text-gray-400 text-sm mt-1">Vui lòng tải lên file để bắt đầu làm việc</p>
+            </div>
+
+        </div>
+        <div class="text-center mt-4 text-white/60 text-xs font-light">
+            &copy; 2025 BHYT Checker Pro + Gemini Integration
+        </div>
+    </div>
+
+    <!-- DETAIL MODAL -->
+    <div id="detail-modal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in overflow-hidden">
+            <div class="flex justify-between items-center p-5 border-b bg-gray-50">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800" id="modal-title">Chi Tiết Hồ Sơ</h3>
+                    <p class="text-xs text-gray-500" id="modal-subtitle">Dòng số: #</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="askGeminiAboutCase()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-lg text-sm font-bold transition flex items-center">
+                        <i class="fa-solid fa-stethoscope mr-2"></i> Hỏi ý kiến AI
+                    </button>
+                    <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto bg-white flex-grow relative">
+                <!-- AI Case Analysis Result -->
+                <div id="case-ai-response" class="hidden mb-4 bg-purple-50 p-4 rounded-xl border border-purple-200 text-sm text-gray-700">
+                    <div class="font-bold text-purple-800 mb-2 flex items-center"><i class="fa-solid fa-user-doctor mr-2"></i>Nhận định từ AI:</div>
+                    <div id="case-ai-content" class="prose prose-sm max-w-none"></div>
+                </div>
+                
+                <div id="modal-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+            <div class="p-4 border-t bg-gray-50 flex justify-end">
+                <button onclick="closeModal()" class="px-6 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm font-medium transition shadow-lg">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API KEY MODAL -->
+    <div id="apikey-modal" class="hidden fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">Cài đặt Gemini API Key</h3>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Để sử dụng các tính năng AI, bạn cần nhập API Key từ Google AI Studio (miễn phí).</p>
+            <form onsubmit="saveApiKey(event)" class="space-y-4">
+                <input type="password" id="input-api-key" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Nhập API Key của bạn (bắt đầu bằng AIza...)" required>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="document.getElementById('apikey-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Hủy</button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium">Lưu Key</button>
+                </div>
+            </form>
+            <div class="mt-4 pt-4 border-t text-xs text-gray-400 text-center">
+                Key được lưu an toàn trên trình duyệt của bạn.
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-purple-600 hover:underline">Lấy Key tại đây</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHANGE PASSWORD MODAL -->
+    <div id="change-pass-modal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Đổi Mật Khẩu</h3>
+            <form onsubmit="handleChangePassword(event)" class="space-y-4">
+                <input type="password" id="new-pass" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Mật khẩu mới" required>
+                <input type="password" id="new-pass-confirm" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Xác nhận mật khẩu mới" required>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="document.getElementById('change-pass-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Hủy</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- AUTH & CONFIG SYSTEM ---
+        const PASSWORD_KEY = 'bhyt_app_password';
+        const API_KEY_STORAGE = 'bhyt_gemini_api_key';
+        
+        function initAuth() {
+            const savedPass = localStorage.getItem(PASSWORD_KEY);
+            const authScreen = document.getElementById('auth-screen');
+            const loginForm = document.getElementById('login-form');
+            const setupForm = document.getElementById('setup-form');
+
+            if (!savedPass) {
+                setupForm.classList.remove('hidden');
+            } else {
+                loginForm.classList.remove('hidden');
+            }
+        }
+
+        // ... (Auth functions same as before)
+        function handleSetup(e) {
+            e.preventDefault();
+            const pass = document.getElementById('setup-pass').value;
+            const confirm = document.getElementById('setup-confirm').value;
+            const error = document.getElementById('setup-error');
+            if (pass.length < 4) { error.textContent = "Mật khẩu quá ngắn (tối thiểu 4 ký tự)"; error.classList.remove('hidden'); return; }
+            if (pass !== confirm) { error.textContent = "Mật khẩu xác nhận không khớp"; error.classList.remove('hidden'); return; }
+            localStorage.setItem(PASSWORD_KEY, pass); alert("Đã tạo mật khẩu thành công!"); showMainApp();
+        }
+        function handleLogin(e) {
+            e.preventDefault();
+            const inputPass = document.getElementById('login-password').value;
+            const savedPass = localStorage.getItem(PASSWORD_KEY);
+            if (inputPass === savedPass) { showMainApp(); } else {
+                const error = document.getElementById('login-error'); error.classList.remove('hidden');
+                const input = document.getElementById('login-password'); input.classList.add('border-red-500'); setTimeout(() => input.classList.remove('border-red-500'), 500);
+            }
+        }
+        function showMainApp() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('animate-fade-in');
+        }
+        function logout() { if(confirm('Bạn có chắc muốn đăng xuất?')) { location.reload(); } }
+        function openChangePasswordModal() { document.getElementById('change-pass-modal').classList.remove('hidden'); }
+        function handleChangePassword(e) {
+            e.preventDefault(); const pass = document.getElementById('new-pass').value; const confirm = document.getElementById('new-pass-confirm').value;
+            if (pass.length < 4) { alert("Mật khẩu phải từ 4 ký tự trở lên"); return; }
+            if (pass !== confirm) { alert("Mật khẩu xác nhận không khớp"); return; }
+            localStorage.setItem(PASSWORD_KEY, pass); alert("Đổi mật khẩu thành công!"); document.getElementById('change-pass-modal').classList.add('hidden');
+        }
+
+        // --- API KEY MANAGEMENT ---
+        function openApiKeyModal() {
+            const existingKey = localStorage.getItem(API_KEY_STORAGE);
+            if(existingKey) document.getElementById('input-api-key').value = existingKey;
+            document.getElementById('apikey-modal').classList.remove('hidden');
+        }
+
+        function saveApiKey(e) {
+            e.preventDefault();
+            const key = document.getElementById('input-api-key').value.trim();
+            if(key) {
+                localStorage.setItem(API_KEY_STORAGE, key);
+                alert("Đã lưu API Key thành công!");
+                document.getElementById('apikey-modal').classList.add('hidden');
+            }
+        }
+
+        // --- GEMINI AI INTEGRATION ---
+        async function callGeminiAPI(promptText) {
+            const apiKey = localStorage.getItem(API_KEY_STORAGE);
+            if (!apiKey) {
+                openApiKeyModal();
+                throw new Error("Missing API Key");
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error?.message || "Lỗi kết nối Gemini");
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Gemini Error:", error);
+                throw error;
+            }
+        }
+
+        // Feature 1: Generate General Report
+        async function generateAIReport() {
+            const reportContainer = document.getElementById('gemini-report-container');
+            const loading = document.getElementById('gemini-loading');
+            const content = document.getElementById('gemini-content');
+            
+            reportContainer.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            content.innerHTML = ''; // Clear previous
+
+            // Gather stats
+            const total = document.getElementById('total-rows').innerText;
+            const valid = document.getElementById('valid-rows').innerText;
+            const errors = document.getElementById('error-rows').innerText;
+            const timeErrors = document.getElementById('time-errors').innerText;
+            const fast = document.getElementById('stat-fast').innerText;
+            const score = document.getElementById('data-score').innerText;
+
+            // Gather top error patterns from table (first 5 rows)
+            const errorTable = document.getElementById('table-body');
+            let errorSamples = [];
+            for(let i=0; i < Math.min(5, errorTable.rows.length); i++) {
+                const row = errorTable.rows[i];
+                if(row && row.cells.length > 6) {
+                     errorSamples.push(row.cells[6].innerText.replace(/\n/g, '; '));
+                }
+            }
+
+            const prompt = `
+                Đóng vai một chuyên gia quản lý chất lượng bệnh viện.
+                Hãy viết một báo cáo ngắn gọn (khoảng 200-300 từ) bằng tiếng Việt dựa trên dữ liệu kiểm tra hồ sơ BHYT dưới đây:
+                - Tổng số hồ sơ: ${total}
+                - Hợp lệ: ${valid}
+                - Có lỗi dữ liệu (thiếu trường, sai định dạng): ${errors}
+                - Lỗi thời gian khám (quá nhanh hoặc sai logic): ${timeErrors}
+                - Số ca khám siêu nhanh (<10p): ${fast}
+                - Điểm chất lượng dữ liệu: ${score}
+                
+                Một số lỗi cụ thể ghi nhận được:
+                ${errorSamples.map(e => "- " + e).join('\n')}
+
+                Yêu cầu: 
+                1. Đánh giá chung về tình trạng dữ liệu.
+                2. Nhận xét về tính hợp lý của thời gian khám bệnh.
+                3. Đề xuất các biện pháp khắc phục cụ thể cho nhân viên nhập liệu hoặc quy trình khám.
+                Sử dụng định dạng Markdown.
+            `;
+
+            try {
+                const mdText = await callGeminiAPI(prompt);
+                content.innerHTML = marked.parse(mdText);
+            } catch (error) {
+                content.innerHTML = `<p class="text-red-500">Không thể tạo báo cáo: ${error.message}</p>`;
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        // Feature 2: Analyze Specific Case
+        let currentModalRowIndex = -1; // Track which row is open
+
+        async function askGeminiAboutCase() {
+            if (currentModalRowIndex === -1) return;
+            const row = globalData[currentModalRowIndex];
+            
+            const aiResponseDiv = document.getElementById('case-ai-response');
+            const aiContent = document.getElementById('case-ai-content');
+            
+            aiResponseDiv.classList.remove('hidden');
+            aiContent.innerHTML = '<span class="text-gray-500 italic"><i class="fa-solid fa-spinner fa-spin mr-2"></i>AI đang phân tích hồ sơ này...</span>';
+
+            const diagnosis = row['CHAN_DOAN_VAO'] || row['MA_BENH_CHINH'] || 'Không rõ';
+            const reason = row['LY_DO_VV'] || 'Không rõ';
+            const timeIn = row['NGAY_VAO'];
+            const timeOut = row['NGAY_RA'];
+            
+            let timeInfo = "Không xác định được thời gian";
+            if (row.__diffMinutes !== '-' && row.__diffMinutes !== null) {
+                timeInfo = `${row.__diffMinutes} phút`;
+            }
+
+            const prompt = `
+                Đóng vai một bác sĩ kiểm định BHYT. Hãy nhận xét ngắn gọn (3-4 câu) về trường hợp sau:
+                - Lý do vào viện: ${reason}
+                - Chẩn đoán: ${diagnosis}
+                - Thời gian khám: ${timeInfo}
+                
+                Câu hỏi: Thời gian khám này có hợp lý với chẩn đoán và lý do vào viện không? Có dấu hiệu gì bất thường (khám quá nhanh cho bệnh phức tạp hoặc khám quá lâu cho bệnh đơn giản) không?
+            `;
+
+            try {
+                const mdText = await callGeminiAPI(prompt);
+                aiContent.innerHTML = marked.parse(mdText);
+            } catch (error) {
+                aiContent.innerHTML = `<span class="text-red-500">Lỗi: ${error.message}</span>`;
+            }
+        }
+
+        // --- APP LOGIC (Data Processing) ---
+        let globalData = [];
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+
+        document.addEventListener('DOMContentLoaded', initAuth);
+
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-400', 'bg-blue-50'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-400', 'bg-blue-50'));
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('border-blue-400', 'bg-blue-50'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
+
+        function handleFile(file) {
+            loading.classList.remove('hidden');
+            document.getElementById('intro-message').classList.add('hidden');
+            document.getElementById('main-interface').classList.add('hidden');
+            document.getElementById('stats-container').classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                globalData = rawData.map((row, index) => ({ ...row, __rowIndex: index + 2 }));
+
+                processData(globalData);
+                setTimeout(() => runAIAnalysis(globalData), 500);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseDateString(dateStr) {
+            if (!dateStr) return null;
+            const s = String(dateStr).trim();
+            if (s.length < 12) return null;
+            const year = parseInt(s.substring(0, 4));
+            const month = parseInt(s.substring(4, 6)) - 1;
+            const day = parseInt(s.substring(6, 8));
+            const hour = parseInt(s.substring(8, 10));
+            const minute = parseInt(s.substring(10, 12));
+            const d = new Date(year, month, day, hour, minute);
+            if (isNaN(d.getTime())) return null;
+            return d;
+        }
+
+        function formatDateDisplay(dateStr) {
+            if (!dateStr) return "";
+            const s = String(dateStr).trim();
+            if (s.length < 12) return s;
+            return `${s.substring(8,10)}:${s.substring(10,12)} <span class="text-gray-400 text-[10px] block">${s.substring(6,8)}/${s.substring(4,6)}</span>`;
+        }
+        
+        function formatFullDate(dateStr) {
+             if (!dateStr) return "";
+            const s = String(dateStr).trim();
+            if (s.length < 12) return s;
+            return `${s.substring(6,8)}/${s.substring(4,6)}/${s.substring(0,4)} ${s.substring(8,10)}:${s.substring(10,12)}`;
+        }
+
+        function processData(data) {
+            const errorList = [];
+            let timeErrorCount = 0;
+            let validCount = 0;
+
+            data.forEach((row) => {
+                const currentErrors = [];
+                let isTimeError = false;
+
+                const requiredFields = {
+                    'LY_DO_VV': 'Thiếu Lý do vào viện',
+                    'CHAN_DOAN_VAO': 'Thiếu Chẩn đoán vào',
+                    'CHAN_DOAN_RV': 'Thiếu Chẩn đoán ra viện',
+                    'MA_BENH_CHINH': 'Thiếu Mã bệnh chính'
+                };
+
+                for (const [field, msg] of Object.entries(requiredFields)) {
+                    if (!row[field] || String(row[field]).trim() === '') {
+                        currentErrors.push(msg);
+                    }
+                }
+
+                const ngayVaoRaw = row['NGAY_VAO'];
+                const ngayRaRaw = row['NGAY_RA'];
+                let diffMinutes = null;
+
+                if (!ngayVaoRaw || !ngayRaRaw) {
+                     if(!ngayVaoRaw) currentErrors.push("Thiếu Ngày vào");
+                     if(!ngayRaRaw) currentErrors.push("Thiếu Ngày ra");
+                } else {
+                    const dateIn = parseDateString(ngayVaoRaw);
+                    const dateOut = parseDateString(ngayRaRaw);
+
+                    if (!dateIn || !dateOut) {
+                        currentErrors.push("Sai định dạng ngày");
+                    } else {
+                        const diffMs = dateOut - dateIn;
+                        diffMinutes = Math.floor(diffMs / 60000);
+                        if (diffMinutes < 0) {
+                             currentErrors.push(`Lỗi Logic: Ra < Vào (${diffMinutes}p)`);
+                             isTimeError = true;
+                        } else if (diffMinutes < 5) {
+                            currentErrors.push(`Khám nhanh (${diffMinutes}p < 5p)`);
+                            isTimeError = true;
+                        }
+                    }
+                }
+
+                if (currentErrors.length > 0) {
+                    if (isTimeError) timeErrorCount++;
+                    errorList.push({ ...row, __diffMinutes: diffMinutes !== null ? diffMinutes : '-', __errorMsgs: currentErrors });
+                } else {
+                    validCount++;
+                }
+            });
+
+            renderInterface(data.length, validCount, errorList, timeErrorCount);
+        }
+
+        function renderInterface(total, valid, errors, timeErrors) {
+            loading.classList.add('hidden');
+            document.getElementById('stats-container').classList.remove('hidden');
+            document.getElementById('stats-container').classList.add('grid');
+            document.getElementById('main-interface').classList.remove('hidden');
+
+            document.getElementById('total-rows').innerText = total;
+            document.getElementById('valid-rows').innerText = valid;
+            document.getElementById('error-rows').innerText = errors.length;
+            document.getElementById('time-errors').innerText = timeErrors;
+
+            const tbodyError = document.getElementById('table-body');
+            tbodyError.innerHTML = '';
+            
+            if (errors.length === 0) {
+                tbodyError.innerHTML = `<tr><td colspan="7" class="text-center py-12 text-green-600 font-bold"><i class="fa-solid fa-check-circle text-3xl mb-3 block"></i>Không phát hiện lỗi nào!</td></tr>`;
+            } else {
+                errors.forEach((err, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b hover:bg-red-50/50 transition bg-white group";
+                    const minClass = (typeof err.__diffMinutes === 'number' && err.__diffMinutes < 5) ? "text-red-600 font-bold bg-red-100 rounded px-2 py-0.5 inline-block text-xs" : "text-gray-500 font-mono";
+                    // Important: Store correct index relative to globalData
+                    const realIndex = err.__rowIndex - 2; 
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 text-center text-xs text-gray-400 font-mono">${err.__rowIndex}</td>
+                         <td class="px-4 py-3 text-center">
+                            <button onclick="viewDetail(${realIndex})" class="text-blue-500 hover:text-white hover:bg-blue-500 w-7 h-7 rounded transition flex items-center justify-center mx-auto">
+                                <i class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </td>
+                        <td class="px-4 py-3 font-semibold text-blue-600 text-xs font-mono">${err['MA_BN'] || ''}</td>
+                        <td class="px-4 py-3 text-gray-800 font-medium">${err['HO_TEN'] || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+                             ${formatDateDisplay(err['NGAY_VAO'])}
+                             <div class="h-px bg-gray-200 my-1 w-8"></div>
+                             ${formatDateDisplay(err['NGAY_RA'])}
+                        </td>
+                        <td class="px-4 py-3 text-center"><span class="${minClass}">${err.__diffMinutes}</span></td>
+                        <td class="px-4 py-3">
+                            <ul class="list-disc list-inside space-y-1 text-xs text-red-500 font-medium">
+                                ${err.__errorMsgs.map(e => `<li>${e}</li>`).join('')}
+                            </ul>
+                        </td>
+                    `;
+                    tbodyError.appendChild(tr);
+                });
+            }
+            renderAllTable(globalData.slice(0, 100));
+        }
+
+        // --- LOCAL ANALYTICS (STATISTICAL) ---
+        function runAIAnalysis(data) {
+            let totalTime = 0;
+            let countTime = 0;
+            let fastCount = 0;
+            let avgCount = 0;
+            let longCount = 0;
+            let patientCounts = {};
+
+            data.forEach(row => {
+                const ngayVao = parseDateString(row['NGAY_VAO']);
+                const ngayRa = parseDateString(row['NGAY_RA']);
+                if (ngayVao && ngayRa) {
+                    const mins = Math.floor((ngayRa - ngayVao) / 60000);
+                    if (mins >= 0 && mins < 1000) {
+                        totalTime += mins;
+                        countTime++;
+                        if (mins < 10) fastCount++; else if (mins <= 30) avgCount++; else longCount++;
+                    }
+                }
+                const maBN = row['MA_BN'];
+                if(maBN) patientCounts[maBN] = (patientCounts[maBN] || 0) + 1;
+            });
+
+            const avgTime = countTime > 0 ? Math.round(totalTime / countTime) : 0;
+            const warnings = [];
+
+            Object.entries(patientCounts).forEach(([ma, count]) => {
+                if(count >= 3) warnings.push({ type: 'Tần suất khám', level: 'Cao', msg: `BN ${ma} khám ${count} lần trong file.`, count: count });
+            });
+
+            const errorRatio = document.getElementById('error-rows').innerText / data.length;
+            let qualityScore = Math.max(0, 100 - Math.round(errorRatio * 100) - (warnings.length > 0 ? 5 : 0));
+            document.getElementById('data-score').innerText = `${qualityScore}/100`;
+
+            let aiText = `Đã quét ${data.length} hồ sơ. TB khám: <b>${avgTime} phút</b>. `;
+            if(qualityScore > 90) aiText += "Dữ liệu sạch."; else if(qualityScore > 70) aiText += "Dữ liệu khá."; else aiText += "Nhiều lỗi.";
+            document.getElementById('ai-summary-text').innerHTML = aiText;
+
+            const totalValidTime = fastCount + avgCount + longCount;
+            if (totalValidTime > 0) {
+                document.getElementById('stat-fast').innerText = fastCount;
+                document.getElementById('bar-fast').style.width = `${(fastCount/totalValidTime)*100}%`;
+                document.getElementById('stat-avg').innerText = avgCount;
+                document.getElementById('bar-avg').style.width = `${(avgCount/totalValidTime)*100}%`;
+                document.getElementById('stat-long').innerText = longCount;
+                document.getElementById('bar-long').style.width = `${(longCount/totalValidTime)*100}%`;
+            }
+
+            const tbody = document.getElementById('ai-patterns-body');
+            tbody.innerHTML = '';
+            if(warnings.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-green-600"><i class="fa-solid fa-check-circle"></i> Không phát hiện mẫu bất thường</td></tr>`;
+            } else {
+                warnings.forEach(w => {
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-gray-100 hover:bg-gray-50";
+                    const badgeColor = w.level === 'Cao' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700';
+                    tr.innerHTML = `<td class="px-4 py-2 font-medium text-gray-700">${w.type}</td><td class="px-4 py-2"><span class="px-2 py-1 rounded-full text-xs font-bold ${badgeColor}">${w.level}</span></td><td class="px-4 py-2 text-gray-600">${w.msg}</td><td class="px-4 py-2 text-right font-mono font-bold">${w.count}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function renderAllTable(dataSubset) {
+            const tbodyAll = document.getElementById('all-table-body');
+            tbodyAll.innerHTML = '';
+            dataSubset.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-blue-50/50 transition";
+                const realIndex = row.__rowIndex - 2;
+                tr.innerHTML = `
+                    <td class="px-4 py-2 text-center text-xs text-gray-400 font-mono">${row.__rowIndex}</td>
+                    <td class="px-4 py-2 text-center">
+                        <button onclick="viewDetail(${realIndex})" class="text-gray-400 hover:text-blue-600 transition"><i class="fa-solid fa-up-right-from-square"></i></button>
+                    </td>
+                    <td class="px-4 py-2 font-medium text-xs font-mono text-gray-600">${row['MA_BN'] || ''}</td>
+                    <td class="px-4 py-2 font-medium text-gray-800">${row['HO_TEN'] || ''}</td>
+                    <td class="px-4 py-2 text-xs text-gray-500">${formatFullDate(row['NGAY_VAO'])}</td>
+                    <td class="px-4 py-2 text-xs text-gray-500">${formatFullDate(row['NGAY_RA'])}</td>
+                    <td class="px-4 py-2 text-xs text-gray-500 truncate max-w-[150px]" title="${row['CHAN_DOAN_VAO'] || ''}">${row['CHAN_DOAN_VAO'] || ''}</td>
+                `;
+                tbodyAll.appendChild(tr);
+            });
+        }
+
+        function searchTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            if (query.length < 2) { renderAllTable(globalData.slice(0, 100)); return; }
+            const filtered = globalData.filter(row => {
+                const name = String(row['HO_TEN'] || '').toLowerCase();
+                const code = String(row['MA_BN'] || '').toLowerCase();
+                return name.includes(query) || code.includes(query);
+            });
+            renderAllTable(filtered.slice(0, 100));
+        }
+
+        function switchTab(tabName) {
+            const errorBtn = document.getElementById('error-tab-btn');
+            const aiBtn = document.getElementById('ai-tab-btn');
+            const allBtn = document.getElementById('all-tab-btn');
+            const errorContent = document.getElementById('error-tab-content');
+            const aiContent = document.getElementById('ai-tab-content');
+            const allContent = document.getElementById('all-tab-content');
+
+            const baseBtn = "px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-700 hover:bg-white/50 transition-all flex items-center";
+            const activeClass = "px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-all bg-white flex items-center";
+
+            errorBtn.className = baseBtn; aiBtn.className = baseBtn; allBtn.className = baseBtn;
+            errorContent.classList.add('hidden'); aiContent.classList.add('hidden'); allContent.classList.add('hidden');
+
+            if (tabName === 'error') { errorContent.classList.remove('hidden'); errorBtn.className = activeClass + " text-red-600"; }
+            else if (tabName === 'ai') { aiContent.classList.remove('hidden'); aiBtn.className = activeClass + " text-purple-600"; }
+            else { allContent.classList.remove('hidden'); allBtn.className = activeClass + " text-blue-600"; }
+        }
+
+        function viewDetail(index) {
+            currentModalRowIndex = index;
+            const row = globalData[index];
+            if (!row) return;
+
+            document.getElementById('modal-title').innerText = `${row['HO_TEN']} - ${row['MA_BN']}`;
+            document.getElementById('modal-subtitle').innerText = `Dòng dữ liệu số: ${row.__rowIndex}`;
+            
+            // Reset AI section in modal
+            document.getElementById('case-ai-response').classList.add('hidden');
+            document.getElementById('case-ai-content').innerHTML = '';
+            
+            const grid = document.getElementById('modal-grid');
+            grid.innerHTML = '';
+            for (const [key, value] of Object.entries(row)) {
+                if (key.startsWith('__')) continue;
+                let displayVal = value;
+                if (key.includes('NGAY') && String(value).length >= 12 && !isNaN(value)) { displayVal = `${formatFullDate(value)}`; }
+                const item = document.createElement('div');
+                item.className = "bg-gray-50 p-3 rounded-lg border border-gray-100";
+                item.innerHTML = `<div class="text-[10px] text-gray-400 font-bold uppercase mb-1 tracking-wider">${key}</div><div class="text-sm text-gray-800 font-medium break-words">${displayVal}</div>`;
+                grid.appendChild(item);
+            }
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('detail-modal').classList.add('hidden'); }
+        document.getElementById('detail-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+        function exportTableToExcel() {
+            const table = document.getElementById("error-table");
+            if (!table) return;
+            const ws = XLSX.utils.table_to_sheet(table);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Danh_Sach_Loi");
+            XLSX.writeFile(wb, "Ket_Qua_Kiem_Tra_BHYT.xlsx");
+        }
+    </script>
+</body>
+</html>
