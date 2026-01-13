@@ -70,25 +70,60 @@
             const [authDomain, setAuthDomain] = React.useState('');
             const [projectId, setProjectId] = React.useState('');
             const [error, setError] = React.useState('');
+            const [isTesting, setIsTesting] = React.useState(false);
 
-            const handleSave = () => {
+            const handleSave = async () => {
+                setError('');
                 if (!apiKey || !authDomain || !projectId) {
                     setError("Vui lòng điền đầy đủ 3 thông tin: Project ID, API Key và Auth Domain");
                     return;
                 }
 
-                // Tự động làm sạch khoảng trắng thừa nếu có
+                // Tự động làm sạch khoảng trắng thừa
                 const config = {
                     apiKey: apiKey.trim(),
                     authDomain: authDomain.trim(),
                     projectId: projectId.trim()
                 };
 
+                setIsTesting(true);
+
                 try {
+                    // BƯỚC QUAN TRỌNG: Kiểm tra kết nối trước khi lưu
+                    // Tạo một app ảo để test
+                    const testAppName = 'test-connection-' + Date.now();
+                    const testApp = firebase.initializeApp(config, testAppName);
+                    
+                    // Thử đăng nhập ẩn danh. Nếu cấu hình sai hoặc chưa bật Auth, dòng này sẽ báo lỗi ngay.
+                    await testApp.auth().signInAnonymously();
+                    
+                    // Nếu chạy được đến đây nghĩa là cấu hình đúng
+                    await testApp.delete(); // Xóa app test đi
+
+                    // Lưu cấu hình thật
                     localStorage.setItem('my_firebase_config', JSON.stringify(config));
                     onSave(config);
+
                 } catch (e) {
-                    setError("Lỗi khi lưu cấu hình.");
+                    console.error("Test connection failed:", e);
+                    // Dọn dẹp app test nếu có lỗi
+                    const apps = firebase.apps;
+                    // Tìm và xóa app test nếu nó còn tồn tại
+                    // (Logic đơn giản hóa cho compat v9)
+                    
+                    let msg = "Kết nối thất bại. Vui lòng kiểm tra lại thông tin.";
+                    
+                    if (e.code === 'auth/api-key-not-valid-please-pass-a-valid-api-key' || e.code === 'auth/invalid-api-key') {
+                        msg = "Lỗi: API Key không đúng.";
+                    } else if (e.code === 'auth/operation-not-allowed') {
+                        msg = "Lỗi: Bạn chưa bật 'Anonymous' (Ẩn danh) trong Firebase Console > Authentication.";
+                    } else if (e.message && e.message.includes('project')) {
+                        msg = "Lỗi: Project ID có vẻ không đúng.";
+                    }
+
+                    setError(msg);
+                } finally {
+                    setIsTesting(false);
                 }
             };
 
@@ -112,6 +147,7 @@
                                     placeholder="Ví dụ: quan-ly-benh-nhan-123"
                                     value={projectId}
                                     onChange={(e) => setProjectId(e.target.value)}
+                                    disabled={isTesting}
                                 />
                             </div>
 
@@ -123,6 +159,7 @@
                                     placeholder="Ví dụ: AIzaSyD..."
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
+                                    disabled={isTesting}
                                 />
                             </div>
 
@@ -134,23 +171,39 @@
                                     placeholder="Ví dụ: quan-ly-benh-nhan-123.firebaseapp.com"
                                     value={authDomain}
                                     onChange={(e) => setAuthDomain(e.target.value)}
+                                    disabled={isTesting}
                                 />
                             </div>
 
-                            {error && <p className="text-red-500 text-xs mt-1 font-medium">{error}</p>}
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-xs" role="alert">
+                                    <strong className="font-bold">Có lỗi xảy ra: </strong>
+                                    <span className="block sm:inline">{error}</span>
+                                </div>
+                            )}
 
-                            <button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 mt-2">
-                                Lưu & Bắt đầu
+                            <button 
+                                onClick={handleSave} 
+                                disabled={isTesting}
+                                className={`w-full text-white font-bold py-3 rounded-lg transition shadow-lg mt-2 flex justify-center items-center space-x-2 ${isTesting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5'}`}
+                            >
+                                {isTesting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        <span>Đang kiểm tra kết nối...</span>
+                                    </>
+                                ) : (
+                                    <span>Lưu & Bắt đầu</span>
+                                )}
                             </button>
                             
                             <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded border border-gray-200 mt-4">
-                                <strong>Cách lấy thông tin:</strong>
-                                <ol className="list-decimal pl-4 mt-1 space-y-1">
-                                    <li>Vào <a href="https://console.firebase.google.com/" target="_blank" className="text-blue-600 underline">Firebase Console</a> &gt; Chọn Project.</li>
-                                    <li>Bấm vào biểu tượng bánh răng (Settings) &gt; Project settings.</li>
-                                    <li>Kéo xuống dưới cùng mục "Your apps" &gt; SDK setup and configuration.</li>
-                                    <li>Copy 3 dòng tương ứng vào các ô trên.</li>
-                                </ol>
+                                <strong>Lưu ý quan trọng:</strong>
+                                <ul className="list-disc pl-4 mt-1 space-y-1">
+                                    <li>Đảm bảo bạn đã vào <b>Build &gt; Authentication &gt; Sign-in method</b> và bật <b>Anonymous</b> (Ẩn danh).</li>
+                                    <li>Nếu không bật, kết nối sẽ bị từ chối.</li>
+                                    <li>Project ID, API Key lấy ở: <b>Project Settings &gt; General &gt; Your apps</b>.</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -223,9 +276,14 @@
 
                 initAuth();
                 auth.onAuthStateChanged((u) => {
-                    setUser(u);
-                    setIsConfigured(true);
-                    setLoading(false);
+                    if (u) {
+                        setUser(u);
+                        setIsConfigured(true);
+                        setLoading(false);
+                    } else {
+                        // Nếu auth state null (chưa login xong hoặc logout), chưa set Configured vội
+                        // Tuy nhiên ở đây logic initAuth() sẽ trigger login, nên cứ đợi.
+                    }
                 });
             };
 
