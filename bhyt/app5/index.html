@@ -39,7 +39,7 @@
                         <input type="password" id="passwordInput" class="w-full pl-4 pr-10 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="Nhập mật khẩu...">
                         <i class="fa-solid fa-lock absolute right-3 top-3.5 text-slate-400"></i>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1 italic text-right">Mặc định: 123456</p>
+                    <p class="text-xs text-slate-400 mt-1 italic text-right">Mặc định: xxx</p>
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition transform hover:-translate-y-0.5">Mở Khóa</button>
                 <div id="loginError" class="text-red-500 text-sm text-center hidden font-medium mt-2"><i class="fa-solid fa-circle-exclamation mr-1"></i> Sai mật khẩu!</div>
@@ -161,7 +161,7 @@
 
     <!-- LOGIC -->
     <script>
-        const DEFAULT_PASS = "123456";
+        const DEFAULT_PASS = "1402";
         function checkLogin() {
             const input = document.getElementById('passwordInput').value;
             const stored = localStorage.getItem('bhyt_app_pass') || DEFAULT_PASS;
@@ -651,3 +651,4 @@
     </script>
 </body>
 </html>
+
