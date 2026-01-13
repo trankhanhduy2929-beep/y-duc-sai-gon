@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Dò Lỗi BHYT Pro (V24)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .loading-spinner { border: 3px solid #e2e8f0; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .glass-effect { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .file-box-active { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
+        .file-box-active i { color: #16a34a !important; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 bg-[url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center">
+        <div class="absolute inset-0 bg-slate-900/60"></div>
+        <div class="relative glass-effect p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4"><i class="fa-solid fa-shield-halved text-3xl"></i></div>
+                <h1 class="text-2xl font-bold text-slate-800">Đăng Nhập Hệ Thống</h1>
+                <p class="text-slate-500 text-sm mt-2">Công cụ Dò Lỗi BHYT Chuyên Sâu V24</p>
+            </div>
+            <form onsubmit="event.preventDefault(); checkLogin();" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Mật khẩu truy cập</label>
+                    <div class="relative">
+                        <input type="password" id="passwordInput" class="w-full pl-4 pr-10 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none" placeholder="Nhập mật khẩu...">
+                        <i class="fa-solid fa-lock absolute right-3 top-3.5 text-slate-400"></i>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1 italic text-right">Mặc định: 123456</p>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition transform hover:-translate-y-0.5">Mở Khóa</button>
+                <div id="loginError" class="text-red-500 text-sm text-center hidden font-medium mt-2"><i class="fa-solid fa-circle-exclamation mr-1"></i> Sai mật khẩu!</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden flex-1 flex h-full">
+        <!-- SIDEBAR -->
+        <div class="w-80 bg-white border-r border-slate-200 flex flex-col shadow-lg z-20">
+            <div class="p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50">
+                <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-blue-500/30 shadow-lg"><i class="fa-solid fa-user-doctor text-xl"></i></div>
+                <div><h2 class="font-bold text-slate-800 leading-tight">Dò Lỗi BHYT</h2><span class="text-[10px] uppercase font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">Pro V24</span></div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Dữ liệu đầu vào</div>
+                <div id="boxService" class="border border-slate-200 rounded-xl p-3 hover:border-blue-400 transition group relative bg-slate-50">
+                    <div class="flex justify-between items-start mb-2"><div class="text-sm font-bold text-slate-700">1. File Dịch Vụ</div><i class="fa-solid fa-file-medical text-slate-300 group-hover:text-blue-500 transition"></i></div>
+                    <div class="text-[10px] text-slate-500 mb-2">XML3 (DVKT) - Bắt buộc</div>
+                    <label class="block w-full"><input type="file" id="fileService" onchange="handleFileSelect()" accept=".xlsx,.xls,.csv" class="hidden"/><div class="block w-full text-xs text-center py-2 bg-blue-600 text-white rounded cursor-pointer hover:bg-blue-700">Chọn File XML3</div></label>
+                    <div id="nameService" class="text-[10px] text-slate-500 mt-1 truncate"></div>
+                </div>
+                <div id="boxPatient" class="border border-slate-200 rounded-xl p-3 hover:border-green-400 transition group relative bg-slate-50">
+                    <div class="flex justify-between items-start mb-2"><div class="text-sm font-bold text-slate-700">2. File Bệnh Nhân</div><i class="fa-solid fa-hospital-user text-slate-300 group-hover:text-green-500 transition"></i></div>
+                    <div class="text-[10px] text-slate-500 mb-2">XML1 (Thông tin) - Bắt buộc</div>
+                    <label class="block w-full"><input type="file" id="filePatient" onchange="handleFileSelect()" accept=".xlsx,.xls,.csv" class="hidden"/><div class="block w-full text-xs text-center py-2 bg-green-600 text-white rounded cursor-pointer hover:bg-green-700">Chọn File XML1</div></label>
+                    <div id="namePatient" class="text-[10px] text-slate-500 mt-1 truncate"></div>
+                </div>
+                <div id="boxDrug" class="border border-slate-200 rounded-xl p-3 hover:border-pink-400 transition group relative bg-slate-50">
+                    <div class="flex justify-between items-start mb-2"><div class="text-sm font-bold text-slate-700">3. File Thuốc</div><i class="fa-solid fa-capsules text-slate-300 group-hover:text-pink-500 transition"></i></div>
+                    <div class="text-[10px] text-slate-500 mb-2">XML2 (Dược) - Tùy chọn</div>
+                    <label class="block w-full"><input type="file" id="fileDrug" onchange="handleFileSelect()" accept=".xlsx,.xls,.csv" class="hidden"/><div class="block w-full text-xs text-center py-2 bg-pink-600 text-white rounded cursor-pointer hover:bg-pink-700">Chọn File XML2</div></label>
+                    <div id="nameDrug" class="text-[10px] text-slate-500 mt-1 truncate"></div>
+                </div>
+                <div id="boxConfig" class="border border-dashed border-slate-300 rounded-xl p-3 hover:border-orange-400 transition group relative">
+                    <div class="flex justify-between items-start mb-2"><div class="text-sm font-bold text-slate-700">4. Cấu hình</div><i class="fa-solid fa-sliders text-slate-300 group-hover:text-orange-500 transition"></i></div>
+                    <div class="text-[10px] text-slate-500 mb-2">Excel Quy trình KT (Tùy chọn)</div>
+                    <label class="block w-full"><input type="file" id="fileConfig" onchange="handleFileSelect()" accept=".xlsx,.xls,.csv" class="hidden"/><div class="block w-full text-xs text-center py-2 bg-orange-500 text-white rounded cursor-pointer hover:bg-orange-600">Chọn File Cấu Hình</div></label>
+                    <div id="configStatus" class="mt-1 text-[10px] text-green-600 hidden font-bold"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-200 bg-slate-50 space-y-2">
+                <button onclick="checkErrors()" id="btnProcess" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-lg shadow-lg flex items-center justify-center gap-2 transition opacity-50 cursor-not-allowed" disabled><i class="fa-solid fa-play"></i> Bắt đầu kiểm tra</button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="exportToExcel()" id="btnExport" class="bg-white border border-slate-300 hover:bg-slate-50 text-green-700 font-semibold py-2 px-2 rounded-lg text-xs flex items-center justify-center gap-1 transition opacity-50 cursor-not-allowed" disabled><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+                    <button onclick="openPasswordModal()" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 font-semibold py-2 px-2 rounded-lg text-xs flex items-center justify-center gap-1 transition"><i class="fa-solid fa-key"></i> Đổi Mật Khẩu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col bg-slate-100 min-w-0">
+            <div class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shadow-sm z-10">
+                <div class="relative w-96">
+                    <input type="text" id="searchInput" onkeyup="filterAllPatients()" placeholder="Tìm kiếm nhanh Mã LK, Tên bệnh nhân..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none text-sm transition">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-slate-400"></i>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 px-3 py-1 bg-red-50 text-red-600 rounded-full text-xs font-bold border border-red-100"><i class="fa-solid fa-triangle-exclamation"></i> <span id="statError">0 Lỗi</span></div>
+                    <div class="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold border border-blue-100"><i class="fa-solid fa-users"></i> <span id="statTotal">0 Hồ sơ</span></div>
+                </div>
+            </div>
+            <div class="flex-1 p-6 overflow-hidden flex flex-col">
+                <div class="flex gap-4 mb-4 border-b border-slate-300">
+                    <button onclick="switchTab('errors')" id="tabErrors" class="pb-2 px-1 text-sm font-bold text-red-600 border-b-2 border-red-600 transition">Danh Sách Lỗi</button>
+                    <button onclick="switchTab('all')" id="tabAll" class="pb-2 px-1 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-blue-600 transition">Toàn Bộ Hồ Sơ</button>
+                </div>
+                <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase">
+                        <div class="col-span-1 text-center">STT</div>
+                        <div class="col-span-3">Thông tin bệnh nhân</div>
+                        <div class="col-span-3">Dịch vụ / Thuốc</div>
+                        <div class="col-span-3">Mốc Thời gian</div>
+                        <div class="col-span-2 text-center">Chi tiết</div>
+                    </div>
+                    <div id="tableContainer" class="overflow-y-auto custom-scrollbar h-[calc(100%-40px)]">
+                        <div id="viewErrors" class="divide-y divide-slate-100">
+                            <div class="flex flex-col items-center justify-center h-64 text-slate-400"><i class="fa-solid fa-clipboard-list text-4xl mb-3 opacity-20"></i><p>Vui lòng nạp dữ liệu từ cột bên trái</p></div>
+                        </div>
+                        <div id="viewAll" class="hidden divide-y divide-slate-100"></div>
+                    </div>
+                    <div id="loadingOverlay" class="absolute inset-0 bg-white/90 z-50 hidden flex flex-col items-center justify-center">
+                        <div class="loading-spinner mb-4"></div>
+                        <div class="text-slate-600 font-medium animate-pulse">Đang phân tích dữ liệu...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="detailModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transform transition-all scale-100">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm"><i class="fa-solid fa-user"></i></div><span id="modalTitle">Chi tiết</span></h3>
+                    <button onclick="closeModal()" class="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-500 transition"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6"><h4 class="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2"><i class="fa-solid fa-info-circle"></i> Hành chính</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-8 text-sm" id="modalPatientInfo"></div></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"><div class="px-4 py-3 bg-blue-50/50 border-b border-blue-100 flex justify-between items-center"><h4 class="font-bold text-blue-700 text-sm">Dịch Vụ (XML3)</h4></div><div class="overflow-x-auto"><table class="w-full text-xs text-left"><thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100"><tr><th class="px-3 py-2">Tên DV</th><th class="px-3 py-2 w-20">Thực Hiện</th><th class="px-3 py-2 w-20">Kết Quả</th></tr></thead><tbody id="modalServicesBody" class="divide-y divide-slate-50"></tbody></table></div></div>
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"><div class="px-4 py-3 bg-pink-50/50 border-b border-pink-100 flex justify-between items-center"><h4 class="font-bold text-pink-700 text-sm">Thuốc (XML2)</h4></div><div class="overflow-x-auto"><table class="w-full text-xs text-left"><thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100"><tr><th class="px-3 py-2">Tên Thuốc</th><th class="px-3 py-2 w-24">Ngày YL</th><th class="px-3 py-2 w-16">Check</th></tr></thead><tbody id="modalDrugsBody" class="divide-y divide-slate-50"></tbody></table></div></div>
+                    </div>
+                </div>
+                <div class="px-6 py-3 border-t border-slate-100 bg-white rounded-b-2xl flex justify-end"><button onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-sm transition">Đóng lại</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="passwordModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm m-4">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-key text-orange-500"></i> Đổi Mật Khẩu</h3>
+            <div class="space-y-3"><input type="password" id="newPass" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Nhập mật khẩu mới..."><button onclick="saveNewPassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition">Lưu Thay Đổi</button><button onclick="document.getElementById('passwordModal').classList.add('hidden')" class="w-full bg-transparent text-slate-500 hover:text-slate-700 font-medium py-2 text-sm">Hủy bỏ</button></div>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        const DEFAULT_PASS = "123456";
+        function checkLogin() {
+            const input = document.getElementById('passwordInput').value;
+            const stored = localStorage.getItem('bhyt_app_pass') || DEFAULT_PASS;
+            if(input === stored) { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden'); }
+            else { document.getElementById('loginError').classList.remove('hidden'); }
+        }
+        function openPasswordModal() { document.getElementById('passwordModal').classList.remove('hidden'); document.getElementById('passwordModal').classList.add('flex'); }
+        function saveNewPassword() {
+            const newP = document.getElementById('newPass').value;
+            if(newP.length < 1) { alert("Vui lòng nhập mật khẩu!"); return; }
+            localStorage.setItem('bhyt_app_pass', newP);
+            alert("Đã đổi mật khẩu thành công!");
+            document.getElementById('passwordModal').classList.add('hidden');
+        }
+
+        let globalProcessedData = new Map();
+        let configDurationMap = new Map();
+        let executionTimeMap = new Map(); 
+        let xrayExecutions = []; // List {time, doctor, maLK, name}
+        let xrayResults = [];    // List {time, doctor, maLK, name}
+        let currentTab = 'errors';
+
+        const SERVICE_DURATION_RULES_DEFAULT = [
+            { keyword: "siêu âm", minMinutes: 5 }, { keyword: "x-quang", minMinutes: 3 }, 
+            { keyword: "xquang", minMinutes: 3 }, { keyword: "chụp", minMinutes: 3 },
+            { keyword: "cắt lớp", minMinutes: 10 }, { keyword: "cộng hưởng", minMinutes: 10 },
+            { keyword: "nội soi", minMinutes: 10 }, { keyword: "phẫu thuật", minMinutes: 30 },
+            { keyword: "thủ thuật", minMinutes: 5 }, { keyword: "điện tim", minMinutes: 3 },
+            { keyword: "xét nghiệm", minMinutes: 2 }, { keyword: "tổng phân tích", minMinutes: 2 },
+            { keyword: "sinh hóa", minMinutes: 2 }
+        ];
+        const DEFAULT_MIN_DURATION = 2;
+
+        async function handleFileSelect() {
+            const fService = document.getElementById('fileService').files[0];
+            const fPatient = document.getElementById('filePatient').files[0];
+            const fDrug = document.getElementById('fileDrug').files[0];
+            const fConfig = document.getElementById('fileConfig').files[0];
+            
+            if(fService) { updateBoxStyle('boxService', fService); document.getElementById('nameService').innerText = fService.name; }
+            if(fPatient) { updateBoxStyle('boxPatient', fPatient); document.getElementById('namePatient').innerText = fPatient.name; }
+            if(fDrug) { updateBoxStyle('boxDrug', fDrug); document.getElementById('nameDrug').innerText = fDrug.name; }
+            if(fConfig) {
+                updateBoxStyle('boxConfig', fConfig);
+                try { 
+                    const data = await readExcelFile(fConfig); 
+                    processConfigFile(data); 
+                    document.getElementById('configStatus').innerText = `Đã tải ${configDurationMap.size} mục cấu hình`;
+                    document.getElementById('configStatus').classList.remove('hidden');
+                } catch(e) {}
+            }
+
+            const btn = document.getElementById('btnProcess');
+            if(fService && fPatient) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.add('animate-pulse');
+            }
+        }
+
+        function updateBoxStyle(id, file) { const el = document.getElementById(id); if (file) { el.classList.add('file-box-active'); } }
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabErrors = document.getElementById('tabErrors');
+            const tabAll = document.getElementById('tabAll');
+            const viewErrors = document.getElementById('viewErrors');
+            const viewAll = document.getElementById('viewAll');
+            if(tab === 'errors') {
+                tabErrors.className = "pb-2 px-1 text-sm font-bold text-red-600 border-b-2 border-red-600 transition";
+                tabAll.className = "pb-2 px-1 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-blue-600 transition";
+                viewErrors.classList.remove('hidden'); viewAll.classList.add('hidden');
+            } else {
+                tabAll.className = "pb-2 px-1 text-sm font-bold text-blue-600 border-b-2 border-blue-600 transition";
+                tabErrors.className = "pb-2 px-1 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-red-600 transition";
+                viewAll.classList.remove('hidden'); viewErrors.classList.add('hidden');
+                renderAllPatients();
+            }
+        }
+
+        async function checkErrors() {
+            const fService = document.getElementById('fileService').files[0];
+            const fPatient = document.getElementById('filePatient').files[0];
+            const fDrug = document.getElementById('fileDrug').files[0];
+            const loading = document.getElementById('loadingOverlay');
+            loading.classList.remove('hidden'); document.getElementById('btnProcess').classList.remove('animate-pulse');
+
+            try {
+                const serviceData = await readExcelFile(fService);
+                const patientData = await readExcelFile(fPatient);
+                const drugData = fDrug ? await readExcelFile(fDrug) : [];
+
+                const patientInfoMap = new Map();
+                patientData.forEach(row => {
+                    const maLK = (row['MA_LK'] || row['MA_BN'] || "").toString().trim();
+                    if(maLK) patientInfoMap.set(maLK, row);
+                });
+
+                globalProcessedData.clear();
+                executionTimeMap.clear();
+                xrayExecutions = [];
+                xrayResults = [];
+
+                serviceData.forEach(row => {
+                    const maLK = (row['MA_LK'] || "").toString().trim();
+                    if(!maLK) return;
+                    let info = patientInfoMap.get(maLK) || { 'HO_TEN': 'Không tìm thấy trong XML1', 'NGAY_VAO': '', 'NGAY_RA': '', 'MA_THE_BHYT': '???' };
+                    if(!globalProcessedData.has(maLK)) initRecord(maLK, info);
+                    
+                    const record = globalProcessedData.get(maLK);
+                    const validation = validateService(row, info, executionTimeMap); 
+                    
+                    const maBs = (row['NGUOI_THUC_HIEN'] || "").toString().trim();
+                    const maNhom = row['MA_NHOM']; 
+                    const tenDv = (row['TEN_DICH_VU'] || "").toLowerCase();
+                    const isCongKham = maNhom == 13 || tenDv.includes("khám");
+                    const isXetNghiem = maNhom == 1 || tenDv.includes("xét nghiệm") || tenDv.includes("test") || tenDv.includes("tổng phân tích");
+                    const isDienTim = tenDv.includes("điện tim");
+                    const isXQuang = isXRay(tenDv);
+
+                    // Xử lý X-Quang riêng (V24): Gom dữ liệu để check sau
+                    if (isXQuang && maBs) {
+                        const tThYl = parseVnDateStr(row['NGAY_TH_YL']);
+                        const tKq = parseVnDateStr(row['NGAY_KQ']);
+                        if (tThYl) xrayExecutions.push({ time: tThYl, doctor: maBs, maLK: maLK, name: row['TEN_DICH_VU'] });
+                        if (tKq) xrayResults.push({ time: tKq, doctor: maBs, maLK: maLK, name: row['TEN_DICH_VU'] });
+                    }
+                    // Các dịch vụ khác (không phải X-Quang, Khám, Xét nghiệm): Check trùng chính xác từng phút
+                    else if (!isCongKham && !isXetNghiem && maBs) {
+                        const tThYl = parseVnDateStr(row['NGAY_TH_YL']);
+                        const tKq = parseVnDateStr(row['NGAY_KQ']);
+
+                        if (tThYl) {
+                            const thKey = `${fmtDateOnly(tThYl)}_${fmtTimeOnly(tThYl)}_${maBs}`;
+                            if (executionTimeMap.has(thKey)) {
+                                const existing = executionTimeMap.get(thKey);
+                                validation.isValid = false;
+                                validation.errors.push(`TRÙNG GIỜ TH: ${fmtTimeOnly(tThYl)} với LK #${existing.maLK}`);
+                            } else {
+                                executionTimeMap.set(thKey, { maLK: maLK, tenDichVu: row['TEN_DICH_VU'] });
+                            }
+                        }
+                        if (tKq && !isDienTim) {
+                            const kqKey = `${fmtDateOnly(tKq)}_${fmtTimeOnly(tKq)}_${maBs}`;
+                            if (executionTimeMap.has(kqKey)) {
+                                const existing = executionTimeMap.get(kqKey);
+                                validation.isValid = false;
+                                validation.errors.push(`TRÙNG GIỜ KQ: ${fmtTimeOnly(tKq)} với LK #${existing.maLK}`);
+                            } else {
+                                executionTimeMap.set(kqKey, { maLK: maLK, tenDichVu: row['TEN_DICH_VU'] });
+                            }
+                        }
+                    }
+
+                    const excludedServices = ["khám", "cấy chỉ điều trị hội chứng vai gáy", "cấy chỉ điều trị đau lưng", "điện châm điều trị đau do thoái hóa khớp"];
+                    const isExcluded = excludedServices.some(key => tenDv.includes(key));
+                    if(!isExcluded && validation.rawDates.tKq) {
+                        if (!record.maxClsDate || validation.rawDates.tKq > record.maxClsDate) {
+                            record.maxClsDate = validation.rawDates.tKq;
+                        }
+                    }
+
+                    record.services.push({ data: row, validation: validation });
+                    if(!validation.isValid) {
+                        record.hasError = true;
+                        validation.errors.forEach(err => {
+                             record.errors.push({ item: row['TEN_DICH_VU'], timeLine: validation.timeLine, msg: err, type: 'service' });
+                        });
+                    }
+                });
+
+                // Xử lý Check X-Quang Gaps (V24)
+                processXRayGaps();
+
+                drugData.forEach(row => {
+                    const maLK = (row['MA_LK'] || "").toString().trim();
+                    if(!maLK) return;
+                    if(!globalProcessedData.has(maLK)) {
+                         let info = patientInfoMap.get(maLK) || { 'HO_TEN': 'Không tìm thấy trong XML1' };
+                         initRecord(maLK, info);
+                    }
+                    const record = globalProcessedData.get(maLK);
+                    const drugValidation = validateDrug(row, record.maxClsDate);
+                    record.drugs.push({ data: row, validation: drugValidation });
+                    if(!drugValidation.isValid) {
+                        record.hasError = true;
+                        drugValidation.errors.forEach(err => {
+                            record.errors.push({ item: row['TEN_THUOC'], timeLine: drugValidation.timeLine, msg: err, type: 'drug' });
+                        });
+                    }
+                });
+
+                let totalErrors = 0;
+                globalProcessedData.forEach(r => { if(r.hasError) totalErrors += r.errors.length; });
+                document.getElementById('statError').innerText = `${totalErrors} Lỗi`;
+                document.getElementById('statTotal').innerText = `${globalProcessedData.size} Hồ sơ`;
+                
+                const btnExport = document.getElementById('btnExport');
+                btnExport.disabled = false; btnExport.classList.remove('opacity-50', 'cursor-not-allowed');
+                renderErrorTab(); document.getElementById('viewAll').innerHTML = ""; 
+
+            } catch (e) { 
+                console.error(e); 
+                document.getElementById('statError').innerText = `Lỗi`;
+                alert("Lỗi xử lý: " + e.message); 
+            } finally { loading.classList.add('hidden'); }
+        }
+
+        // V24: Helper to detect X-Ray services
+        function isXRay(name) {
+            const n = name.toLowerCase();
+            return n.includes("x-quang") || n.includes("x quang") || n.includes("chụp");
+        }
+
+        // V24: Process Gap Logic for X-Ray
+        function processXRayGaps() {
+            // Sort by Doctor -> Time
+            const sorter = (a, b) => {
+                if (a.doctor !== b.doctor) return a.doctor.localeCompare(b.doctor);
+                return a.time - b.time;
+            };
+            xrayExecutions.sort(sorter);
+            xrayResults.sort(sorter);
+
+            // Check Executions
+            for (let i = 1; i < xrayExecutions.length; i++) {
+                const curr = xrayExecutions[i];
+                const prev = xrayExecutions[i-1];
+                if (curr.doctor === prev.doctor) {
+                    const diffMs = curr.time - prev.time;
+                    if (diffMs < 3 * 60 * 1000) { // < 3 mins
+                        addErrorToRecord(curr.maLK, curr.name, `Thực hiện XQ quá sát nhau (<3p) so với LK #${prev.maLK}`);
+                    }
+                }
+            }
+
+            // Check Results
+            for (let i = 1; i < xrayResults.length; i++) {
+                const curr = xrayResults[i];
+                const prev = xrayResults[i-1];
+                if (curr.doctor === prev.doctor) {
+                    const diffMs = curr.time - prev.time;
+                    if (diffMs < 3 * 60 * 1000) { // < 3 mins
+                        addErrorToRecord(curr.maLK, curr.name, `Đọc KQ XQ quá sát nhau (<3p) so với LK #${prev.maLK}`);
+                    }
+                }
+            }
+        }
+
+        function addErrorToRecord(maLK, serviceName, errorMsg) {
+            const record = globalProcessedData.get(maLK);
+            if (record) {
+                record.hasError = true;
+                record.errors.push({
+                    item: serviceName,
+                    timeLine: "Lỗi luồng thời gian BS",
+                    msg: errorMsg,
+                    type: 'service'
+                });
+            }
+        }
+
+        function initRecord(maLK, info) {
+            globalProcessedData.set(maLK, { maLK: maLK, info: info, services: [], drugs: [], errors: [], hasError: false, maxClsDate: null });
+        }
+
+        function validateService(svcRow, patientInfo, execMap) {
+            let errors = [];
+            const tenDichVu = svcRow['TEN_DICH_VU'] || "";
+            const maNhom = svcRow['MA_NHOM']; 
+            const dob = parseVnDateStr(patientInfo['NGAY_SINH']);
+            const tVao = parseVnDateStr(patientInfo['NGAY_VAO']);
+            const tRa = parseVnDateStr(patientInfo['NGAY_RA']);
+            const tTToan = parseVnDateStr(patientInfo['NGAY_TTOAN']);
+            const tYl = parseVnDateStr(svcRow['NGAY_YL']);
+            const tThYl = parseVnDateStr(svcRow['NGAY_TH_YL']);
+            const tKq = parseVnDateStr(svcRow['NGAY_KQ']);
+            const rawDates = { tVao, tYl, tThYl, tKq, tRa };
+
+            if (tenDichVu.toLowerCase().includes("khám nhi") && dob && tVao) {
+                const date16th = new Date(dob.getFullYear() + 16, dob.getMonth(), dob.getDate());
+                if (tVao.getTime() >= date16th.getTime()) errors.push(`Tuổi >= 16`);
+            }
+            if (tVao && tTToan && !isSameDay(tVao, tTToan)) errors.push(`Ngày TT khác ngày Vào`);
+            
+            let isCongKham = maNhom == 13;
+            if (!isCongKham && tenDichVu.toLowerCase().includes("khám")) isCongKham = true;
+            const isCLS = !isCongKham;
+
+            if (isCLS && tThYl && !tKq) errors.push(`Đã THỰC HIỆN nhưng CHƯA CÓ KẾT QUẢ`);
+            if (isCLS) {
+                if (tVao && tYl && ((tYl - tVao) / 60000 < 1)) errors.push(`VÀO->YL < 1p`);
+                if (tYl && tThYl && ((tThYl - tYl) / 60000 < 1)) errors.push(`YL->TH < 1p`);
+            }
+            if (tThYl && tKq) {
+                const minDuration = getMinDurationForService(tenDichVu);
+                const actualDuration = (tKq - tThYl) / 60000;
+                if (actualDuration < 0) errors.push(`KQ trước TH`);
+                else if (actualDuration < minDuration) errors.push(`Nhanh (${actualDuration.toFixed(0)}p < ${minDuration}p)`);
+            }
+            if (tKq && tRa && ((tRa - tKq) / 60000 < 1)) errors.push(`KQ->RA < 1p`);
+
+            const timeLine = `Vào:${fmtTime(tVao)} YL:${fmtTime(tYl)} TH:${fmtTime(tThYl)} KQ:${fmtTime(tKq)}`;
+            return { isValid: errors.length === 0, errors, timeLine, rawDates };
+        }
+
+        function validateDrug(drugRow, maxClsDate) {
+            let errors = [];
+            const tYl = parseVnDateStr(drugRow['NGAY_YL']);
+            const timeLine = `Thuốc YL: ${fmtFullTime(tYl)}`;
+            if (maxClsDate && tYl) {
+                const diff = (tYl - maxClsDate);
+                if (diff < 0) errors.push(`Thuốc kê TRƯỚC KQ CLS (${fmtTime(maxClsDate)})`);
+            }
+            return { isValid: errors.length === 0, errors, timeLine, rawDates: { tYl } };
+        }
+
+        function renderErrorTab() {
+            const container = document.getElementById('viewErrors');
+            let html = "";
+            let stt = 0;
+            if(globalProcessedData.size === 0) {
+                container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-400"><i class="fa-solid fa-file-excel text-4xl mb-3 opacity-20"></i><p>Không tìm thấy hồ sơ.</p></div>`;
+                return;
+            }
+            globalProcessedData.forEach(record => {
+                if(record.hasError) {
+                    const hoTen = record.info['HO_TEN'] || "Không xác định";
+                    record.errors.forEach(err => {
+                        stt++;
+                        const iconClass = err.type === 'drug' ? 'fa-capsules text-pink-500' : 'fa-stethoscope text-blue-500';
+                        const bgColor = err.type === 'drug' ? 'bg-pink-50' : 'bg-blue-50';
+                        html += `
+                        <div class="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-slate-50 transition text-sm text-slate-700">
+                            <div class="col-span-1 text-center font-mono text-slate-400">${stt}</div>
+                            <div class="col-span-3"><div class="font-bold text-slate-800">${hoTen}</div><div class="text-xs font-mono text-slate-400">${record.maLK}</div></div>
+                            <div class="col-span-3 font-medium flex items-center gap-2"><div class="w-6 h-6 rounded-full ${bgColor} flex items-center justify-center text-xs"><i class="fa-solid ${iconClass}"></i></div><span class="truncate" title="${err.item}">${err.item}</span></div>
+                            <div class="col-span-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs font-mono text-slate-600 border border-slate-200 inline-block">${err.timeLine}</span></div>
+                            <div class="col-span-2 text-center flex justify-between items-center pl-4"><span class="text-red-600 font-bold text-xs text-left flex-1">${err.msg}</span><button onclick="openModal('${record.maLK}')" class="text-slate-400 hover:text-blue-600 transition"><i class="fa-solid fa-eye"></i></button></div>
+                        </div>`;
+                    });
+                }
+            });
+            if(stt === 0) html = '<div class="p-12 text-center text-green-600 font-bold text-lg"><i class="fa-solid fa-circle-check text-4xl mb-4"></i><br>Tuyệt vời! Không phát hiện lỗi nào.</div>';
+            container.innerHTML = html;
+        }
+
+        function filterAllPatients() {
+            const container = document.getElementById('viewAll');
+            const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+            let html = "";
+            let count = 0;
+            const limit = 200;
+            for (const [maLK, record] of globalProcessedData) {
+                const hoTen = (record.info['HO_TEN'] || "").toLowerCase();
+                if (keyword === "" || maLK.toLowerCase().includes(keyword) || hoTen.includes(keyword)) {
+                    count++;
+                    if(count > limit) continue;
+                    const statusClass = record.hasError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+                    const statusText = record.hasError ? 'CÓ LỖI' : 'ĐẠT';
+                    const itemCount = record.services.length + record.drugs.length;
+                    html += `<div class="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-slate-50 transition text-sm text-slate-700"><div class="col-span-1 text-center font-mono text-slate-400">${count}</div><div class="col-span-3"><div class="font-bold text-slate-800">${record.info['HO_TEN'] || '--'}</div><div class="text-xs font-mono text-blue-600">${record.maLK}</div></div><div class="col-span-3 text-slate-500 text-xs">${itemCount} mục</div><div class="col-span-3 font-mono text-xs">${formatFullDate(record.info['NGAY_VAO'])}</div><div class="col-span-2 text-center flex justify-between items-center pl-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusClass}">${statusText}</span><button onclick="openModal('${record.maLK}')" class="text-slate-400 hover:text-blue-600 transition"><i class="fa-solid fa-eye"></i></button></div></div>`;
+                }
+            }
+            if(count > limit) html += `<div class="p-4 text-center text-xs text-slate-400">... và ${count - limit} hồ sơ khác ...</div>`;
+            if(count === 0) html = `<div class="p-8 text-center text-slate-400">Không tìm thấy hồ sơ nào.</div>`;
+            container.innerHTML = html;
+        }
+
+        function openModal(maLK) {
+            const record = globalProcessedData.get(maLK.toString());
+            if(!record) return;
+            const info = record.info;
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('modalTitle').innerHTML = `<span>${info['HO_TEN']}</span> <span class="text-sm font-normal text-slate-400 ml-2 font-mono">#${maLK}</span>`;
+            document.getElementById('modalPatientInfo').innerHTML = `
+                <div><span class="text-slate-400 text-xs block uppercase">Ngày sinh</span> <span class="font-bold">${formatDate(info['NGAY_SINH'])}</span></div>
+                <div><span class="text-slate-400 text-xs block uppercase">Thẻ BHYT</span> <span class="font-bold text-blue-600 font-mono">${info['MA_THE_BHYT'] || '--'}</span></div>
+                <div><span class="text-slate-400 text-xs block uppercase">Vào Viện</span> <span class="font-bold text-green-600">${formatFullDate(info['NGAY_VAO'])}</span></div>
+                <div><span class="text-slate-400 text-xs block uppercase">Ra Viện</span> <span class="font-bold text-red-600">${formatFullDate(info['NGAY_RA'])}</span></div>
+            `;
+            let svcHtml = "";
+            record.services.forEach(svc => {
+                const rDates = svc.validation.rawDates;
+                const errs = svc.validation.errors;
+                const status = svc.validation.isValid ? '<span class="text-green-600 text-[10px] font-bold">OK</span>' : `<span class="text-red-500 text-[10px] font-bold" title="${errs.join('; ')}">LỖI</span>`;
+                svcHtml += `<tr class="border-b border-slate-50 hover:bg-blue-50/30"><td class="px-3 py-2"><div class="font-medium text-slate-700">${svc.data['TEN_DICH_VU']}</div>${!svc.validation.isValid ? `<div class="text-red-500 text-[10px]">${errs.join(', ')}</div>` : ''}</td><td class="px-3 py-2 font-mono text-[10px] text-slate-500">${fmtTime(rDates.tThYl)}</td><td class="px-3 py-2 font-mono text-[10px] text-slate-500 flex justify-between items-center">${fmtTime(rDates.tKq)} ${status}</td></tr>`;
+            });
+            document.getElementById('modalServicesBody').innerHTML = svcHtml;
+            let drugHtml = "";
+            record.drugs.forEach(d => {
+                const isValid = d.validation.isValid;
+                const status = isValid ? '<span class="text-green-600 text-[10px] font-bold">OK</span>' : `<span class="text-red-500 text-[10px] font-bold">LỖI</span>`;
+                drugHtml += `<tr class="border-b border-slate-50 hover:bg-pink-50/30"><td class="px-3 py-2"><div class="font-medium text-slate-700">${d.data['TEN_THUOC']}</div>${!isValid ? `<div class="text-red-500 text-[10px]">${d.validation.errors.join(', ')}</div>` : ''}</td><td class="px-3 py-2 font-mono text-[10px] text-slate-500">${fmtFullTime(d.validation.rawDates.tYl)}</td><td class="px-3 py-2 text-right">${status}</td></tr>`;
+            });
+            document.getElementById('modalDrugsBody').innerHTML = drugHtml;
+        }
+
+        function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+        function renderAllPatients() { filterAllPatients(); }
+
+        const readExcelFile = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    resolve(XLSX.utils.sheet_to_json(worksheet, { defval: "" }));
+                } catch (err) { reject(err); }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function processConfigFile(data) {
+            configDurationMap.clear();
+            data.forEach(row => {
+                const name = row['TEN_DVKT_PHEDUYET'] || row['Tên dịch vụ'] || row['TEN_DICH_VU'];
+                const timeStr = row['THỜI GIAN TH'] || row['Thời gian thực hiện'] || row['THOI_GIAN'];
+                if (name && timeStr) {
+                    const matches = timeStr.toString().match(/(\d+)/);
+                    if (matches && matches[0]) configDurationMap.set(name.trim().toLowerCase(), parseInt(matches[0]));
+                }
+            });
+        }
+
+        function getMinDurationForService(serviceName) {
+            const nameLower = serviceName.trim().toLowerCase();
+            if (configDurationMap.has(nameLower)) return configDurationMap.get(nameLower);
+            for (const [cfgName, min] of configDurationMap) { if (nameLower.includes(cfgName)) return min; }
+            for (const rule of SERVICE_DURATION_RULES_DEFAULT) { if (nameLower.includes(rule.keyword)) return rule.minMinutes; }
+            return DEFAULT_MIN_DURATION;
+        }
+
+        function parseVnDateStr(str) {
+            if (!str) return null;
+            const s = str.toString().trim();
+            if (s.length < 12) return null;
+            const y = parseInt(s.substring(0, 4));
+            const m = parseInt(s.substring(4, 6)) - 1;
+            const d = parseInt(s.substring(6, 8));
+            let h = 0, min = 0;
+            if (s.length >= 12) { h = parseInt(s.substring(8, 10)); min = parseInt(s.substring(10, 12)); }
+            return new Date(y, m, d, h, min);
+        }
+
+        function isSameDay(d1, d2) {
+            return d1 && d2 && d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+        }
+
+        const fmtTime = (d) => d ? `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}` : "--";
+        const fmtTimeOnly = (d) => d ? `${d.getHours()}${String(d.getMinutes()).padStart(2,'0')}` : "--";
+        const fmtDateOnly = (d) => d ? `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}` : "--";
+        const fmtFullTime = (d) => d ? `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')} ${d.getDate()}/${d.getMonth()+1}` : "--";
+        const formatDate = (s) => {
+             if(!s) return "";
+             const str = s.toString();
+             if(str.length >= 8) return `${str.substring(6,8)}/${str.substring(4,6)}/${str.substring(0,4)}`;
+             return str;
+        }
+        const formatFullDate = (s) => {
+             if(!s) return "";
+             const str = s.toString();
+             if(str.length >= 12) return `${str.substring(8,10)}:${str.substring(10,12)} ${str.substring(6,8)}/${str.substring(4,6)}`;
+             return formatDate(s);
+        }
+
+        function exportToExcel() {
+            if (globalProcessedData.size === 0) return;
+            let exportData = [];
+            let stt = 0;
+            globalProcessedData.forEach(r => {
+                if(r.hasError) {
+                    r.errors.forEach(e => {
+                        stt++;
+                        exportData.push({
+                            "STT": stt, "Mã LK": r.maLK, "Họ Tên": r.info['HO_TEN'],
+                            "Đối Tượng": e.item, "Chi Tiết Lỗi": e.msg, "Timeline": e.timeLine.replace(/<[^>]*>?/gm, '')
+                        });
+                    });
+                }
+            });
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DanhSachLoi");
+            XLSX.writeFile(wb, "KetQua_KiemTra_BHYT_V24.xlsx");
+        }
+    </script>
+</body>
+</html>
