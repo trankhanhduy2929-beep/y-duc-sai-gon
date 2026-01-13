@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BHYT Smart Checker - Modern UI v8.3</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Excel Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Font Awesome & Google Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-slide-up { animation: slideUp 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .input-modern {
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+        .input-modern:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- CONSTANTS ---
+        const DEFAULT_PASS = "123456"; 
+        const STORAGE_KEY_PASS = "bhyt_app_pass";
+        
+        const FILTER_OPTIONS = [
+            { id: "kham", label: "Khám Y học cổ truyền", color: "orange", icon: "fa-stethoscope" },
+            { id: "diencham", label: "Điện châm điều trị đau do thoái hóa khớp", color: "blue", icon: "fa-bolt" }
+        ];
+
+        const DEFAULT_DAYS_CONFIG = [
+            { id: 1, name: "Thứ 2", color: "green", code: "ktvT2", defKTV: "000081/CM-GPHN" },
+            { id: 2, name: "Thứ 3", color: "green", code: "ktvT3", defKTV: "000081/CM-GPHN" },
+            { id: 3, name: "Thứ 4", color: "green", code: "ktvT4", defKTV: "000081/CM-GPHN" },
+            { id: 4, name: "Thứ 5", color: "green", code: "ktvT5", defKTV: "000081/CM-GPHN" },
+            { id: 5, name: "Thứ 6", color: "green", code: "ktvT6", defKTV: "000081/CM-GPHN" },
+            { id: 6, name: "Thứ 7", color: "purple", code: "ktvT7", defKTV: "005697/CM-CCHN", highlight: true },
+            { id: 0, name: "Chủ Nhật", color: "orange", code: "ktvCN", defKTV: "000081/CM-GPHN" }
+        ];
+
+        // --- COMPONENTS ---
+
+        // 1. Login Screen
+        const LoginScreen = ({ onLoginSuccess }) => {
+            const [passInput, setPassInput] = useState("");
+            const [error, setError] = useState("");
+            const [isChangePass, setIsChangePass] = useState(false);
+            const [newPass, setNewPass] = useState("");
+            const [confirmPass, setConfirmPass] = useState("");
+
+            useEffect(() => {
+                if (!localStorage.getItem(STORAGE_KEY_PASS)) {
+                    localStorage.setItem(STORAGE_KEY_PASS, DEFAULT_PASS);
+                }
+            }, []);
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const currentStoredPass = localStorage.getItem(STORAGE_KEY_PASS);
+                if (passInput === currentStoredPass) {
+                    onLoginSuccess();
+                } else {
+                    setError("Mật khẩu không đúng!");
+                    setPassInput("");
+                }
+            };
+
+            const handleChangePass = (e) => {
+                e.preventDefault();
+                const currentStoredPass = localStorage.getItem(STORAGE_KEY_PASS);
+                if (passInput !== currentStoredPass) {
+                    setError("Mật khẩu cũ không đúng!"); return;
+                }
+                if (newPass.length < 4) {
+                    setError("Mật khẩu mới quá ngắn!"); return;
+                }
+                if (newPass !== confirmPass) {
+                    setError("Xác nhận mật khẩu không khớp!"); return;
+                }
+                localStorage.setItem(STORAGE_KEY_PASS, newPass);
+                alert("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
+                setIsChangePass(false); setPassInput(""); setNewPass(""); setConfirmPass(""); setError("");
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-700 p-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md animate-slide-up glass-panel">
+                        <div className="text-center mb-8">
+                            <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                                <i className="fas fa-shield-alt text-3xl"></i>
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-800">
+                                {isChangePass ? "Đổi Mật Khẩu" : "Đăng Nhập Hệ Thống"}
+                            </h1>
+                            <p className="text-gray-500 text-sm mt-2">BHYT Smart Checker Pro v8.3</p>
+                        </div>
+                        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 flex items-center animate-fade-in"><i className="fas fa-exclamation-circle mr-2"></i> {error}</div>}
+                        {!isChangePass ? (
+                            <form onSubmit={handleLogin}>
+                                <div className="mb-6">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu truy cập</label>
+                                    <input type="password" className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập mật khẩu..." value={passInput} onChange={(e) => {setPassInput(e.target.value); setError("");}} autoFocus />
+                                </div>
+                                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">ĐĂNG NHẬP</button>
+                                <div className="mt-4 text-center"><button type="button" onClick={() => {setIsChangePass(true); setError(""); setPassInput("");}} className="text-sm text-blue-600 hover:underline">Đổi mật khẩu?</button></div>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleChangePass}>
+                                <div className="space-y-4 mb-6">
+                                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mật khẩu cũ</label><input type="password" value={passInput} onChange={(e) => setPassInput(e.target.value)} className="input-modern w-full p-2 rounded-lg" required /></div>
+                                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mật khẩu mới</label><input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} className="input-modern w-full p-2 rounded-lg" required /></div>
+                                    <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nhập lại mật khẩu mới</label><input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} className="input-modern w-full p-2 rounded-lg" required /></div>
+                                </div>
+                                <div className="flex gap-3"><button type="button" onClick={() => setIsChangePass(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 rounded-lg transition">Hủy</button><button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg shadow transition">Lưu Thay Đổi</button></div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Main App Logic
+        const MainApp = ({ onLogout }) => {
+            // --- STATE ---
+            const [files, setFiles] = useState({ cchn: null, table1: null, data: null });
+            const [maps, setMaps] = useState({ personnel: {}, patient: {} });
+            const [status, setStatus] = useState({ cchn: "Chưa nạp", table1: "Chưa nạp", data: "Chưa nạp" });
+            
+            // Config State
+            const [configBS, setConfigBS] = useState("006324/KG-CCHN");
+            const [configKhamBS, setConfigKhamBS] = useState("006324/KG-CCHN");
+            
+            const [daysSchedule, setDaysSchedule] = useState(() => {
+                return DEFAULT_DAYS_CONFIG.map(d => ({
+                    ...d,
+                    code: d.defKTV,
+                    times: { ms: "07:00", me: "11:30", as: "13:00", ae: "17:00" }
+                }));
+            });
+            
+            const [activeFilters, setActiveFilters] = useState(["Khám Y học cổ truyền", "Điện châm điều trị đau do thoái hóa khớp"]);
+            const [results, setResults] = useState([]);
+            const [stats, setStats] = useState({ total: 0, errors: 0 });
+            const [isAnalyzed, setIsAnalyzed] = useState(false);
+
+            // --- HELPERS ---
+            const readExcel = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const wb = XLSX.read(e.target.result, { type: 'array' });
+                            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: true });
+                            resolve(data);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            };
+
+            const findKey = (row, candidates) => {
+                const keys = Object.keys(row);
+                return keys.find(k => candidates.some(c => k.toUpperCase().includes(c)));
+            };
+
+            // Hàm tìm tên cột linh hoạt (cho runAnalysis)
+            const detectColumnKey = (row, possibleNames) => {
+                const keys = Object.keys(row);
+                // Ưu tiên 1: Khớp chính xác (case-insensitive)
+                let found = keys.find(k => possibleNames.some(p => k.trim().toLowerCase() === p.toLowerCase()));
+                if (found) return found;
+                // Ưu tiên 2: Chứa chuỗi
+                found = keys.find(k => possibleNames.some(p => k.toUpperCase().includes(p.toUpperCase())));
+                return found;
+            };
+
+            const getName = (code) => maps.personnel[String(code).trim()] || "";
+
+            // --- HANDLERS ---
+            const handleFileUpload = async (type, file) => {
+                if (!file) return;
+                try {
+                    const data = await readExcel(file);
+                    if (type === 'cchn') {
+                        const newMap = {};
+                        let count = 0;
+                        data.forEach(row => {
+                            const kM = findKey(row, ["MA CCHN", "MÃ CCHN", "MA_CCHN"]);
+                            const kT = findKey(row, ["TEN", "TÊN"]);
+                            if (kM && kT && row[kM]) {
+                                newMap[String(row[kM]).trim()] = row[kT];
+                                count++;
+                            }
+                        });
+                        setMaps(prev => ({ ...prev, personnel: newMap }));
+                        setStatus(prev => ({ ...prev, cchn: `Đã nạp ${count} NV` }));
+                    } else if (type === 'table1') {
+                        const newMap = {};
+                        let count = 0;
+                        data.forEach(row => {
+                            const kLK = findKey(row, ["MA_LK", "MA LK"]);
+                            const kTen = findKey(row, ["HO_TEN", "HỌ TÊN", "TEN_BN"]);
+                            if (kLK && kTen && row[kLK]) {
+                                newMap[String(row[kLK]).trim()] = row[kTen];
+                                count++;
+                            }
+                        });
+                        setMaps(prev => ({ ...prev, patient: newMap }));
+                        setStatus(prev => ({ ...prev, table1: `Đã nạp ${count} BN` }));
+                    } else if (type === 'data') {
+                        setFiles(prev => ({ ...prev, data: data }));
+                        setStatus(prev => ({ ...prev, data: `Đã nạp ${data.length} dòng` }));
+                        setIsAnalyzed(false);
+                    }
+                } catch (err) {
+                    alert("Lỗi đọc file: " + err.message);
+                }
+            };
+
+            const copyTimeT2 = () => {
+                const t2 = daysSchedule.find(d => d.id === 1);
+                if (!t2) return;
+                const newSchedule = daysSchedule.map(d => {
+                    if (d.id === 1) return d;
+                    return { ...d, times: { ...t2.times } };
+                });
+                setDaysSchedule(newSchedule);
+            };
+
+            const toggleFilter = (label) => {
+                setActiveFilters(prev => {
+                    if (prev.includes(label)) {
+                        return prev.filter(item => item !== label);
+                    } else {
+                        return [...prev, label];
+                    }
+                });
+            };
+
+            const parseDate = (v) => {
+                if (!v) return null;
+                const s = String(v);
+                if (s.length === 12 && !isNaN(s)) {
+                    return new Date(s.slice(0, 4), s.slice(4, 6) - 1, s.slice(6, 8), s.slice(8, 10), s.slice(10, 12));
+                }
+                return null;
+            };
+
+            const checkTime = (dateObj, dayIdx) => {
+                if (!dateObj) return false;
+                const conf = daysSchedule.find(d => d.id === dayIdx);
+                if (!conf) return false;
+
+                const getM = (t) => {
+                    if (!t) return -1;
+                    const [h, m] = t.split(':').map(Number);
+                    return h * 60 + m;
+                };
+
+                const curMin = dateObj.getHours() * 60 + dateObj.getMinutes();
+                const ms = getM(conf.times.ms); const me = getM(conf.times.me);
+                const as = getM(conf.times.as); const ae = getM(conf.times.ae);
+
+                const inM = (ms !== -1 && curMin >= ms && curMin <= me);
+                const inA = (as !== -1 && curMin >= as && curMin <= ae);
+                
+                return inM || inA;
+            };
+
+            const runAnalysis = () => {
+                if (!files.data || files.data.length === 0) {
+                    alert("Vui lòng nạp File Bảng 3 trước!");
+                    return;
+                }
+
+                if (activeFilters.length === 0) {
+                    alert("Vui lòng chọn ít nhất 1 loại dịch vụ để kiểm tra!");
+                    return;
+                }
+
+                // --- DETECT COLUMN KEYS (Tự động tìm tên cột) ---
+                const sampleRow = files.data[0];
+                const keySv = detectColumnKey(sampleRow, ["TEN_DICH_VU", "TÊN DỊCH VỤ", "TEN_DV"]) || "TEN_DICH_VU";
+                const keyMaLK = detectColumnKey(sampleRow, ["MA_LK", "MÃ LK", "MA_BENH_AN"]) || "MA_LK";
+                const keyMaBS = detectColumnKey(sampleRow, ["MA_BAC_SI", "MÃ BÁC SĨ", "MA_BS"]) || "MA_BAC_SI";
+                const keyNguoiTH = detectColumnKey(sampleRow, ["NGUOI_THUC_HIEN", "NGƯỜI THỰC HIỆN", "KTV"]) || "NGUOI_THUC_HIEN";
+                const keyNgayTH = detectColumnKey(sampleRow, ["NGAY_TH_YL", "NGÀY THỰC HIỆN", "THỜI GIAN THỰC HIỆN"]) || "NGAY_TH_YL";
+                const keyNgayKQ = detectColumnKey(sampleRow, ["NGAY_KQ", "NGÀY KẾT QUẢ", "THỜI GIAN KẾT QUẢ"]) || "NGAY_KQ";
+                
+                // Quan trọng: Tìm 2 cột mã máy
+                const keyMaMay1 = detectColumnKey(sampleRow, ["MA_MAY", "MÃ MÁY", "MÃ THIẾT BỊ", "MA_MAY_1"]) || "MA_MAY";
+                const keyMaMay2 = detectColumnKey(sampleRow, ["MA_MAY_3176", "MÃ MÁY 3176", "3176", "TB_3176", "MA_MAY_2"]) || "MA_MAY_3176";
+
+                const processed = [];
+                let cntTotal = 0;
+                let cntErr = 0;
+                const khamKey = "Khám Y học cổ truyền";
+                const dienChamKey = "Điện châm điều trị đau do thoái hóa khớp";
+
+                files.data.forEach((row, idx) => {
+                    const sv = String(row[keySv] || "").trim();
+                    const svLow = sv.toLowerCase();
+
+                    // --- Filter Logic ---
+                    const isMatched = activeFilters.some(filter => svLow.includes(filter.toLowerCase()));
+                    if (!isMatched) return;
+
+                    cntTotal++;
+                    const errors = [];
+                    const maLK = String(row[keyMaLK] || "").trim();
+                    const maBS = String(row[keyMaBS] || "").trim();
+                    const nguoiTH = String(row[keyNguoiTH] || "").trim();
+                    
+                    // --- LOGIC LẤY & CHECK MÃ MÁY ---
+                    // Helper check giá trị hợp lệ
+                    const isValidMM = (v) => v && String(v).trim() !== "" && String(v).trim().toLowerCase() !== "undefined";
+
+                    const valMM1 = row[keyMaMay1];
+                    const valMM2 = row[keyMaMay2];
+                    const hasMM1 = isValidMM(valMM1);
+                    const hasMM2 = isValidMM(valMM2);
+                    
+                    // Hiển thị mã máy (gom cả 2 nếu có)
+                    const displayList = [];
+                    if (hasMM1) displayList.push(valMM1);
+                    if (hasMM2) displayList.push(valMM2);
+                    const maMayDisplay = displayList.length > 0 ? displayList.join(" - ") : (isKham ? "--" : "TRỐNG");
+
+                    const dTH = parseDate(row[keyNgayTH]);
+                    const dKQ = parseDate(row[keyNgayKQ]);
+
+                    // --- LOGIC KIỂM TRA CHÍNH ---
+                    const isKham = svLow.includes(khamKey.toLowerCase());
+                    const isDienCham = svLow.includes(dienChamKey.toLowerCase());
+                    const expectBS = isKham ? configKhamBS : configBS;
+
+                    // 1. Kiểm tra Bác Sĩ
+                    if (maBS !== expectBS) errors.push(`Sai BS: ${maBS}`);
+
+                    // 2. Kiểm tra Mã Máy (ĐIỆN CHÂM PHẢI CÓ CẢ 2)
+                    if (isDienCham) {
+                        // Yêu cầu: Cả 2 cột phải có dữ liệu hợp lệ
+                        if (!hasMM1 || !hasMM2) {
+                             if (!hasMM1 && !hasMM2) errors.push("Thiếu cả 2 Mã Máy");
+                             else if (!hasMM1) errors.push(`Thiếu Mã Máy (Cột ${keyMaMay1})`);
+                             else if (!hasMM2) errors.push(`Thiếu Mã Máy (Cột ${keyMaMay2})`);
+                        }
+                    } else if (!isKham) {
+                        // Các dịch vụ khác (không phải Khám): Chỉ cần có ít nhất 1 mã máy
+                        if (!hasMM1 && !hasMM2) errors.push("Thiếu Mã Máy");
+                    }
+
+                    // 3. Kiểm tra Người Thực Hiện & Giờ
+                    let thuStr = "--";
+                    let dayIdx = -1;
+
+                    if (dTH) {
+                        dayIdx = dTH.getDay();
+                        const dayConf = daysSchedule.find(d => d.id === dayIdx);
+                        thuStr = dayConf ? dayConf.name : "N/A";
+
+                        if (dayConf) {
+                            if (isKham) {
+                                // Nếu là Khám -> Người TH phải là Bác Sĩ (configKhamBS)
+                                if (nguoiTH !== configKhamBS) {
+                                    errors.push(`Sai Người TH (Phải là BS ${configKhamBS})`);
+                                }
+                            } else {
+                                // Nếu là DV Khác (Điện châm) -> Check theo lịch KTV
+                                if (nguoiTH !== dayConf.code) {
+                                    errors.push(`Sai KTV ${thuStr} (Phải là ${dayConf.code})`);
+                                }
+                            }
+
+                            // Check giờ (Áp dụng chung)
+                            if (!checkTime(dTH, dayIdx)) errors.push(`Giờ TH (${dTH.getHours()}:${String(dTH.getMinutes()).padStart(2,'0')}) sai khung`);
+                        }
+                        
+                        // --- LOGIC MỚI: CHECK 20 PHÚT ĐIỆN CHÂM ---
+                        if (isDienCham && dKQ) {
+                            const diffMs = dKQ.getTime() - dTH.getTime();
+                            const diffMins = Math.floor(diffMs / 60000); // 1 phút = 60000ms
+                            
+                            // Yêu cầu: Phải đúng 20 phút
+                            if (diffMins !== 20) {
+                                errors.push(`Sai thời gian: ${diffMins}p (Yêu cầu: 20p)`);
+                            }
+                        }
+
+                    } else {
+                        errors.push("Lỗi ngày TH");
+                    }
+
+                    if (dKQ && dayIdx !== -1) {
+                         if (!checkTime(dKQ, dayIdx)) errors.push(`Giờ KQ (${dKQ.getHours()}:${String(dKQ.getMinutes()).padStart(2,'0')}) sai khung`);
+                    }
+
+                    if (errors.length > 0) cntErr++;
+
+                    processed.push({
+                        stt: idx + 2,
+                        maLK,
+                        tenBN: maps.patient[maLK] || "",
+                        sv,
+                        ngayYL: dTH ? `${dTH.getDate()}/${dTH.getMonth()+1}` : "--",
+                        thu: thuStr,
+                        bs: maBS,
+                        tenBS: getName(maBS),
+                        ktv: nguoiTH,
+                        tenKTV: getName(nguoiTH),
+                        maMay: maMayDisplay, // Hiển thị mã máy đã xử lý
+                        gioTH: dTH ? `${dTH.getHours()}:${String(dTH.getMinutes()).padStart(2,'0')}` : "--",
+                        gioKQ: dKQ ? `${dKQ.getHours()}:${String(dKQ.getMinutes()).padStart(2,'0')}` : "--",
+                        isKham,
+                        errors
+                    });
+                });
+
+                setResults(processed);
+                setStats({ total: cntTotal, errors: cntErr });
+                setIsAnalyzed(true);
+            };
+
+            // --- UI SUB-COMPONENTS ---
+            const FileCard = ({ title, icon, color, status, onUpload }) => (
+                <div className={`p-4 rounded-xl border border-${color}-100 bg-${color}-50/50 flex items-center gap-4 transition hover:shadow-md`}>
+                    <div className={`w-12 h-12 rounded-full bg-${color}-100 flex items-center justify-center text-${color}-600 text-xl`}>
+                        <i className={`fas ${icon}`}></i>
+                    </div>
+                    <div className="flex-grow">
+                        <h3 className={`font-bold text-${color}-900 text-sm uppercase mb-1`}>{title}</h3>
+                        <label className={`cursor-pointer inline-block text-xs font-semibold text-white bg-${color}-500 hover:bg-${color}-600 px-3 py-1.5 rounded-md transition shadow-sm`}>
+                            Chọn File
+                            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => onUpload(e.target.files[0])} />
+                        </label>
+                        <div className="text-xs font-medium text-gray-500 mt-1 italic">{status}</div>
+                    </div>
+                </div>
+            );
+
+            const DayConfigCard = ({ day, onChange }) => {
+                const updateTime = (key, val) => {
+                    const newTimes = { ...day.times, [key]: val };
+                    onChange({ ...day, times: newTimes });
+                };
+                const updateCode = (val) => onChange({ ...day, code: val });
+
+                return (
+                    <div className={`bg-white p-3 rounded-xl border ${day.highlight ? 'border-purple-300 ring-1 ring-purple-100' : 'border-slate-200'} shadow-sm hover:shadow-md transition duration-200`}>
+                        <div className="flex justify-between items-center mb-2">
+                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${day.id === 6 ? 'bg-purple-100 text-purple-700' : (day.id===0 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700')}`}>
+                                {day.name}
+                            </span>
+                            {day.highlight && <i className="fas fa-star text-yellow-400 text-xs"></i>}
+                        </div>
+                        <div className="mb-2">
+                            <input type="text" value={day.code} onChange={(e) => updateCode(e.target.value)} 
+                                className="w-full text-xs font-mono font-bold text-slate-700 border border-slate-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-200 outline-none" 
+                            />
+                            <div className="text-[10px] text-gray-400 mt-0.5 truncate h-3">{getName(day.code) || "..."}</div>
+                        </div>
+                        <div className="bg-slate-50 p-1.5 rounded border border-slate-100 grid gap-1">
+                            <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-bold text-orange-500 w-3">S</span>
+                                <input type="time" value={day.times.ms} onChange={(e)=>updateTime('ms', e.target.value)} className="w-full text-[10px] border rounded px-0.5 text-center bg-white" />
+                                <input type="time" value={day.times.me} onChange={(e)=>updateTime('me', e.target.value)} className="w-full text-[10px] border rounded px-0.5 text-center bg-white" />
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-bold text-blue-500 w-3">C</span>
+                                <input type="time" value={day.times.as} onChange={(e)=>updateTime('as', e.target.value)} className="w-full text-[10px] border rounded px-0.5 text-center bg-white" />
+                                <input type="time" value={day.times.ae} onChange={(e)=>updateTime('ae', e.target.value)} className="w-full text-[10px] border rounded px-0.5 text-center bg-white" />
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen pb-10">
+                    {/* Header */}
+                    <div className="bg-white shadow-sm sticky top-0 z-50">
+                        <div className="max-w-[1920px] mx-auto px-6 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xl shadow-lg shadow-blue-200">
+                                    <i className="fas fa-cubes"></i>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-slate-800 leading-tight">BHYT Smart Checker</h1>
+                                    <p className="text-xs text-slate-500 font-medium">Pro v8.3 • Modern UI</p>
+                                </div>
+                            </div>
+                            <button onClick={onLogout} className="text-sm font-medium text-slate-500 hover:text-red-500 transition flex items-center gap-2 px-4 py-2 hover:bg-slate-50 rounded-lg">
+                                <i className="fas fa-sign-out-alt"></i> Đăng xuất
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="max-w-[1920px] mx-auto px-6 py-6 space-y-6">
+                        
+                        {/* Section 1: Uploads */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <FileCard title="1. DS Chứng Chỉ Hành Nghề" icon="fa-id-badge" color="blue" status={status.cchn} onUpload={(f) => handleFileUpload('cchn', f)} />
+                            <FileCard title="2. Bảng 1 (Thông Tin BN)" icon="fa-users" color="indigo" status={status.table1} onUpload={(f) => handleFileUpload('table1', f)} />
+                            <div className="lg:col-span-1 p-4 rounded-xl border border-slate-200 bg-white flex flex-col justify-center items-center text-center relative group overflow-hidden transition hover:border-blue-400 hover:shadow-md">
+                                <input type="file" accept=".xlsx,.xls,.csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleFileUpload('data', e.target.files[0])} />
+                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2 group-hover:text-blue-500 group-hover:scale-110 transition">
+                                    <i className="fas fa-cloud-upload-alt text-2xl"></i>
+                                </div>
+                                <h3 className="font-bold text-slate-700 text-sm">3. Nạp Bảng 3 (Dữ Liệu)</h3>
+                                <p className="text-xs text-slate-400 mt-1">{status.data}</p>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Config */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <i className="fas fa-sliders-h text-slate-400"></i> Cấu Hình Quy Tắc
+                                </h2>
+                                <button onClick={copyTimeT2} className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition flex items-center gap-2">
+                                    <i className="fas fa-copy"></i> Copy giờ T2 cho cả tuần
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                                {/* Left: Doctor Rules */}
+                                <div className="xl:col-span-3 space-y-4">
+                                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                                        <div className="text-xs font-bold text-slate-400 uppercase mb-3">Quy tắc Chung (Điện châm...)</div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-600 block mb-1">BS Chỉ Định</label>
+                                            <input type="text" value={configBS} onChange={(e) => setConfigBS(e.target.value)} className="input-modern w-full px-3 py-2 rounded-lg text-sm font-mono font-bold text-blue-700" />
+                                            <div className="text-xs text-blue-500 mt-1 h-4 truncate font-medium">{getName(configBS)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-xl border border-orange-200 bg-orange-50/50 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-2 opacity-10"><i className="fas fa-stethoscope text-6xl text-orange-500"></i></div>
+                                        <div className="text-xs font-bold text-orange-400 uppercase mb-3 relative z-10">Quy tắc Riêng (Khám)</div>
+                                        <div className="space-y-3 relative z-10">
+                                            <div>
+                                                <div className="text-xs font-medium text-orange-800 italic mb-2">Dịch vụ "Khám YHCT"</div>
+                                                <label className="text-xs font-semibold text-slate-600 block mb-1">BS Bắt buộc (T2-CN)</label>
+                                                <input type="text" value={configKhamBS} onChange={(e) => setConfigKhamBS(e.target.value)} className="input-modern w-full px-3 py-2 rounded-lg text-sm font-mono font-bold text-red-600" />
+                                                <div className="text-xs text-red-500 mt-1 h-4 truncate font-medium">{getName(configKhamBS)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right: Weekly Schedule */}
+                                <div className="xl:col-span-9">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                                        {daysSchedule.map((day, idx) => (
+                                            <DayConfigCard 
+                                                key={day.id} 
+                                                day={day} 
+                                                onChange={(updatedDay) => {
+                                                    const newSched = [...daysSchedule];
+                                                    newSched[idx] = updatedDay;
+                                                    setDaysSchedule(newSched);
+                                                }} 
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Action & Results */}
+                        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+                            {/* Toolbar */}
+                            <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row items-center gap-6 bg-slate-50/50">
+                                <div className="flex-grow">
+                                    <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Chọn dịch vụ cần kiểm tra:</label>
+                                    <div className="flex flex-wrap gap-3">
+                                        {FILTER_OPTIONS.map((opt) => {
+                                            const isActive = activeFilters.includes(opt.label);
+                                            const activeClass = `bg-${opt.color}-100 text-${opt.color}-700 border-${opt.color}-300 ring-2 ring-${opt.color}-200`;
+                                            const inactiveClass = `bg-white text-slate-500 border-slate-200 hover:border-slate-300`;
+                                            
+                                            return (
+                                                <button 
+                                                    key={opt.id}
+                                                    onClick={() => toggleFilter(opt.label)}
+                                                    className={`px-4 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-2 ${isActive ? activeClass : inactiveClass}`}
+                                                >
+                                                    <i className={`fas ${opt.icon} ${isActive ? '' : 'text-slate-300'}`}></i>
+                                                    {opt.label}
+                                                    {isActive && <i className="fas fa-check ml-1"></i>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={runAnalysis}
+                                    className="w-full md:w-auto h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-8 rounded-xl shadow-lg hover:shadow-blue-500/30 transition transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <i className="fas fa-bolt"></i> KIỂM TRA NGAY
+                                </button>
+                            </div>
+
+                            {/* Table Results */}
+                            {isAnalyzed ? (
+                                <div className="animate-fade-in">
+                                    <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="text-sm font-bold text-slate-700">Kết Quả Phân Tích</div>
+                                        <div className="flex gap-2">
+                                            <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm">
+                                                Tổng: {stats.total}
+                                            </span>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${stats.errors > 0 ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-green-100 text-green-600 border border-green-200'}`}>
+                                                Lỗi: {stats.errors}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto max-h-[600px]">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm text-xs uppercase font-bold text-slate-500">
+                                                <tr>
+                                                    <th className="px-4 py-3 w-12">STT</th>
+                                                    <th className="px-4 py-3 min-w-[200px]">Thông tin</th>
+                                                    <th className="px-4 py-3">Ngày</th>
+                                                    <th className="px-4 py-3">Thứ</th>
+                                                    <th className="px-4 py-3">Bác Sĩ</th>
+                                                    <th className="px-4 py-3">Người TH</th>
+                                                    <th className="px-4 py-3 bg-indigo-50 text-indigo-700">Mã Máy</th>
+                                                    <th className="px-4 py-3 text-center">Giờ</th>
+                                                    <th className="px-4 py-3 text-center">TT</th>
+                                                    <th className="px-4 py-3">Lỗi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-sm divide-y divide-slate-100">
+                                                {results.map((row, i) => (
+                                                    <tr key={i} className={`hover:bg-slate-50 transition ${row.isKham ? 'bg-orange-50/30' : ''} ${row.errors.length > 0 ? 'bg-red-50 hover:bg-red-100' : ''}`}>
+                                                        <td className="px-4 py-3 text-slate-400 font-mono text-xs">{row.stt}</td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-bold text-slate-700 text-xs font-mono">{row.maLK}</div>
+                                                            <div className="text-[11px] font-bold text-indigo-600 uppercase mt-0.5">{row.tenBN || <span className="text-gray-300 italic">--</span>}</div>
+                                                            <div className="text-[10px] text-slate-400 mt-1 truncate max-w-[180px]" title={row.sv}>{row.sv}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">{row.ngayYL}</td>
+                                                        <td className={`px-4 py-3 whitespace-nowrap font-bold ${row.thu.includes('T7') || row.thu.includes('CN') ? 'text-purple-600' : 'text-slate-600'}`}>{row.thu}</td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="text-xs text-slate-700">{row.bs}</div>
+                                                            <div className="text-[10px] text-blue-500 font-medium truncate max-w-[120px]">{row.tenBS}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="text-xs text-slate-700">{row.ktv}</div>
+                                                            <div className="text-[10px] text-green-600 font-medium truncate max-w-[120px]">{row.tenKTV}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 bg-indigo-50/30">
+                                                            <span className={`text-xs font-mono px-2 py-1 rounded ${!row.maMay || row.maMay === 'TRỐNG' ? (row.isKham ? 'text-gray-400' : 'bg-red-100 text-red-600 font-bold') : 'text-indigo-700'}`}>
+                                                                {row.maMay}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center text-xs text-slate-500">
+                                                            <div>{row.gioTH}</div>
+                                                            <div className="text-[9px] text-slate-300">↓</div>
+                                                            <div>{row.gioKQ}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            {row.errors.length > 0 ? <i className="fas fa-times-circle text-red-500 text-lg"></i> : <i className="fas fa-check-circle text-green-500 text-lg"></i>}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            {row.errors.map((e, k) => (
+                                                                <div key={k} className="text-xs text-red-600 font-semibold flex items-center gap-1">
+                                                                    <i className="fas fa-exclamation-triangle text-[10px]"></i> {e}
+                                                                </div>
+                                                            ))}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-32 text-center opacity-40 hover:opacity-100 transition-opacity duration-500">
+                                    <div className="bg-slate-100 p-6 rounded-3xl mb-4"><i className="fas fa-layer-group text-4xl text-slate-400"></i></div>
+                                    <h3 className="text-xl font-bold text-slate-700">Chưa có dữ liệu</h3>
+                                    <p className="text-slate-500 mt-1">Vui lòng tải lên file Excel để bắt đầu phân tích</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Root = () => {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const handleLogout = () => setIsAuthenticated(false);
+            return <>{isAuthenticated ? <MainApp onLogout={handleLogout} /> : <LoginScreen onLoginSuccess={() => setIsAuthenticated(true)} />}</>;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Root />);
+    </script>
+</body>
+</html>
