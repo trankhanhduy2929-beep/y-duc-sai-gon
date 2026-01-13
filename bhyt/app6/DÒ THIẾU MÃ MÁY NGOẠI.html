@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Claims Inspector Pro</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#4f46e5',
+                        secondary: '#818cf8',
+                        dark: '#1e1b4b',
+                        glass: 'rgba(255, 255, 255, 0.7)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            min-height: 100vh;
+        }
+        
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .glass-sidebar {
+            background: #1e1b4b; /* Dark Indigo */
+            color: white;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Loader */
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #e0e7ff;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Drag Zone */
+        .drop-zone {
+            transition: all 0.3s ease;
+            border: 2px dashed #cbd5e1;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+            transform: scale(1.01);
+        }
+        
+        /* Table Row Animation */
+        tr { transition: background-color 0.2s; }
+    </style>
+</head>
+<body class="text-gray-700 antialiased overflow-hidden">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900">
+        <div class="glass-panel p-10 rounded-2xl shadow-2xl w-full max-w-md text-center transform transition-all hover:scale-105 duration-300">
+            <div class="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 mb-6 shadow-inner">
+                <i class="fa-solid fa-shield-halved text-4xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Bảo Mật Hệ Thống</h2>
+            <p class="text-gray-500 mb-8 text-sm">Vui lòng nhập mật khẩu để truy cập công cụ kiểm tra BHYT</p>
+            
+            <div class="relative mb-6">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-lock text-gray-400"></i>
+                </div>
+                <input type="password" id="loginPassword" 
+                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition bg-gray-50" 
+                    placeholder="Mật khẩu truy cập...">
+            </div>
+            
+            <button onclick="checkLogin()" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transform active:scale-95 transition">
+                <i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> Đăng Nhập
+            </button>
+            <p id="loginError" class="text-red-500 text-sm mt-4 hidden font-medium animate-pulse"></p>
+            <p class="text-xs text-gray-400 mt-6">Phiên bản Pro v2.0</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP INTERFACE -->
+    <div id="appScreen" class="hidden flex h-screen">
+        
+        <!-- SIDEBAR -->
+        <aside class="glass-sidebar w-64 flex-shrink-0 flex flex-col transition-all duration-300 shadow-xl z-20 hidden md:flex">
+            <div class="h-20 flex items-center px-6 border-b border-indigo-800 bg-indigo-900">
+                <i class="fa-solid fa-laptop-medical text-2xl text-blue-400 mr-3"></i>
+                <span class="text-xl font-bold tracking-wide text-white">Claims Pro</span>
+            </div>
+
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <a href="#" class="flex items-center px-4 py-3 bg-indigo-800 text-white rounded-xl shadow-lg transition transform hover:translate-x-1">
+                    <i class="fa-solid fa-chart-line w-6"></i>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                <div class="px-4 py-3 text-indigo-300 text-xs font-bold uppercase mt-6 tracking-wider">Công cụ</div>
+                <button onclick="document.getElementById('fileInfo').click()" class="w-full flex items-center px-4 py-3 text-indigo-100 hover:bg-indigo-800 hover:text-white rounded-xl transition group">
+                    <i class="fa-solid fa-file-medical w-6 group-hover:text-green-400 transition"></i>
+                    <span>Nhập XML1 (BN)</span>
+                </button>
+                <button onclick="document.getElementById('fileService').click()" class="w-full flex items-center px-4 py-3 text-indigo-100 hover:bg-indigo-800 hover:text-white rounded-xl transition group">
+                    <i class="fa-solid fa-file-prescription w-6 group-hover:text-purple-400 transition"></i>
+                    <span>Nhập XML3 (DV)</span>
+                </button>
+                
+                <div class="px-4 py-3 text-indigo-300 text-xs font-bold uppercase mt-6 tracking-wider">Hệ thống</div>
+                <button onclick="openChangePassModal()" class="w-full flex items-center px-4 py-3 text-indigo-100 hover:bg-indigo-800 hover:text-white rounded-xl transition">
+                    <i class="fa-solid fa-key w-6"></i>
+                    <span>Đổi mật khẩu</span>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-indigo-800 bg-indigo-900">
+                <button onclick="logout()" class="w-full flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition shadow">
+                    <i class="fa-solid fa-power-off mr-2"></i> Đăng xuất
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            <!-- Top Header -->
+            <header class="h-20 glass-panel border-b-0 flex items-center justify-between px-8 z-10">
+                <h1 class="text-2xl font-bold text-gray-800">Tổng Quan Kiểm Tra</h1>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold text-gray-700" id="currentDate">...</p>
+                        <p class="text-xs text-gray-500">Người dùng hệ thống</p>
+                    </div>
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-lg">
+                        AD
+                    </div>
+                </div>
+            </header>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-panel p-5 rounded-2xl flex items-center shadow-sm hover:shadow-md transition">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Tổng hồ sơ (XML1)</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="statPatients">0</h3>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl flex items-center shadow-sm hover:shadow-md transition">
+                        <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fa-solid fa-list-check"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Dịch vụ kiểm tra</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="statServices">0</h3>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl flex items-center shadow-sm hover:shadow-md transition">
+                        <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Phát hiện lỗi</p>
+                            <h3 class="text-2xl font-bold text-red-600" id="statErrors">0</h3>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl flex items-center shadow-sm hover:shadow-md transition">
+                        <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fa-solid fa-check-double"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Tỷ lệ đạt</p>
+                            <h3 class="text-2xl font-bold text-green-600" id="statRate">--</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Left Column: Upload & Actions -->
+                    <div class="lg:col-span-2 space-y-6">
+                        
+                        <!-- Upload Section -->
+                        <div class="glass-panel rounded-2xl p-6 shadow-sm">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-3">Nhập Dữ Liệu</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Zone 1 -->
+                                <div class="drop-zone relative rounded-xl p-6 text-center cursor-pointer group bg-white" id="dropZone1">
+                                    <input type="file" id="fileInfo" accept=".xlsx,.xls,.csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                    <div class="text-green-600 text-3xl mb-2 group-hover:scale-110 transition duration-300">
+                                        <i class="fa-regular fa-file-excel"></i>
+                                    </div>
+                                    <p class="font-bold text-gray-700">BẢNG 1 (XML1)</p>
+                                    <p class="text-xs text-gray-400 mt-1" id="fileInfoName">Kéo thả hoặc click để chọn</p>
+                                    <span class="absolute top-2 right-2 hidden text-green-500" id="checkInfo"><i class="fa-solid fa-circle-check"></i></span>
+                                </div>
+
+                                <!-- Zone 3 -->
+                                <div class="drop-zone relative rounded-xl p-6 text-center cursor-pointer group bg-white" id="dropZone3">
+                                    <input type="file" id="fileService" accept=".xlsx,.xls,.csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                    <div class="text-purple-600 text-3xl mb-2 group-hover:scale-110 transition duration-300">
+                                        <i class="fa-solid fa-file-code"></i>
+                                    </div>
+                                    <p class="font-bold text-gray-700">BẢNG 3 (XML3)</p>
+                                    <p class="text-xs text-gray-400 mt-1" id="fileServiceName">Kéo thả hoặc click để chọn</p>
+                                    <span class="absolute top-2 right-2 hidden text-green-500" id="checkService"><i class="fa-solid fa-circle-check"></i></span>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="mt-6 flex flex-wrap gap-3">
+                                <button onclick="processFiles()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Phân Tích Dữ Liệu
+                                </button>
+                                <button onclick="exportToExcel()" id="btnExport" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex items-center gap-2">
+                                    <i class="fa-solid fa-download"></i> Xuất Excel
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Search Bar (Hidden initially) -->
+                        <div id="searchContainer" class="hidden relative">
+                            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Tìm kiếm theo tên BN, Mã LK hoặc tên dịch vụ..." 
+                                class="w-full pl-10 pr-4 py-3 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-indigo-300 outline-none glass-panel">
+                            <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                        </div>
+
+                        <!-- Results Table -->
+                        <div class="glass-panel rounded-2xl overflow-hidden shadow-sm min-h-[300px]">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-600">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b">
+                                        <tr>
+                                            <th class="px-6 py-4 rounded-tl-lg">STT</th>
+                                            <th class="px-6 py-4">Mã LK / Tên BN</th>
+                                            <th class="px-6 py-4">Dịch Vụ</th>
+                                            <th class="px-6 py-4 text-center">Mã Máy</th>
+                                            <th class="px-6 py-4 text-center">3176</th>
+                                            <th class="px-6 py-4 text-center">Trạng Thái</th>
+                                            <th class="px-6 py-4 text-center rounded-tr-lg">Hành Động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tableBody">
+                                        <tr>
+                                            <td colspan="7" class="py-20 text-center">
+                                                <div class="flex flex-col items-center justify-center text-gray-400">
+                                                    <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-30"></i>
+                                                    <p>Dữ liệu phân tích sẽ hiển thị tại đây</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Chart & Info -->
+                    <div class="space-y-6">
+                        <!-- Chart Card -->
+                        <div class="glass-panel rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center min-h-[350px]">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 w-full text-left border-l-4 border-purple-500 pl-3">Biểu Đồ Tỷ Lệ</h3>
+                            <div class="relative w-64 h-64">
+                                <canvas id="resultsChart"></canvas>
+                                <div id="chartPlaceholder" class="absolute inset-0 flex items-center justify-center text-gray-400 text-xs text-center px-4">
+                                    Chưa có dữ liệu để vẽ biểu đồ
+                                </div>
+                            </div>
+                            <div class="mt-4 text-sm text-gray-500 text-center italic">
+                                Biểu đồ thể hiện tỷ lệ dịch vụ hợp lệ so với lỗi thiếu mã máy.
+                            </div>
+                        </div>
+
+                        <!-- Excluded Services List -->
+                        <div class="glass-panel rounded-2xl p-6 shadow-sm">
+                            <h3 class="text-sm font-bold text-gray-600 mb-3 uppercase tracking-wider">Danh sách miễn trừ</h3>
+                            <div class="flex flex-wrap gap-2" id="excludedList">
+                                <!-- Tags inserted via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="h-10"></div> <!-- Spacer -->
+            </div>
+        </main>
+    </div>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 z-[60] bg-white bg-opacity-80 backdrop-blur-sm flex flex-col items-center justify-center">
+        <div class="spinner mb-4"></div>
+        <h3 class="text-xl font-bold text-indigo-700">Đang Xử Lý Dữ Liệu</h3>
+        <p class="text-gray-500 text-sm mt-2">Vui lòng đợi trong giây lát...</p>
+    </div>
+
+    <!-- MODAL: CHANGE PASSWORD -->
+    <div id="modalChangePass" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-8 w-96 shadow-2xl transform transition-all scale-100">
+            <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2">Đổi Mật Khẩu</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Mật khẩu cũ</label>
+                    <input type="password" id="oldPass" class="w-full border p-2 rounded-lg mt-1 focus:ring-2 focus:ring-indigo-200 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Mật khẩu mới</label>
+                    <input type="password" id="newPass" class="w-full border p-2 rounded-lg mt-1 focus:ring-2 focus:ring-indigo-200 outline-none">
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end gap-3">
+                <button onclick="document.getElementById('modalChangePass').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">Hủy</button>
+                <button onclick="changePassword()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md font-medium transition">Lưu Thay Đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PATIENT DETAILS (REDESIGNED) -->
+    <div id="modalDetails" class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+            <!-- Header -->
+            <div class="p-5 bg-gradient-to-r from-indigo-600 to-blue-600 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-full text-white"><i class="fa-regular fa-id-card text-xl"></i></div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Hồ Sơ Bệnh Nhân Chi Tiết</h3>
+                        <p class="text-indigo-100 text-xs">Dữ liệu trích xuất từ XML1</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('modalDetails').classList.add('hidden')" class="text-white/70 hover:text-white text-2xl transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div class="p-6 overflow-y-auto bg-gray-50 flex-grow" id="detailContent">
+                <!-- Content injected via JS -->
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-4 border-t bg-white flex justify-end">
+                <button onclick="document.getElementById('modalDetails').classList.add('hidden')" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition">Đóng Hồ Sơ</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- UI HELPER: DATE ---
+    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // --- UI HELPER: DRAG & DROP HANDLING ---
+    function setupDragDrop(zoneId, inputId, nameId, checkId) {
+        const zone = document.getElementById(zoneId);
+        const input = document.getElementById(inputId);
+        const nameDisplay = document.getElementById(nameId);
+        const checkIcon = document.getElementById(checkId);
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            zone.addEventListener(eventName, preventDefaults, false);
+        });
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            zone.addEventListener(eventName, () => zone.classList.add('dragover'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            zone.addEventListener(eventName, () => zone.classList.remove('dragover'), false);
+        });
+
+        zone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            input.files = files;
+            updateUI(files[0]);
+        });
+
+        input.addEventListener('change', function() {
+            updateUI(this.files[0]);
+        });
+
+        function updateUI(file) {
+            if(file) {
+                nameDisplay.innerText = file.name;
+                nameDisplay.classList.add('text-indigo-600', 'font-semibold');
+                checkIcon.classList.remove('hidden');
+                zone.classList.add('border-indigo-400', 'bg-indigo-50');
+            }
+        }
+    }
+    setupDragDrop('dropZone1', 'fileInfo', 'fileInfoName', 'checkInfo');
+    setupDragDrop('dropZone3', 'fileService', 'fileServiceName', 'checkService');
+
+    // --- UI HELPER: EXCLUDED TAGS ---
+    const EXCLUDED_SERVICES = [
+        "Khám Nội tổng hợp", "Khám Phụ sản", "HBsAg test nhanh", 
+        "Cấy chỉ điều trị hội chứng vai gáy", "Khám Y học cổ truyền", 
+        "Cấy chỉ điều trị đau lưng", "Khám Nhi", "Dengue virus NS1Ag test nhanh"
+    ];
+    
+    const excludedContainer = document.getElementById('excludedList');
+    EXCLUDED_SERVICES.forEach(svc => {
+        excludedContainer.innerHTML += `<span class="px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-md border border-gray-300">${svc}</span>`;
+    });
+
+    // --- CHART INSTANCE ---
+    let myChart = null;
+
+    // --- AUTHENTICATION LOGIC ---
+    const DEFAULT_PASS = '123456';
+    
+    function checkLogin() {
+        const input = document.getElementById('loginPassword').value;
+        const storedPass = localStorage.getItem('app_pass') || DEFAULT_PASS;
+        const err = document.getElementById('loginError');
+
+        if (input === storedPass) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            document.getElementById('appScreen').classList.add('flex'); // Enable flex for layout
+            document.getElementById('loginPassword').value = '';
+            err.classList.add('hidden');
+            
+            // SweetAlert Welcome
+            const Toast = Swal.mixin({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+                timerProgressBar: true, didOpen: (toast) => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); }
+            });
+            Toast.fire({ icon: 'success', title: 'Đăng nhập thành công!' });
+            
+        } else {
+            err.innerText = 'Mật khẩu không đúng!';
+            err.classList.remove('hidden');
+            
+            // Shake effect
+            const box = document.querySelector('#loginScreen .glass-panel');
+            box.classList.add('animate-pulse');
+            setTimeout(() => box.classList.remove('animate-pulse'), 500);
+        }
+    }
+
+    function logout() {
+        location.reload(); // Simple reload to clear state and show login
+    }
+
+    function openChangePassModal() {
+        document.getElementById('modalChangePass').classList.remove('hidden');
+        document.getElementById('oldPass').value = '';
+        document.getElementById('newPass').value = '';
+    }
+
+    function changePassword() {
+        const oldP = document.getElementById('oldPass').value;
+        const newP = document.getElementById('newPass').value;
+        const storedPass = localStorage.getItem('app_pass') || DEFAULT_PASS;
+
+        if (oldP !== storedPass) {
+            Swal.fire('Lỗi', 'Mật khẩu cũ không chính xác.', 'error');
+            return;
+        }
+        if (!newP) {
+            Swal.fire('Lỗi', 'Mật khẩu mới không được để trống.', 'warning');
+            return;
+        }
+
+        localStorage.setItem('app_pass', newP);
+        Swal.fire('Thành công', 'Đổi mật khẩu thành công!', 'success');
+        document.getElementById('modalChangePass').classList.add('hidden');
+    }
+
+    // --- CORE PROCESSING LOGIC ---
+    let errorDataForExport = [];
+    let patientDictionary = {};
+
+    async function processFiles() {
+        const fileInfoInput = document.getElementById('fileInfo');
+        const fileServiceInput = document.getElementById('fileService');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const tableBody = document.getElementById('tableBody');
+        const btnExport = document.getElementById('btnExport');
+        const searchContainer = document.getElementById('searchContainer');
+
+        // Validation
+        if (!fileServiceInput.files.length) {
+            Swal.fire('Thiếu File', 'Vui lòng chọn File Bảng 3 (Dịch vụ) để tiếp tục.', 'warning');
+            return;
+        }
+
+        loadingOverlay.classList.remove('hidden');
+        
+        // Reset State
+        errorDataForExport = [];
+        patientDictionary = {};
+        tableBody.innerHTML = '';
+        btnExport.classList.add('hidden');
+        searchContainer.classList.add('hidden');
+
+        // Stats Reset
+        document.getElementById('statPatients').innerText = '0';
+        document.getElementById('statServices').innerText = '0';
+        document.getElementById('statErrors').innerText = '0';
+        document.getElementById('statRate').innerText = '--';
+
+        try {
+            // Wait a tick to show loader
+            await new Promise(r => setTimeout(r, 100));
+
+            // 1. Process XML1
+            if (fileInfoInput.files.length) {
+                const rowsInfo = await readExcelFile(fileInfoInput.files[0]);
+                const headers = rowsInfo[0].map(h => String(h).trim().toUpperCase());
+                const idxMaLK = headers.indexOf('MA_LK');
+                
+                if (idxMaLK !== -1) {
+                    for (let i = 1; i < rowsInfo.length; i++) {
+                        const row = rowsInfo[i];
+                        if (!row || row.length === 0) continue;
+                        const maLK = String(row[idxMaLK] || '').trim();
+                        if (maLK) {
+                            let patientObj = {};
+                            headers.forEach((h, index) => { patientObj[h] = row[index]; });
+                            patientDictionary[maLK] = patientObj;
+                        }
+                    }
+                    document.getElementById('statPatients').innerText = Object.keys(patientDictionary).length.toLocaleString();
+                }
+            }
+
+            // 2. Process XML3
+            const rowsService = await readExcelFile(fileServiceInput.files[0]);
+            const headers = rowsService[0].map(h => String(h).trim().toUpperCase());
+            
+            const idxMaLK = headers.indexOf('MA_LK');
+            const idxTenDV = headers.indexOf('TEN_DICH_VU');
+            const idxMaMay = headers.indexOf('MA_MAY');
+            const idxMaMay3176 = headers.indexOf('MA_MAY_3176');
+
+            if (idxTenDV === -1 || idxMaMay === -1 || idxMaMay3176 === -1) {
+                throw new Error("File Bảng 3 thiếu cột bắt buộc: TEN_DICH_VU, MA_MAY hoặc MA_MAY_3176");
+            }
+
+            let htmlBuffer = '';
+            let countError = 0;
+            let totalProcessed = 0;
+
+            errorDataForExport.push(["STT", "MA_LK", "HO_TEN", "TEN_DICH_VU", "MA_MAY", "MA_MAY_3176", "LOI"]);
+            
+            const normalizedExcluded = EXCLUDED_SERVICES.map(s => s.toLowerCase().trim());
+
+            for (let i = 1; i < rowsService.length; i++) {
+                const row = rowsService[i];
+                if (!row || row.length === 0) continue;
+
+                const maLK = idxMaLK !== -1 ? String(row[idxMaLK] || '').trim() : '';
+                const tenDV = String(row[idxTenDV] || '').trim();
+                const maMay = String(row[idxMaMay] || '').trim();
+                const maMay3176 = String(row[idxMaMay3176] || '').trim();
+
+                const isExcluded = normalizedExcluded.includes(tenDV.toLowerCase());
+                
+                if (!isExcluded) {
+                    totalProcessed++;
+                    let errorMsg = "";
+                    if (!maMay && !maMay3176) errorMsg = "Thiếu cả 2 mã";
+                    else if (!maMay) errorMsg = "Thiếu MA_MAY";
+                    else if (!maMay3176) errorMsg = "Thiếu MA_MAY_3176";
+
+                    if (errorMsg) {
+                        countError++;
+                        const patientInfo = patientDictionary[maLK] || {};
+                        const hoTen = patientInfo['HO_TEN'] || '<span class="text-gray-400 italic">Chưa nhập Bảng 1</span>';
+
+                        htmlBuffer += `
+                            <tr class="bg-white border-b hover:bg-indigo-50 transition group search-item">
+                                <td class="px-6 py-4 font-medium text-gray-500">${countError}</td>
+                                <td class="px-6 py-4">
+                                    <div class="font-bold text-gray-800 search-text">${maLK}</div>
+                                    <div class="text-xs text-blue-600 font-semibold uppercase mt-1 search-text">${hoTen}</div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-700 search-text max-w-xs truncate" title="${tenDV}">${tenDV}</td>
+                                <td class="px-6 py-4 text-center">
+                                    ${!maMay ? '<span class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-bold">MISSING</span>' : `<span class="text-green-600 font-mono text-xs">${maMay}</span>`}
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    ${!maMay3176 ? '<span class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-bold">MISSING</span>' : `<span class="text-green-600 font-mono text-xs">${maMay3176}</span>`}
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-bold shadow-sm">${errorMsg}</span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <button onclick="viewDetails('${maLK}')" class="bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white p-2 rounded-lg transition shadow-sm" title="Xem hồ sơ">
+                                        <i class="fa-solid fa-file-medical-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        errorDataForExport.push([countError, maLK, hoTen, tenDV, maMay, maMay3176, errorMsg]);
+                    }
+                }
+            }
+
+            // 4. Update Stats & UI
+            document.getElementById('statServices').innerText = totalProcessed.toLocaleString();
+            document.getElementById('statErrors').innerText = countError.toLocaleString();
+            const rate = totalProcessed > 0 ? ((totalProcessed - countError) / totalProcessed * 100).toFixed(1) : 0;
+            document.getElementById('statRate').innerText = `${rate}%`;
+
+            renderChart(totalProcessed - countError, countError);
+
+            if (countError === 0) {
+                Swal.fire('Tuyệt vời', 'Không tìm thấy lỗi nào trong Bảng 3!', 'success');
+                tableBody.innerHTML = `<tr><td colspan="7" class="py-12 text-center"><div class="text-green-500 font-bold text-lg"><i class="fa-solid fa-circle-check text-4xl mb-2"></i><br>Dữ liệu sạch hoàn toàn!</div></td></tr>`;
+            } else {
+                Swal.fire('Hoàn tất', `Đã tìm thấy ${countError} lỗi.`, 'info');
+                tableBody.innerHTML = htmlBuffer;
+                btnExport.classList.remove('hidden');
+                searchContainer.classList.remove('hidden');
+            }
+
+        } catch (err) {
+            Swal.fire('Lỗi Xử Lý', err.message, 'error');
+            console.error(err);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+
+    // --- CHART LOGIC ---
+    function renderChart(pass, fail) {
+        const ctx = document.getElementById('resultsChart').getContext('2d');
+        document.getElementById('chartPlaceholder').classList.add('hidden');
+
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Hợp lệ', 'Thiếu Mã'],
+                datasets: [{
+                    data: [pass, fail],
+                    backgroundColor: ['#10b981', '#ef4444'], // Green, Red
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true } }
+                },
+                cutout: '70%',
+            }
+        });
+    }
+
+    // --- TABLE FILTER ---
+    function filterTable() {
+        const input = document.getElementById('searchInput');
+        const filter = input.value.toUpperCase();
+        const tr = document.querySelectorAll('#tableBody tr.search-item');
+
+        tr.forEach(row => {
+            const text = row.querySelector('.search-text')?.innerText || ""; // Check columns with class search-text (Name, ID, Service)
+            // Or aggregate all text in row
+            const allText = row.innerText.toUpperCase();
+            if (allText.indexOf(filter) > -1) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    // --- EXCEL HELPER ---
+    function readExcelFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(firstSheet, {header: 1, defval: ""});
+                    resolve(json);
+                } catch (err) { reject(err); }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    // --- VIEW DETAILS MODAL ---
+    function viewDetails(maLK) {
+        const data = patientDictionary[maLK];
+        const contentDiv = document.getElementById('detailContent');
+        
+        if (!data || Object.keys(data).length === 0) {
+            contentDiv.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+                    <i class="fa-solid fa-file-circle-question text-5xl mb-3"></i>
+                    <p>Không tìm thấy thông tin trong Bảng 1 (XML1)</p>
+                    <p class="text-sm">Vui lòng kiểm tra lại file đầu vào.</p>
+                </div>`;
+        } else {
+            // Grouping Data
+            const groups = {
+                'Hành Chính': ['HO_TEN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 'MA_QUOCTICH', 'MA_DANTOC', 'MA_NGHE_NGHIEP'],
+                'Bảo Hiểm Y Tế': ['MA_THE_BHYT', 'MA_DKBD', 'GT_THE_TU', 'GT_THE_DEN', 'MA_DOITUONG_KCB', 'MUC_HUONG'],
+                'Khám Chữa Bệnh': ['MA_LK', 'NGAY_VAO', 'NGAY_RA', 'CHAN_DOAN_RV', 'MA_BENH_CHINH', 'KET_QUA_DTRI', 'MA_KHOA'],
+                'Tài Chính': ['T_TONGCHI', 'T_BHTT', 'T_BNTT', 'T_NGUONKHAC']
+            };
+
+            let html = '<div class="space-y-6">';
+
+            for (const [groupName, fields] of Object.entries(groups)) {
+                html += `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center">
+                            <span class="w-2 h-6 bg-indigo-500 rounded-full mr-3"></span>
+                            <h4 class="font-bold text-gray-700 uppercase text-sm tracking-wide">${groupName}</h4>
+                        </div>
+                        <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                `;
+                
+                fields.forEach(key => {
+                    const val = data[key] || '-';
+                    html += `
+                        <div>
+                            <p class="text-xs text-gray-400 font-bold uppercase mb-1">${key.replace(/_/g, ' ')}</p>
+                            <p class="text-gray-800 font-medium break-words">${val}</p>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            }
+            
+            // Raw Data Toggle
+            html += `
+                <div class="mt-4">
+                    <details class="group">
+                        <summary class="flex justify-between items-center font-medium cursor-pointer list-none bg-indigo-50 text-indigo-700 p-4 rounded-lg">
+                            <span> Xem toàn bộ dữ liệu thô (JSON)</span>
+                            <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down"></i></span>
+                        </summary>
+                        <div class="text-gray-600 mt-2 bg-gray-100 p-4 rounded-lg overflow-x-auto text-xs font-mono">
+                            <table class="w-full text-left">
+                                ${Object.entries(data).map(([k, v]) => `<tr><td class="font-bold text-indigo-600 pr-4 py-1">${k}</td><td>${v}</td></tr>`).join('')}
+                            </table>
+                        </div>
+                    </details>
+                </div>
+            `;
+            html += '</div>';
+            
+            contentDiv.innerHTML = html;
+        }
+
+        document.getElementById('modalDetails').classList.remove('hidden');
+    }
+
+    function exportToExcel() {
+        if (errorDataForExport.length <= 1) return;
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(errorDataForExport);
+        XLSX.utils.book_append_sheet(wb, ws, "Loi_Ma_May");
+        XLSX.writeFile(wb, "Ket_Qua_Kiem_Tra_BHYT_Pro.xlsx");
+    }
+
+    // Login Enter Key
+    document.getElementById('loginPassword').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') checkLogin();
+    });
+
+</script>
+</body>
+</html>
