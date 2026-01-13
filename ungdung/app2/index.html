@@ -320,10 +320,14 @@
                 // Kỹ thuật này giúp giấu key khỏi việc đọc code thông thường.
                 const _k = (s) => atob(s);
                 
+                // key: AIzaSyB9hiIWGvlG-Qk82XbQrF7WxD0s6YcGwYQ -> Base64
+                // domain: quanlybangke.firebaseapp.com -> Base64
+                // project: quanlybangke -> Base64
+                
                 const hiddenConfig = {
-                    apiKey: _k("QUl6YVN5QkxETE1vOF9ObzNDTlNqXzFDalZKX2NBQ3dqTkl0UlF3"),
-                    authDomain: _k("cXVhbi1seS1iYW5nLWtlLTIuZmlyZWJhc2VhcHAuY29t"),
-                    projectId: _k("cXVhbi1seS1iYW5nLWtlLTI=")
+                    apiKey: _k("QUl6YVN5QjloaUlXR3ZsRy1RazgyWGJRckY3V3hEMHM2WWNHd1lR"),
+                    authDomain: _k("cXVhbmx5YmFuZ2tlLmZpcmViYXNlYXBwLmNvbQ=="),
+                    projectId: _k("cXVhbmx5YmFuZ2tl")
                 };
 
                 initializeFirebase(hiddenConfig);
@@ -553,7 +557,7 @@
             // --- RENDER ---
             if (isLocked) return <LockScreen onUnlock={handleUnlock} />;
             // Logic for Error Help: If specific DB error AND we have config, show help
-            const currentProjectId = JSON.parse(localStorage.getItem('my_firebase_config') || '{}').projectId || 'quan-ly-bang-ke-2';
+            const currentProjectId = JSON.parse(localStorage.getItem('my_firebase_config') || '{}').projectId || 'quanlybangke';
             if (dbError && isConfigured) return <ErrorHelpScreen errorType={dbError} projectId={currentProjectId} onReset={resetConfig} />;
             
             if (!isConfigured) return <ConfigScreen onSave={handleConfigSave} />;
