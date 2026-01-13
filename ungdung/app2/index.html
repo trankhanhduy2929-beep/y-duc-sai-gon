@@ -67,7 +67,7 @@
         );
 
         // --- ERROR HELP SCREEN ---
-        const ErrorHelpScreen = ({ errorType, projectId }) => {
+        const ErrorHelpScreen = ({ errorType, projectId, onReset }) => {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
                     <div className="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full fade-in">
@@ -76,40 +76,28 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                             </div>
                             <h2 className="text-2xl font-bold text-gray-800">
-                                {errorType === 'api_not_enabled' ? 'Chưa tạo Cơ Sở Dữ Liệu' : 'Lỗi Quyền Truy Cập'}
+                                {errorType === 'api_not_enabled' ? 'Chưa bật Database' : 'Lỗi Quyền/Kết nối'}
                             </h2>
                             <p className="text-gray-600 mt-2">
-                                {errorType === 'api_not_enabled' 
-                                    ? `Dự án "${projectId}" chưa bật tính năng Firestore Database.` 
-                                    : `Dự án "${projectId}" chặn quyền đọc/ghi dữ liệu.`}
+                                Dự án <b>{projectId}</b> đang gặp vấn đề.
                             </p>
                         </div>
 
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 text-sm text-gray-700 space-y-3">
-                            <p className="font-bold text-blue-800 text-lg">Cách khắc phục (chỉ làm 1 lần):</p>
-                            <ol className="list-decimal list-inside space-y-2 ml-2">
-                                <li>Truy cập <a href={`https://console.firebase.google.com/project/${projectId}/firestore`} target="_blank" className="text-blue-600 underline font-bold hover:text-blue-800">Firebase Console &gt; Firestore Database</a>.</li>
-                                
-                                {errorType === 'api_not_enabled' ? (
-                                    <>
-                                        <li>Nhấn nút <b className="text-black">Create Database</b> (Tạo cơ sở dữ liệu).</li>
-                                        <li>Chọn vị trí máy chủ (mặc định) rồi nhấn <b>Next</b>.</li>
-                                        <li>Chọn <b className="text-red-600">Start in Test Mode</b> (Chế độ kiểm thử) để không bị chặn quyền.</li>
-                                        <li>Nhấn <b>Enable</b> và đợi khoảng 1 phút.</li>
-                                    </>
-                                ) : (
-                                    <>
-                                        <li>Chuyển sang tab <b className="text-black">Rules</b> (Quy tắc).</li>
-                                        <li>Sửa đoạn mã thành: <code>allow read, write: if true;</code></li>
-                                        <li>Nhấn nút <b>Publish</b>.</li>
-                                    </>
-                                )}
-                            </ol>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-5 text-sm text-gray-700 space-y-3">
+                            <p className="font-bold text-yellow-800 text-lg">Gợi ý xử lý:</p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                                <li>Nếu Google đòi thẻ Visa (Billing), hãy bỏ qua dự án này.</li>
+                                <li>Hãy <b>Tạo một Project mới</b> (nhớ tắt Google Analytics khi tạo).</li>
+                                <li>Sau đó nhập khóa của Project mới vào đây.</li>
+                            </ul>
                         </div>
 
-                        <div className="mt-8 text-center">
-                            <button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition transform hover:-translate-y-0.5">
-                                Đã làm xong, Tải lại trang
+                        <div className="mt-8 text-center flex flex-col md:flex-row gap-3 justify-center">
+                            <button onClick={() => window.location.reload()} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg transition">
+                                Thử lại (F5)
+                            </button>
+                            <button onClick={onReset} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition">
+                                Nhập khóa của Project mới
                             </button>
                         </div>
                     </div>
@@ -168,18 +156,22 @@
             );
         };
 
-        // --- CONFIG SCREEN COMPONENT (Fallback) ---
+        // --- CONFIG SCREEN COMPONENT ---
         const ConfigScreen = ({ onSave }) => {
-            const [apiKey, setApiKey] = React.useState('AIzaSyBge_c2HoUS7hP-im5QUU9eGO8NQRC6Urw');
-            const [authDomain, setAuthDomain] = React.useState('thongkebangke.firebaseapp.com');
-            const [projectId, setProjectId] = React.useState('thongkebangke');
+            // Load saved config or default to the provided one
+            const savedConfig = JSON.parse(localStorage.getItem('my_firebase_config') || '{}');
+            
+            const [apiKey, setApiKey] = React.useState(savedConfig.apiKey || 'AIzaSyBge_c2HoUS7hP-im5QUU9eGO8NQRC6Urw');
+            const [authDomain, setAuthDomain] = React.useState(savedConfig.authDomain || 'thongkebangke.firebaseapp.com');
+            const [projectId, setProjectId] = React.useState(savedConfig.projectId || 'thongkebangke');
+            
             const [error, setError] = React.useState('');
             const [isTesting, setIsTesting] = React.useState(false);
 
             const handleSave = async () => {
                 setError('');
                 if (!apiKey || !authDomain || !projectId) {
-                    setError("Vui lòng điền đầy đủ 3 thông tin: Project ID, API Key và Auth Domain");
+                    setError("Vui lòng điền đầy đủ 3 thông tin.");
                     return;
                 }
 
@@ -192,22 +184,26 @@
                 setIsTesting(true);
 
                 try {
+                    // Test connection manually
                     const testAppName = 'test-connection-' + Date.now();
                     const testApp = firebase.initializeApp(config, testAppName);
+                    // Just test auth, not DB yet, to confirm keys are valid
                     await testApp.auth().signInAnonymously();
                     await testApp.delete();
+                    
+                    // Save valid config
                     localStorage.setItem('my_firebase_config', JSON.stringify(config));
                     onSave(config);
 
                 } catch (e) {
                     console.error("Test connection failed:", e);
-                    let msg = "Kết nối thất bại. Vui lòng kiểm tra lại thông tin.";
+                    let msg = "Kết nối thất bại.";
                     if (e.code === 'auth/api-key-not-valid-please-pass-a-valid-api-key' || e.code === 'auth/invalid-api-key') {
-                        msg = "Lỗi: API Key không đúng.";
+                        msg = "Lỗi: API Key sai.";
                     } else if (e.code === 'auth/operation-not-allowed') {
-                        msg = "Lỗi: Bạn chưa bật 'Anonymous' (Ẩn danh) trong Firebase Console > Authentication.";
-                    } else if (e.message && e.message.includes('project')) {
-                        msg = "Lỗi: Project ID có vẻ không đúng.";
+                        msg = "Lỗi: Chưa bật Anonymous (Ẩn danh) trong Authentication.";
+                    } else {
+                        msg = "Lỗi: Kiểm tra lại Project ID hoặc đường mạng.";
                     }
                     setError(msg);
                 } finally {
@@ -223,7 +219,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                             </div>
                             <h2 className="text-2xl font-bold text-gray-800">Cấu hình kết nối</h2>
-                            <p className="text-gray-500 text-sm mt-2">Đã điền sẵn thông tin. Nhấn Lưu nếu cần thay đổi.</p>
+                            <p className="text-gray-500 text-sm mt-2">Nhập thông tin dự án Firebase của bạn.</p>
                         </div>
 
                         <div className="space-y-4">
@@ -262,7 +258,7 @@
 
                             {error && (
                                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-xs" role="alert">
-                                    <strong className="font-bold">Lỗi: </strong>
+                                    <strong className="font-bold">Thông báo: </strong>
                                     <span className="block sm:inline">{error}</span>
                                 </div>
                             )}
@@ -272,7 +268,7 @@
                                 disabled={isTesting}
                                 className={`w-full text-white font-bold py-3 rounded-lg transition shadow-lg mt-2 flex justify-center items-center space-x-2 ${isTesting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5'}`}
                             >
-                                {isTesting ? 'Đang kiểm tra...' : 'Lưu & Kết nối'}
+                                {isTesting ? 'Đang kiểm tra...' : 'Kết nối'}
                             </button>
                         </div>
                     </div>
@@ -282,12 +278,12 @@
 
         // --- MAIN APP COMPONENT ---
         const App = () => {
-            const [isLocked, setIsLocked] = React.useState(true); // Default to locked
+            const [isLocked, setIsLocked] = React.useState(true);
             const [isConfigured, setIsConfigured] = React.useState(false);
             const [user, setUser] = React.useState(null);
             const [loading, setLoading] = React.useState(true);
             const [logs, setLogs] = React.useState([]);
-            const [selectedMonth, setSelectedMonth] = React.useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+            const [selectedMonth, setSelectedMonth] = React.useState(new Date().toISOString().slice(0, 7));
             const [dbInstance, setDbInstance] = React.useState(null);
             const [dbError, setDbError] = React.useState(null);
             
@@ -313,15 +309,17 @@
                     setIsLocked(false);
                 }
 
-                // CẤU HÌNH CỨNG (EMBEDDED CONFIG)
-                const hardcodedConfig = {
-                    apiKey: "AIzaSyBge_c2HoUS7hP-im5QUU9eGO8NQRC6Urw",
-                    authDomain: "thongkebangke.firebaseapp.com",
-                    projectId: "thongkebangke"
-                };
-
-                // Ưu tiên dùng cấu hình cứng này luôn
-                initializeFirebase(hardcodedConfig);
+                // Try to load saved config from LocalStorage first
+                const savedConfig = localStorage.getItem('my_firebase_config');
+                if (savedConfig) {
+                    try {
+                        initializeFirebase(JSON.parse(savedConfig));
+                    } catch(e) {
+                        setLoading(false); // Corrupt config, show manual screen
+                    }
+                } else {
+                    setLoading(false); // No config, show manual screen (pre-filled with default)
+                }
             }, []);
 
             const initializeFirebase = (config) => {
@@ -334,11 +332,10 @@
 
                 const initAuth = async () => {
                     try {
-                        // Thử đăng nhập ẩn danh
                         await auth.signInAnonymously();
                     } catch (e) {
                         console.error("Auth failed", e);
-                        setLoading(false); // Stop loading to show manual config if needed
+                        setLoading(false);
                     }
                 };
 
@@ -358,8 +355,9 @@
             };
 
             const resetConfig = () => {
-                if(confirm("Bạn muốn reset lại cấu hình?")) {
-                    setIsConfigured(false); 
+                if(confirm("Bạn muốn đổi sang dự án Firebase khác?")) {
+                    localStorage.removeItem('my_firebase_config');
+                    window.location.reload();
                 }
             };
 
@@ -373,7 +371,6 @@
                 if (!user || !dbInstance) return;
 
                 const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'personal-tracker';
-                // DÙNG CHUNG DỮ LIỆU: /public/data/daily_logs
                 const collectionRef = dbInstance.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('daily_logs');
                 
                 const unsubscribe = collectionRef.onSnapshot((snapshot) => {
@@ -382,7 +379,7 @@
                     setLogs(data);
                 }, (error) => {
                     console.error("Error fetching data:", error);
-                    // Handle API not enabled or Permission Denied
+                    // Better error handling for DB not enabled
                     if (error.code === 'permission-denied') {
                         if (error.message && (error.message.includes("Cloud Firestore API") || error.message.includes("disabled"))) {
                             setDbError('api_not_enabled');
@@ -390,7 +387,7 @@
                             setDbError('permission_denied');
                         }
                     } else if (error.code === 'unavailable') {
-                         console.warn("Offline mode or API blocked");
+                         // Ignore offline
                     }
                 });
 
@@ -543,7 +540,10 @@
 
             // --- RENDER ---
             if (isLocked) return <LockScreen onUnlock={handleUnlock} />;
-            if (dbError) return <ErrorHelpScreen errorType={dbError} projectId="thongkebangke" />;
+            // Logic for Error Help: If specific DB error AND we have config, show help
+            const currentProjectId = JSON.parse(localStorage.getItem('my_firebase_config') || '{}').projectId || 'thongkebangke';
+            if (dbError && isConfigured) return <ErrorHelpScreen errorType={dbError} projectId={currentProjectId} onReset={resetConfig} />;
+            
             if (!isConfigured) return <ConfigScreen onSave={handleConfigSave} />;
             if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100"><Spinner /></div>;
 
