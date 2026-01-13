@@ -38,6 +38,8 @@
         ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -64,6 +66,58 @@
             </div>
         );
 
+        // --- LOCK SCREEN COMPONENT ---
+        const LockScreen = ({ onUnlock }) => {
+            const [pass, setPass] = React.useState('');
+            const [error, setError] = React.useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                // MẬT KHẨU MẶC ĐỊNH: 1402
+                if (pass === '1402') {
+                    onUnlock();
+                } else {
+                    setError('Mật khẩu không đúng');
+                    setPass('');
+                    // Rung lắc nhẹ input để báo sai (optional UI effect)
+                    const input = document.getElementById('pass-input');
+                    if(input) {
+                        input.classList.add('ring-2', 'ring-red-500');
+                        setTimeout(() => input.classList.remove('ring-2', 'ring-red-500'), 500);
+                    }
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full fade-in text-center">
+                        <div className="bg-blue-100 p-4 rounded-full inline-block mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-800 mb-2">Bảo mật truy cập</h2>
+                        <p className="text-gray-500 text-sm mb-6">Vui lòng nhập mã khóa để tiếp tục</p>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <input 
+                                id="pass-input"
+                                type="password" 
+                                className="w-full text-center text-2xl tracking-widest border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                placeholder="****"
+                                maxLength="4"
+                                autoFocus
+                                value={pass}
+                                onChange={(e) => setPass(e.target.value)}
+                            />
+                            {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
+                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-md">
+                                Mở Khóa
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
         // --- CONFIG SCREEN COMPONENT ---
         const ConfigScreen = ({ onSave }) => {
             const [apiKey, setApiKey] = React.useState('');
@@ -79,7 +133,6 @@
                     return;
                 }
 
-                // Tự động làm sạch khoảng trắng thừa
                 const config = {
                     apiKey: apiKey.trim(),
                     authDomain: authDomain.trim(),
@@ -89,30 +142,16 @@
                 setIsTesting(true);
 
                 try {
-                    // BƯỚC QUAN TRỌNG: Kiểm tra kết nối trước khi lưu
-                    // Tạo một app ảo để test
                     const testAppName = 'test-connection-' + Date.now();
                     const testApp = firebase.initializeApp(config, testAppName);
-                    
-                    // Thử đăng nhập ẩn danh. Nếu cấu hình sai hoặc chưa bật Auth, dòng này sẽ báo lỗi ngay.
                     await testApp.auth().signInAnonymously();
-                    
-                    // Nếu chạy được đến đây nghĩa là cấu hình đúng
-                    await testApp.delete(); // Xóa app test đi
-
-                    // Lưu cấu hình thật
+                    await testApp.delete();
                     localStorage.setItem('my_firebase_config', JSON.stringify(config));
                     onSave(config);
 
                 } catch (e) {
                     console.error("Test connection failed:", e);
-                    // Dọn dẹp app test nếu có lỗi
-                    const apps = firebase.apps;
-                    // Tìm và xóa app test nếu nó còn tồn tại
-                    // (Logic đơn giản hóa cho compat v9)
-                    
                     let msg = "Kết nối thất bại. Vui lòng kiểm tra lại thông tin.";
-                    
                     if (e.code === 'auth/api-key-not-valid-please-pass-a-valid-api-key' || e.code === 'auth/invalid-api-key') {
                         msg = "Lỗi: API Key không đúng.";
                     } else if (e.code === 'auth/operation-not-allowed') {
@@ -120,7 +159,6 @@
                     } else if (e.message && e.message.includes('project')) {
                         msg = "Lỗi: Project ID có vẻ không đúng.";
                     }
-
                     setError(msg);
                 } finally {
                     setIsTesting(false);
@@ -129,7 +167,7 @@
 
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full">
+                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full fade-in">
                         <div className="text-center mb-6">
                             <div className="bg-blue-100 p-3 rounded-full inline-block mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -201,7 +239,6 @@
                                 <strong>Lưu ý quan trọng:</strong>
                                 <ul className="list-disc pl-4 mt-1 space-y-1">
                                     <li>Đảm bảo bạn đã vào <b>Build &gt; Authentication &gt; Sign-in method</b> và bật <b>Anonymous</b> (Ẩn danh).</li>
-                                    <li>Nếu không bật, kết nối sẽ bị từ chối.</li>
                                     <li>Project ID, API Key lấy ở: <b>Project Settings &gt; General &gt; Your apps</b>.</li>
                                 </ul>
                             </div>
@@ -213,6 +250,7 @@
 
         // --- MAIN APP COMPONENT ---
         const App = () => {
+            const [isLocked, setIsLocked] = React.useState(true); // Default to locked
             const [isConfigured, setIsConfigured] = React.useState(false);
             const [user, setUser] = React.useState(null);
             const [loading, setLoading] = React.useState(true);
@@ -237,6 +275,12 @@
 
             // --- INIT FIREBASE ---
             React.useEffect(() => {
+                // Check if session is already unlocked (optional, but good for refresh)
+                const sessionUnlocked = sessionStorage.getItem('app_unlocked');
+                if (sessionUnlocked === 'true') {
+                    setIsLocked(false);
+                }
+
                 // Check local storage for config first
                 const localConfig = localStorage.getItem('my_firebase_config');
                 // Check environment config (for preview mode)
@@ -259,14 +303,11 @@
                 const db = firebase.firestore();
                 setDbInstance(db);
 
-                // Auth
                 const initAuth = async () => {
-                     // Check if we have a custom token from env (Preview mode only)
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         try {
                             await auth.signInWithCustomToken(__initial_auth_token);
                         } catch (e) {
-                             console.warn("Custom token failed, falling back to anon", e);
                              await auth.signInAnonymously();
                         }
                     } else {
@@ -280,9 +321,6 @@
                         setUser(u);
                         setIsConfigured(true);
                         setLoading(false);
-                    } else {
-                        // Nếu auth state null (chưa login xong hoặc logout), chưa set Configured vội
-                        // Tuy nhiên ở đây logic initAuth() sẽ trigger login, nên cứ đợi.
                     }
                 });
             };
@@ -299,13 +337,16 @@
                 }
             };
 
+            const handleUnlock = () => {
+                setIsLocked(false);
+                sessionStorage.setItem('app_unlocked', 'true'); // Keep unlocked for this session
+            };
+
             // --- DATA FETCHING ---
             React.useEffect(() => {
                 if (!user || !dbInstance) return;
 
-                // Sử dụng appId từ biến môi trường hoặc mặc định là 'my-tracker-app' cho người dùng cá nhân
                 const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'personal-tracker';
-                
                 const collectionRef = dbInstance.collection('artifacts').doc(currentAppId).collection('users').doc(user.uid).collection('daily_logs');
                 
                 const unsubscribe = collectionRef.onSnapshot((snapshot) => {
@@ -314,16 +355,15 @@
                     setLogs(data);
                 }, (error) => {
                     console.error("Error fetching data:", error);
-                    // Handle permission denied (common if rules aren't set up)
                     if(error.code === 'permission-denied') {
-                         alert("Lỗi quyền truy cập! Vui lòng vào Firebase Console -> Firestore Database -> Rules và cho phép đọc/ghi (allow read, write: if true;)");
+                         alert("Lỗi quyền truy cập! Vui lòng kiểm tra Firestore Rules.");
                     }
                 });
 
                 return () => unsubscribe();
             }, [user, dbInstance]);
 
-            // --- COMPUTED DATA & CHARTS (Same as before) ---
+            // --- COMPUTED DATA & CHARTS ---
             const currentMonthLogs = React.useMemo(() => {
                 return logs.filter(log => log.date.startsWith(selectedMonth));
             }, [logs, selectedMonth]);
@@ -345,7 +385,7 @@
             }, [currentMonthLogs]);
 
             React.useEffect(() => {
-                if (loading || !isConfigured || !barChartRef.current || !pieChartRef.current) return;
+                if (loading || isLocked || !isConfigured || !barChartRef.current || !pieChartRef.current) return;
 
                 const chartData = [...currentMonthLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
                 const labels = chartData.map(l => l.date.split('-')[2]);
@@ -388,9 +428,9 @@
                     }
                 });
 
-            }, [currentMonthLogs, loading, isConfigured, stats]);
+            }, [currentMonthLogs, loading, isConfigured, isLocked, stats]);
 
-            // --- HANDLERS (Same logic) ---
+            // --- HANDLERS ---
             const handleInputChange = (e) => {
                 const { name, value } = e.target;
                 setFormData(prev => {
@@ -423,7 +463,7 @@
                     });
                     setFormData({ date: formData.date, gate: '', actual: '', note: '' });
                     setIsEditing(null);
-                } catch (err) { console.error("Save error", err); alert("Lỗi khi lưu! Kiểm tra kết nối mạng hoặc quyền truy cập."); }
+                } catch (err) { console.error("Save error", err); alert("Lỗi khi lưu! Kiểm tra kết nối mạng."); }
             };
 
             const handleEdit = (log) => {
@@ -468,6 +508,7 @@
             );
 
             // --- RENDER ---
+            if (isLocked) return <LockScreen onUnlock={handleUnlock} />;
             if (!isConfigured) return <ConfigScreen onSave={handleConfigSave} />;
             if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100"><Spinner /></div>;
 
