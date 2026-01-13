@@ -83,21 +83,34 @@
                             </p>
                         </div>
 
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-5 text-sm text-gray-700 space-y-3">
-                            <p className="font-bold text-yellow-800 text-lg">Gợi ý xử lý:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-2">
-                                <li>Nếu Google đòi thẻ Visa (Billing), hãy bỏ qua dự án này.</li>
-                                <li>Hãy <b>Tạo một Project mới</b> (nhớ tắt Google Analytics khi tạo).</li>
-                                <li>Sau đó nhập khóa của Project mới vào đây.</li>
-                            </ul>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 text-sm text-gray-700 space-y-3">
+                            <p className="font-bold text-blue-800 text-lg">Cách khắc phục (chỉ làm 1 lần):</p>
+                            <ol className="list-decimal list-inside space-y-2 ml-2">
+                                <li>Truy cập <a href={`https://console.firebase.google.com/project/${projectId}/firestore`} target="_blank" className="text-blue-600 underline font-bold hover:text-blue-800">Firebase Console &gt; Firestore Database</a>.</li>
+                                
+                                {errorType === 'api_not_enabled' ? (
+                                    <>
+                                        <li>Nhấn nút <b className="text-black">Create Database</b> (Tạo cơ sở dữ liệu).</li>
+                                        <li>Chọn vị trí máy chủ (mặc định) rồi nhấn <b>Next</b>.</li>
+                                        <li>Chọn <b className="text-red-600">Start in Test Mode</b> (Chế độ kiểm thử) để không bị chặn quyền.</li>
+                                        <li>Nhấn <b>Enable</b> và đợi khoảng 1 phút.</li>
+                                    </>
+                                ) : (
+                                    <>
+                                        <li>Chuyển sang tab <b className="text-black">Rules</b> (Quy tắc).</li>
+                                        <li>Sửa đoạn mã thành: <code>allow read, write: if true;</code></li>
+                                        <li>Nhấn nút <b>Publish</b>.</li>
+                                    </>
+                                )}
+                            </ol>
                         </div>
 
                         <div className="mt-8 text-center flex flex-col md:flex-row gap-3 justify-center">
-                            <button onClick={() => window.location.reload()} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg transition">
-                                Thử lại (F5)
+                            <button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition transform hover:-translate-y-0.5">
+                                Đã làm xong, Tải lại trang (F5)
                             </button>
-                            <button onClick={onReset} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition">
-                                Nhập khóa của Project mới
+                            <button onClick={onReset} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition">
+                                Đổi cấu hình khác
                             </button>
                         </div>
                     </div>
@@ -158,12 +171,12 @@
 
         // --- CONFIG SCREEN COMPONENT ---
         const ConfigScreen = ({ onSave }) => {
-            // Load saved config or default to the provided one
+            // Load saved config or default to the provided one (quan-ly-bang-ke-2)
             const savedConfig = JSON.parse(localStorage.getItem('my_firebase_config') || '{}');
             
-            const [apiKey, setApiKey] = React.useState(savedConfig.apiKey || 'AIzaSyBge_c2HoUS7hP-im5QUU9eGO8NQRC6Urw');
-            const [authDomain, setAuthDomain] = React.useState(savedConfig.authDomain || 'thongkebangke.firebaseapp.com');
-            const [projectId, setProjectId] = React.useState(savedConfig.projectId || 'thongkebangke');
+            const [apiKey, setApiKey] = React.useState(savedConfig.apiKey || 'AIzaSyBLDLMo8_No3CNSj_1CjVJ_cACwjNItRQw');
+            const [authDomain, setAuthDomain] = React.useState(savedConfig.authDomain || 'quan-ly-bang-ke-2.firebaseapp.com');
+            const [projectId, setProjectId] = React.useState(savedConfig.projectId || 'quan-ly-bang-ke-2');
             
             const [error, setError] = React.useState('');
             const [isTesting, setIsTesting] = React.useState(false);
@@ -309,17 +322,15 @@
                     setIsLocked(false);
                 }
 
-                // Try to load saved config from LocalStorage first
-                const savedConfig = localStorage.getItem('my_firebase_config');
-                if (savedConfig) {
-                    try {
-                        initializeFirebase(JSON.parse(savedConfig));
-                    } catch(e) {
-                        setLoading(false); // Corrupt config, show manual screen
-                    }
-                } else {
-                    setLoading(false); // No config, show manual screen (pre-filled with default)
-                }
+                // CẤU HÌNH CỨNG MỚI (EMBEDDED CONFIG - NEW PROJECT)
+                const hardcodedConfig = {
+                    apiKey: "AIzaSyBLDLMo8_No3CNSj_1CjVJ_cACwjNItRQw",
+                    authDomain: "quan-ly-bang-ke-2.firebaseapp.com",
+                    projectId: "quan-ly-bang-ke-2"
+                };
+
+                // Ưu tiên dùng cấu hình cứng này luôn
+                initializeFirebase(hardcodedConfig);
             }, []);
 
             const initializeFirebase = (config) => {
@@ -541,7 +552,7 @@
             // --- RENDER ---
             if (isLocked) return <LockScreen onUnlock={handleUnlock} />;
             // Logic for Error Help: If specific DB error AND we have config, show help
-            const currentProjectId = JSON.parse(localStorage.getItem('my_firebase_config') || '{}').projectId || 'thongkebangke';
+            const currentProjectId = JSON.parse(localStorage.getItem('my_firebase_config') || '{}').projectId || 'quan-ly-bang-ke-2';
             if (dbError && isConfigured) return <ErrorHelpScreen errorType={dbError} projectId={currentProjectId} onReset={resetConfig} />;
             
             if (!isConfigured) return <ConfigScreen onSave={handleConfigSave} />;
