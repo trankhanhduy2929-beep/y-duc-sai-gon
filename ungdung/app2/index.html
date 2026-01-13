@@ -171,12 +171,10 @@
 
         // --- CONFIG SCREEN COMPONENT ---
         const ConfigScreen = ({ onSave }) => {
-            // Load saved config or default to the provided one (quan-ly-bang-ke-2)
-            const savedConfig = JSON.parse(localStorage.getItem('my_firebase_config') || '{}');
-            
-            const [apiKey, setApiKey] = React.useState(savedConfig.apiKey || 'AIzaSyBLDLMo8_No3CNSj_1CjVJ_cACwjNItRQw');
-            const [authDomain, setAuthDomain] = React.useState(savedConfig.authDomain || 'quan-ly-bang-ke-2.firebaseapp.com');
-            const [projectId, setProjectId] = React.useState(savedConfig.projectId || 'quan-ly-bang-ke-2');
+            // Default to provided config
+            const [apiKey, setApiKey] = React.useState('AIzaSyBLDLMo8_No3CNSj_1CjVJ_cACwjNItRQw');
+            const [authDomain, setAuthDomain] = React.useState('quan-ly-bang-ke-2.firebaseapp.com');
+            const [projectId, setProjectId] = React.useState('quan-ly-bang-ke-2');
             
             const [error, setError] = React.useState('');
             const [isTesting, setIsTesting] = React.useState(false);
@@ -197,14 +195,11 @@
                 setIsTesting(true);
 
                 try {
-                    // Test connection manually
                     const testAppName = 'test-connection-' + Date.now();
                     const testApp = firebase.initializeApp(config, testAppName);
-                    // Just test auth, not DB yet, to confirm keys are valid
                     await testApp.auth().signInAnonymously();
                     await testApp.delete();
                     
-                    // Save valid config
                     localStorage.setItem('my_firebase_config', JSON.stringify(config));
                     onSave(config);
 
@@ -370,6 +365,11 @@
                     localStorage.removeItem('my_firebase_config');
                     window.location.reload();
                 }
+            };
+
+            const handleLock = () => {
+                setIsLocked(true);
+                sessionStorage.removeItem('app_unlocked');
             };
 
             const handleUnlock = () => {
@@ -548,6 +548,7 @@
                     <path d="m16 16-4-4-4 4"></path>
                 </svg>
             );
+            const LockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
 
             // --- RENDER ---
             if (isLocked) return <LockScreen onUnlock={handleUnlock} />;
@@ -572,6 +573,9 @@
                                 <div className="text-sm bg-white/20 px-3 py-1 rounded-full hidden md:block">
                                     ID: {user?.uid ? user.uid.slice(0,6) : '...'}
                                 </div>
+                                <button onClick={handleLock} className="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10" title="Đăng xuất / Khóa màn hình">
+                                    <LockIcon />
+                                </button>
                                 <button onClick={resetConfig} className="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10" title="Cài đặt">
                                     <SettingsIcon />
                                 </button>
