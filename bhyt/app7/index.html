@@ -1,769 +1,788 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  FileText, AlertTriangle, CheckCircle, Download, Search, 
-  Loader2, FileSpreadsheet, ShieldCheck, Lock, Unlock, 
-  User, Clock, Pill, RefreshCcw, LogOut, LayoutDashboard,
-  Users, CalendarClock, Stethoscope
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dò Trùng Giờ Đơn Thuốc BHYT</title>
+    
+    <!-- 1. Thư viện giao diện Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Thư viện xử lý Excel (XLSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-// --- LOGIN COMPONENT ---
-const LoginScreen = ({ onLogin }) => {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+    <!-- 3. Cấu hình Import Map để trình duyệt hiểu React & Lucide Icons -->
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0",
+                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                "lucide-react": "https://esm.sh/lucide-react@0.292.0"
+            }
+        }
+    </script>
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (password === '1402') {
-      onLogin();
-    } else {
-      setError('Mật khẩu không đúng!');
-    }
-  };
+    <!-- 4. Babel Standalone để dịch code React ngay trên trình duyệt -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 p-4 font-sans">
-      <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden animate-fade-in">
-        {/* Background blobs */}
-        <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/30 rounded-full blur-3xl -translate-x-10 -translate-y-10"></div>
-        <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl translate-x-10 translate-y-10"></div>
-
-        <div className="flex justify-center mb-8 relative z-10">
-          <div className="bg-gradient-to-tr from-blue-500 to-cyan-400 p-5 rounded-2xl shadow-lg shadow-blue-500/30">
-            <ShieldCheck className="w-12 h-12 text-white" />
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold text-center text-white mb-2 relative z-10">Dò Trùng Giờ Đơn Thuốc BHYT</h2>
-        <p className="text-blue-200 text-center mb-8 text-sm relative z-10">Hệ thống kiểm soát tuân thủ quy chế kê đơn</p>
+    <!-- Styles bổ sung cho hiệu ứng -->
+    <style>
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes shine { from { left: -100%; } to { left: 200%; } }
         
-        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-          <div className="relative group">
-            <Lock className="absolute left-4 top-3.5 w-5 h-5 text-blue-300 group-focus-within:text-cyan-400 transition-colors" />
-            <input 
-              type="password" 
-              className="w-full bg-blue-950/50 border border-blue-400/30 text-white placeholder-blue-300/50 pl-12 pr-4 py-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all shadow-inner"
-              placeholder="Nhập mật khẩu truy cập..."
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError('');
-              }}
-              autoFocus
-            />
-          </div>
-          
-          {error && (
-            <div className="text-red-200 text-sm flex items-center gap-2 bg-red-500/20 border border-red-500/30 p-3 rounded-xl animate-shake">
-              <AlertTriangle className="w-4 h-4" /> {error}
+        .animate-fade-in { animation: fade-in 0.5s ease-out; }
+        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+        .group:hover .group-hover\:animate-shine { animation: shine 1.5s infinite; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <!-- MAIN REACT APP CODE -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            FileText, AlertTriangle, CheckCircle, Download, Search, 
+            Loader2, FileSpreadsheet, ShieldCheck, Lock, Unlock, 
+            User, Clock, Pill, RefreshCcw, LogOut, LayoutDashboard,
+            Users, CalendarClock, Stethoscope
+        } from 'lucide-react';
+
+        // --- LOGIN COMPONENT ---
+        const LoginScreen = ({ onLogin }) => {
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                // Mật khẩu cố định là 1402 theo yêu cầu
+                if (password === '1402') {
+                    onLogin();
+                } else {
+                    setError('Mật khẩu không đúng!');
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 p-4 font-sans">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden animate-fade-in">
+                    {/* Background blobs */}
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/30 rounded-full blur-3xl -translate-x-10 -translate-y-10"></div>
+                    <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl translate-x-10 translate-y-10"></div>
+
+                    <div className="flex justify-center mb-8 relative z-10">
+                    <div className="bg-gradient-to-tr from-blue-500 to-cyan-400 p-5 rounded-2xl shadow-lg shadow-blue-500/30">
+                        <ShieldCheck className="w-12 h-12 text-white" />
+                    </div>
+                    </div>
+                    <h2 className="text-2xl font-bold text-center text-white mb-2 relative z-10">Dò Trùng Giờ Đơn Thuốc BHYT</h2>
+                    <p className="text-blue-200 text-center mb-8 text-sm relative z-10">Hệ thống kiểm soát tuân thủ quy chế kê đơn</p>
+                    
+                    <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+                    <div className="relative group">
+                        <Lock className="absolute left-4 top-3.5 w-5 h-5 text-blue-300 group-focus-within:text-cyan-400 transition-colors" />
+                        <input 
+                        type="password" 
+                        className="w-full bg-blue-950/50 border border-blue-400/30 text-white placeholder-blue-300/50 pl-12 pr-4 py-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all shadow-inner"
+                        placeholder="Nhập mật khẩu truy cập..."
+                        value={password}
+                        onChange={(e) => {
+                            setPassword(e.target.value);
+                            setError('');
+                        }}
+                        autoFocus
+                        />
+                    </div>
+                    
+                    {error && (
+                        <div className="text-red-200 text-sm flex items-center gap-2 bg-red-500/20 border border-red-500/30 p-3 rounded-xl animate-shake">
+                        <AlertTriangle className="w-4 h-4" /> {error}
+                        </div>
+                    )}
+
+                    <button 
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transform transition hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2"
+                    >
+                        <Unlock className="w-5 h-5" /> Đăng Nhập Hệ Thống
+                    </button>
+                    </form>
+                    
+                    <div className="mt-6 text-center text-blue-400/60 text-xs">
+                    Phiên bản Web 2.2 • Security Protected
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        // --- SUB COMPONENTS ---
+        const StatCard = ({ icon, title, value, color }) => (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className={`p-4 rounded-xl bg-gradient-to-br ${color} shadow-lg shadow-gray-200`}>
+                {icon}
+                </div>
+                <div>
+                <p className="text-slate-500 text-sm font-medium">{title}</p>
+                <p className="text-2xl font-bold text-slate-800">{value}</p>
+                </div>
             </div>
-          )}
+        );
 
-          <button 
-            type="submit"
-            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transform transition hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2"
-          >
-            <Unlock className="w-5 h-5" /> Đăng Nhập Hệ Thống
-          </button>
-        </form>
-        
-        <div className="mt-6 text-center text-blue-400/60 text-xs">
-          Phiên bản Web 2.1 • Security Protected
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- MAIN APP COMPONENT ---
-const App = () => {
-  // Sử dụng lazy initialization cho state để lấy giá trị từ sessionStorage nếu có
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Kiểm tra xem đã đăng nhập trong phiên làm việc này chưa
-    return sessionStorage.getItem('bhyt_auth_token') === 'true';
-  });
-
-  const [file1Data, setFile1Data] = useState([]); // Bảng 1 (Bệnh nhân)
-  const [file2Data, setFile2Data] = useState([]); // Bảng 2 (Y lệnh)
-  const [file3Data, setFile3Data] = useState([]); // Danh sách BS
-  
-  const [filesStatus, setFilesStatus] = useState({
-    file1: false,
-    file2: false,
-    file3: false
-  });
-
-  const [results, setResults] = useState([]);
-  const [stats, setStats] = useState({ totalConflicts: 0, totalDoctors: 0, totalPatientsAffected: 0 });
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [isLibLoaded, setIsLibLoaded] = useState(false);
-
-  // --- 1. Set Page Title & Load Library ---
-  useEffect(() => {
-    document.title = "BHYT Audit System | Dò Trùng Giờ";
-    
-    // Kiểm tra nếu thư viện đã có sẵn (tránh load lại khi re-render)
-    if (window.XLSX) {
-      setIsLibLoaded(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-    script.async = true;
-    script.onload = () => setIsLibLoaded(true);
-    script.onerror = () => setErrorMsg("Không thể tải thư viện đọc Excel. Vui lòng kiểm tra kết nối mạng.");
-    document.body.appendChild(script);
-
-    return () => {
-      // Cleanup nếu cần, nhưng thường với CDN global thì giữ nguyên
-    }
-  }, []);
-
-  // --- 2. Auth Handlers ---
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-    sessionStorage.setItem('bhyt_auth_token', 'true'); // Lưu trạng thái
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('bhyt_auth_token'); // Xóa trạng thái
-    setFile1Data([]);
-    setFile2Data([]);
-    setFile3Data([]);
-    setFilesStatus({ file1: false, file2: false, file3: false });
-    setResults([]);
-  };
-
-  // --- Helper Functions ---
-
-  const parseCSV = (text) => {
-    const rows = [];
-    let row = [];
-    let col = "";
-    let inQuote = false;
-    const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-    for (let i = 0; i < cleanText.length; i++) {
-      const char = cleanText[i];
-      const nextChar = cleanText[i + 1];
-
-      if (inQuote) {
-        if (char === '"' && nextChar === '"') {
-          col += '"';
-          i++; 
-        } else if (char === '"') {
-          inQuote = false;
-        } else {
-          col += char;
-        }
-      } else {
-        if (char === '"') {
-          inQuote = true;
-        } else if (char === ',') {
-          row.push(col.trim());
-          col = "";
-        } else if (char === '\n') {
-          row.push(col.trim());
-          if (row.length > 0 && (row.length > 1 || row[0] !== "")) {
-            rows.push(row);
-          }
-          row = [];
-          col = "";
-        } else {
-          col += char;
-        }
-      }
-    }
-    if (col || row.length > 0) {
-      row.push(col.trim());
-      rows.push(row);
-    }
-    return rows;
-  };
-
-  const convertToObjects = (rows, fileType) => {
-    if (!rows || rows.length === 0) return [];
-
-    let headerRowIndex = 0;
-    let keywords = [];
-    
-    if (fileType === 'file1') keywords = ['MA_LK', 'HO_TEN'];
-    else if (fileType === 'file2') keywords = ['MA_LK', 'MA_BAC_SI', 'NGAY_YL']; // Sử dụng NGAY_YL
-    else if (fileType === 'file3') keywords = ['CCHN', 'TEN'];
-
-    for (let i = 0; i < Math.min(rows.length, 50); i++) {
-      const safeRow = rows[i] || [];
-      const rowStr = safeRow.join(' ').toUpperCase();
-      const matchCount = keywords.filter(kw => rowStr.includes(kw)).length;
-      if (matchCount >= Math.min(keywords.length, 2)) { 
-        headerRowIndex = i;
-        break;
-      }
-    }
-
-    const rawHeader = rows[headerRowIndex] || [];
-    const headers = rawHeader.map(h => (h ? h.toString().toUpperCase().trim() : ''));
-    const dataRows = rows.slice(headerRowIndex + 1);
-
-    return dataRows.map(row => {
-      const obj = {};
-      row.forEach((cell, idx) => {
-        if (headers[idx]) {
-          obj[headers[idx]] = cell !== undefined && cell !== null ? cell.toString().trim() : '';
-        }
-      });
-      return obj;
-    });
-  };
-
-  const handleFileUpload = (e, fileType) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setErrorMsg('');
-    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-
-    if (isExcel && !window.XLSX) {
-      setErrorMsg("Đang tải thư viện xử lý Excel... Vui lòng đợi vài giây.");
-      return;
-    }
-
-    const reader = new FileReader();
-
-    if (isExcel) {
-      reader.onload = (event) => {
-        try {
-          const data = new Uint8Array(event.target.result);
-          const workbook = window.XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const rawRows = window.XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-          const processedData = convertToObjects(rawRows, fileType);
-          updateFileData(fileType, processedData);
-        } catch (err) {
-          console.error(err);
-          setErrorMsg(`Lỗi đọc file Excel ${fileType}: ${err.message}`);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    } else {
-      reader.onload = (event) => {
-        try {
-          const text = event.target.result;
-          const rawRows = parseCSV(text);
-          const processedData = convertToObjects(rawRows, fileType);
-          updateFileData(fileType, processedData);
-        } catch (err) {
-          console.error(err);
-          setErrorMsg(`Lỗi đọc file CSV ${fileType}: ${err.message}`);
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const updateFileData = (fileType, data) => {
-    if (fileType === 'file1') {
-      setFile1Data(data);
-      setFilesStatus(prev => ({ ...prev, file1: true }));
-    } else if (fileType === 'file2') {
-      setFile2Data(data);
-      setFilesStatus(prev => ({ ...prev, file2: true }));
-    } else if (fileType === 'file3') {
-      setFile3Data(data);
-      setFilesStatus(prev => ({ ...prev, file3: true }));
-    }
-  };
-
-  const formatDateTime = (str) => {
-    if (!str || str.length < 12) return str;
-    const yyyy = str.substring(0, 4);
-    const mm = str.substring(4, 6);
-    const dd = str.substring(6, 8);
-    const hh = str.substring(8, 10);
-    const min = str.substring(10, 12);
-    return `${hh}:${min} ngày ${dd}/${mm}/${yyyy}`;
-  };
-
-  const findValue = (row, ...possibleKeys) => {
-    for (const keyPart of possibleKeys) {
-      const exactKey = Object.keys(row).find(k => k === keyPart || k.toUpperCase() === keyPart.toUpperCase());
-      if (exactKey) return row[exactKey];
-      const looseKey = Object.keys(row).find(k => k.includes(keyPart));
-      if (looseKey) return row[looseKey];
-    }
-    return '';
-  };
-
-  const resetApp = () => {
-    setFile1Data([]);
-    setFile2Data([]);
-    setFile3Data([]);
-    setFilesStatus({ file1: false, file2: false, file3: false });
-    setResults([]);
-    setStats({ totalConflicts: 0, totalDoctors: 0, totalPatientsAffected: 0 });
-    setErrorMsg('');
-  };
-
-  // --- Core Analysis Logic (Theo NGAY_YL) ---
-  const processData = () => {
-    if (!filesStatus.file2) {
-        setErrorMsg("Bắt buộc phải có Bảng 2 (Y lệnh) để dò giờ.");
-        return;
-    }
-
-    setIsProcessing(true);
-    setErrorMsg('');
-    setResults([]);
-
-    setTimeout(() => {
-      try {
-        // 1. Map Bệnh nhân
-        const patientMap = new Map();
-        if (filesStatus.file1 && file1Data.length > 0) {
-          file1Data.forEach(row => {
-            const maLk = findValue(row, 'MA_LK');
-            const hoTen = findValue(row, 'HO_TEN');
-            if (maLk) patientMap.set(maLk, hoTen || 'Không có tên');
-          });
-        }
-
-        // 2. Map Bác sĩ
-        const doctorMap = new Map();
-        if (filesStatus.file3 && file3Data.length > 0) {
-          file3Data.forEach(row => {
-              const cchn = findValue(row, 'CCHN');
-              const ten = findValue(row, 'TEN', 'BS');
-              if (cchn) doctorMap.set(cchn.trim(), ten || 'Tên không xác định');
-          });
-        }
-
-        // 3. Gom nhóm theo NGAY_YL
-        const groups = {};
-
-        file2Data.forEach((row, index) => {
-          const maBacSi = findValue(row, 'MA_BAC_SI');
-          const ngayYl = findValue(row, 'NGAY_YL'); // Sử dụng NGAY_YL
-          const maLk = findValue(row, 'MA_LK');
-          const maThuoc = findValue(row, 'MA_THUOC', 'MA_DICH_VU');
-          const tenThuoc = findValue(row, 'TEN_THUOC', 'TEN_DICH_VU') || maThuoc;
-
-          if (!maBacSi || !ngayYl || !maLk) return;
-
-          const key = `${maBacSi}_${ngayYl.trim()}`;
-          if (!groups[key]) groups[key] = [];
-
-          groups[key].push({
-            id: index,
-            maLk: maLk,
-            tenBn: patientMap.get(maLk) || `BN Lạ (${maLk})`,
-            maBacSi: maBacSi,
-            tenBs: doctorMap.get(maBacSi) || maBacSi,
-            thoiGian: ngayYl,
-            chiTiet: tenThuoc
-          });
-        });
-
-        // 4. Tìm lỗi
-        const conflictResults = [];
-        const affectedPatients = new Set();
-        const conflictDoctors = new Set();
-
-        Object.keys(groups).forEach(key => {
-          const group = groups[key];
-          const uniquePatients = [...new Set(group.map(i => i.maLk))];
-
-          if (uniquePatients.length > 1) {
-            uniquePatients.forEach(p => affectedPatients.add(p));
-            conflictDoctors.add(group[0].maBacSi);
+        const FileCard = ({ title, desc, status, onChange, color, required }) => {
+            const colorConfig = {
+                blue:   { border: "border-blue-500", bg: "bg-blue-50", text: "text-blue-600", hover: "hover:border-blue-400" },
+                indigo: { border: "border-indigo-500", bg: "bg-indigo-50", text: "text-indigo-600", hover: "hover:border-indigo-400" },
+                purple: { border: "border-purple-500", bg: "bg-purple-50", text: "text-purple-600", hover: "hover:border-purple-400" },
+            };
             
-            conflictResults.push({
-              key: key,
-              bacSi: group[0].tenBs,
-              maBacSi: group[0].maBacSi,
-              thoiGianRaw: group[0].thoiGian,
-              thoiGianHienThi: formatDateTime(group[0].thoiGian),
-              soBenhNhan: uniquePatients.length,
-              chiTiet: group
+            const current = colorConfig[color];
+
+            return (
+                <div className={`
+                relative p-6 rounded-2xl border-2 border-dashed transition-all duration-300 group cursor-pointer overflow-hidden
+                ${status ? `${current.border} ${current.bg}` : `border-slate-200 hover:bg-slate-50 ${current.hover}`}
+                `}>
+                <div className="flex flex-col items-center text-center space-y-4 relative z-10">
+                    <div className={`
+                    relative p-4 rounded-full bg-white shadow-sm transition-transform duration-300 group-hover:scale-110
+                    ${status ? current.text : "text-slate-300"}
+                    `}>
+                    {status ? <CheckCircle className="w-8 h-8"/> : <FileSpreadsheet className="w-8 h-8"/>}
+                    
+                    {required && !status && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                        </span>
+                    )}
+                    </div>
+                    
+                    <div>
+                    <h3 className="font-bold text-slate-800 text-lg flex items-center justify-center gap-2">
+                        {title}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 font-medium bg-white/50 px-2 py-0.5 rounded-full inline-block">{desc}</p>
+                    </div>
+                    
+                    {/* Hidden Input */}
+                    <input 
+                    type="file" 
+                    accept=".csv, .xlsx, .xls" 
+                    onChange={onChange} 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    />
+                    
+                    <span className={`
+                    text-xs font-bold px-4 py-2 rounded-xl transition-all
+                    ${status 
+                        ? 'bg-white text-emerald-600 shadow-sm' 
+                        : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-blue-600 group-hover:shadow-sm'}
+                    `}>
+                    {status ? 'Đã tải lên' : 'Chọn file...'}
+                    </span>
+                </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            // Sử dụng lazy initialization cho state để lấy giá trị từ sessionStorage nếu có
+            const [isAuthenticated, setIsAuthenticated] = useState(() => {
+                return sessionStorage.getItem('bhyt_auth_token') === 'true';
             });
-          }
-        });
 
-        conflictResults.sort((a, b) => a.bacSi.localeCompare(b.bacSi) || a.thoiGianRaw.localeCompare(b.thoiGianRaw));
+            const [file1Data, setFile1Data] = useState([]); // Bảng 1 (Bệnh nhân)
+            const [file2Data, setFile2Data] = useState([]); // Bảng 2 (Y lệnh)
+            const [file3Data, setFile3Data] = useState([]); // Danh sách BS
+            
+            const [filesStatus, setFilesStatus] = useState({
+                file1: false,
+                file2: false,
+                file3: false
+            });
 
-        setResults(conflictResults);
-        setStats({
-          totalConflicts: conflictResults.length,
-          totalDoctors: conflictDoctors.size,
-          totalPatientsAffected: affectedPatients.size
-        });
+            const [results, setResults] = useState([]);
+            const [stats, setStats] = useState({ totalConflicts: 0, totalDoctors: 0, totalPatientsAffected: 0 });
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [errorMsg, setErrorMsg] = useState('');
 
-        if (conflictResults.length === 0) {
-            setErrorMsg("Tuyệt vời! Không phát hiện trùng thời gian ra y lệnh (NGAY_YL).");
-        }
+            // Auth Handlers
+            const handleLogin = () => {
+                setIsAuthenticated(true);
+                sessionStorage.setItem('bhyt_auth_token', 'true');
+            };
 
-      } catch (err) {
-        console.error(err);
-        setErrorMsg("Lỗi phân tích dữ liệu. Vui lòng kiểm tra lại file đầu vào.");
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 600); 
-  };
+            const handleLogout = () => {
+                setIsAuthenticated(false);
+                sessionStorage.removeItem('bhyt_auth_token');
+                setFile1Data([]);
+                setFile2Data([]);
+                setFile3Data([]);
+                setFilesStatus({ file1: false, file2: false, file3: false });
+                setResults([]);
+            };
 
-  const exportToCSV = () => {
-    if (results.length === 0) return;
+            // Helpers
+            const parseCSV = (text) => {
+                const rows = [];
+                let row = [];
+                let col = "";
+                let inQuote = false;
+                const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    const header = ['STT', 'Tên Bác Sĩ', 'Mã CCHN', 'Thời gian ra y lệnh (NGAY_YL)', 'Mã Bệnh Nhân', 'Tên Bệnh Nhân', 'Chi tiết thuốc/DV', 'Ghi chú Lỗi'];
-    const rows = [];
-    rows.push(header.join(','));
+                for (let i = 0; i < cleanText.length; i++) {
+                const char = cleanText[i];
+                const nextChar = cleanText[i + 1];
 
-    let stt = 1;
-    results.forEach(item => {
-      item.chiTiet.forEach(detail => {
-        const row = [
-          stt++,
-          `"${item.bacSi}"`,
-          `"${item.maBacSi}"`,
-          `"${item.thoiGianHienThi}"`,
-          `"${detail.maLk}"`,
-          `"${detail.tenBn}"`,
-          `"${detail.chiTiet ? detail.chiTiet.replace(/"/g, '""') : ''}"`,
-          '"Trùng giờ Y Lệnh khác bệnh án"'
-        ];
-        rows.push(row.join(','));
-      });
-    });
+                if (inQuote) {
+                    if (char === '"' && nextChar === '"') {
+                    col += '"';
+                    i++; 
+                    } else if (char === '"') {
+                    inQuote = false;
+                    } else {
+                    col += char;
+                    }
+                } else {
+                    if (char === '"') {
+                    inQuote = true;
+                    } else if (char === ',') {
+                    row.push(col.trim());
+                    col = "";
+                    } else if (char === '\n') {
+                    row.push(col.trim());
+                    if (row.length > 0 && (row.length > 1 || row[0] !== "")) {
+                        rows.push(row);
+                    }
+                    row = [];
+                    col = "";
+                    } else {
+                    col += char;
+                    }
+                }
+                }
+                if (col || row.length > 0) {
+                row.push(col.trim());
+                rows.push(row);
+                }
+                return rows;
+            };
 
-    const csvContent = "\uFEFF" + rows.join('\n'); 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Ket_qua_do_trung_gio_Don_Thuoc_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+            const convertToObjects = (rows, fileType) => {
+                if (!rows || rows.length === 0) return [];
 
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
+                let headerRowIndex = 0;
+                let keywords = [];
+                
+                if (fileType === 'file1') keywords = ['MA_LK', 'HO_TEN'];
+                else if (fileType === 'file2') keywords = ['MA_LK', 'MA_BAC_SI', 'NGAY_YL'];
+                else if (fileType === 'file3') keywords = ['CCHN', 'TEN'];
 
-  // --- MAIN UI ---
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20">
-      
-      {/* Navbar */}
-      <div className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50 backdrop-blur-md bg-white/90">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/20">
-                <LayoutDashboard className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 hidden sm:block">
-                  Dò Trùng Giờ Đơn Thuốc BHYT
-                </h1>
-                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 block sm:hidden">
-                  BHYT Audit
-                </h1>
-                <p className="text-xs text-slate-500 font-medium tracking-widest uppercase mt-0.5">Professional Audit System</p>
-              </div>
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="group flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all font-medium"
-            >
-              <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
-              <span className="hidden sm:inline">Đăng xuất</span>
-            </button>
-          </div>
-        </div>
-      </div>
+                for (let i = 0; i < Math.min(rows.length, 50); i++) {
+                const safeRow = rows[i] || [];
+                const rowStr = safeRow.join(' ').toUpperCase();
+                const matchCount = keywords.filter(kw => rowStr.includes(kw)).length;
+                if (matchCount >= Math.min(keywords.length, 2)) { 
+                    headerRowIndex = i;
+                    break;
+                }
+                }
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* Statistics Dashboard (Show when has results) */}
-        {results.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
-            <StatCard 
-              icon={<CalendarClock className="w-8 h-8 text-white"/>} 
-              title="Tổng số lần trùng" 
-              value={stats.totalConflicts} 
-              color="from-red-500 to-orange-500" 
-            />
-            <StatCard 
-              icon={<Users className="w-8 h-8 text-white"/>} 
-              title="Bệnh nhân ảnh hưởng" 
-              value={stats.totalPatientsAffected} 
-              color="from-blue-500 to-cyan-500" 
-            />
-            <StatCard 
-              icon={<Stethoscope className="w-8 h-8 text-white"/>} 
-              title="Bác sĩ liên quan" 
-              value={stats.totalDoctors} 
-              color="from-purple-500 to-indigo-500" 
-            />
-          </div>
-        )}
+                const rawHeader = rows[headerRowIndex] || [];
+                const headers = rawHeader.map(h => (h ? h.toString().toUpperCase().trim() : ''));
+                const dataRows = rows.slice(headerRowIndex + 1);
 
-        {/* Upload Section */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -translate-y-1/2 translate-x-1/3"></div>
-          
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10 gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <FileSpreadsheet className="text-blue-600" />
-                Dữ Liệu Đầu Vào
-              </h2>
-              <p className="text-slate-500 text-sm mt-1">
-                Yêu cầu <span className="font-bold text-blue-600">Bảng 2 (Y lệnh)</span>. Hệ thống tự động nhận diện file Excel (.xlsx) & CSV.
-              </p>
-            </div>
-            {(filesStatus.file1 || filesStatus.file2 || filesStatus.file3) && (
-               <button onClick={resetApp} className="text-sm px-4 py-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-700 flex items-center gap-2 transition font-medium w-full md:w-auto justify-center">
-                 <RefreshCcw className="w-4 h-4" /> Làm mới dữ liệu
-               </button>
-            )}
-          </div>
+                return dataRows.map(row => {
+                const obj = {};
+                row.forEach((cell, idx) => {
+                    if (headers[idx]) {
+                    obj[headers[idx]] = cell !== undefined && cell !== null ? cell.toString().trim() : '';
+                    }
+                });
+                return obj;
+                });
+            };
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-            <FileCard 
-              title="Bảng 1: Thông tin BN" 
-              desc="(Tùy chọn) Cột: MA_LK, HO_TEN" 
-              status={filesStatus.file1} 
-              onChange={(e) => handleFileUpload(e, 'file1')}
-              color="blue"
-              required={false}
-            />
-            <FileCard 
-              title="Bảng 2: Y Lệnh" 
-              desc="(Bắt buộc) Cột: NGAY_YL, MA_BAC_SI" 
-              status={filesStatus.file2} 
-              onChange={(e) => handleFileUpload(e, 'file2')}
-              color="indigo"
-              required={true}
-            />
-            <FileCard 
-              title="Danh sách CCHN" 
-              desc="(Tùy chọn) Cột: MA CCHN, TEN BS" 
-              status={filesStatus.file3} 
-              onChange={(e) => handleFileUpload(e, 'file3')}
-              color="purple"
-              required={false}
-            />
-          </div>
+            const handleFileUpload = (e, fileType) => {
+                const file = e.target.files[0];
+                if (!file) return;
 
-          <div className="mt-10 flex justify-center relative z-10">
-             <button 
-              onClick={processData}
-              disabled={isProcessing || !filesStatus.file2}
-              className={`
-                relative overflow-hidden group px-12 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all transform active:scale-95 flex items-center gap-3 w-full md:w-auto justify-center
-                ${isProcessing || !filesStatus.file2
-                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
-                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white hover:shadow-indigo-500/40 hover:-translate-y-1'}
-              `}
-            >
-              {isProcessing ? <Loader2 className="animate-spin w-6 h-6" /> : <Search className="w-6 h-6" />}
-              {isProcessing ? 'Đang phân tích...' : 'Bắt Đầu Quét Lỗi'}
-              
-              {/* Shine Effect */}
-              {!isProcessing && filesStatus.file2 && (
-                <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
-              )}
-            </button>
-          </div>
+                setErrorMsg('');
+                const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
-          {errorMsg && (
-             <div className="mt-8 mx-auto max-w-2xl p-4 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center gap-3 animate-pulse shadow-sm">
-               <AlertTriangle className="w-6 h-6 flex-shrink-0 text-amber-600"/>
-               <span className="font-medium">{errorMsg}</span>
-             </div>
-          )}
-        </div>
+                if (isExcel && !window.XLSX) {
+                setErrorMsg("Đang tải thư viện xử lý Excel... Vui lòng đợi vài giây.");
+                return;
+                }
 
-        {/* Results Section */}
-        {results.length > 0 && (
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-fade-in-up">
-            <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <CheckCircle className="text-emerald-500 w-7 h-7" />
-                  Kết Quả Chi Tiết
-                </h2>
-                <p className="text-slate-500 mt-1">Danh sách các trường hợp vi phạm quy chế trùng giờ.</p>
-              </div>
-              <button 
-                onClick={exportToCSV}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 active:scale-95 w-full md:w-auto justify-center"
-              >
-                <Download className="w-5 h-5" /> Xuất Báo Cáo Excel
-              </button>
-            </div>
+                const reader = new FileReader();
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-100/80 sticky top-0 z-10 backdrop-blur-sm border-b border-slate-200">
-                  <tr>
-                    <th className="p-6 font-bold text-slate-600 text-xs uppercase tracking-wider w-1/4">Bác sĩ thực hiện</th>
-                    <th className="p-6 font-bold text-slate-600 text-xs uppercase tracking-wider w-1/5">Thời gian y lệnh</th>
-                    <th className="p-6 font-bold text-slate-600 text-xs uppercase tracking-wider">Chi tiết xung đột (Đơn thuốc trùng)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {results.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-blue-50/40 transition-colors group">
-                      
-                      {/* Cột Bác sĩ */}
-                      <td className="p-6 align-top border-r border-slate-50">
-                        <div className="flex items-start gap-4">
-                          <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-sm group-hover:border-blue-300 transition-colors">
-                            <User className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div>
-                            <div className="text-slate-900 font-bold text-base group-hover:text-blue-700 transition-colors">{item.bacSi}</div>
-                            <div className="text-xs font-mono text-slate-400 mt-1.5 bg-slate-100 inline-block px-2 py-0.5 rounded border border-slate-200">{item.maBacSi}</div>
-                            
-                            <div className="mt-3 flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100">
-                                <AlertTriangle className="w-3 h-3" /> {item.soBenhNhan} BN trùng
-                              </span>
-                            </div>
-                          </div>
+                if (isExcel) {
+                reader.onload = (event) => {
+                    try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = window.XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rawRows = window.XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                    const processedData = convertToObjects(rawRows, fileType);
+                    updateFileData(fileType, processedData);
+                    } catch (err) {
+                    console.error(err);
+                    setErrorMsg(`Lỗi đọc file Excel ${fileType}: ${err.message}`);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+                } else {
+                reader.onload = (event) => {
+                    try {
+                    const text = event.target.result;
+                    const rawRows = parseCSV(text);
+                    const processedData = convertToObjects(rawRows, fileType);
+                    updateFileData(fileType, processedData);
+                    } catch (err) {
+                    console.error(err);
+                    setErrorMsg(`Lỗi đọc file CSV ${fileType}: ${err.message}`);
+                    }
+                };
+                reader.readAsText(file);
+                }
+            };
+
+            const updateFileData = (fileType, data) => {
+                if (fileType === 'file1') {
+                setFile1Data(data);
+                setFilesStatus(prev => ({ ...prev, file1: true }));
+                } else if (fileType === 'file2') {
+                setFile2Data(data);
+                setFilesStatus(prev => ({ ...prev, file2: true }));
+                } else if (fileType === 'file3') {
+                setFile3Data(data);
+                setFilesStatus(prev => ({ ...prev, file3: true }));
+                }
+            };
+
+            const formatDateTime = (str) => {
+                if (!str || str.length < 12) return str;
+                const yyyy = str.substring(0, 4);
+                const mm = str.substring(4, 6);
+                const dd = str.substring(6, 8);
+                const hh = str.substring(8, 10);
+                const min = str.substring(10, 12);
+                return `${hh}:${min} ngày ${dd}/${mm}/${yyyy}`;
+            };
+
+            const findValue = (row, ...possibleKeys) => {
+                for (const keyPart of possibleKeys) {
+                const exactKey = Object.keys(row).find(k => k === keyPart || k.toUpperCase() === keyPart.toUpperCase());
+                if (exactKey) return row[exactKey];
+                const looseKey = Object.keys(row).find(k => k.includes(keyPart));
+                if (looseKey) return row[looseKey];
+                }
+                return '';
+            };
+
+            const resetApp = () => {
+                setFile1Data([]);
+                setFile2Data([]);
+                setFile3Data([]);
+                setFilesStatus({ file1: false, file2: false, file3: false });
+                setResults([]);
+                setStats({ totalConflicts: 0, totalDoctors: 0, totalPatientsAffected: 0 });
+                setErrorMsg('');
+            };
+
+            // --- PROCESS DATA ---
+            const processData = () => {
+                if (!filesStatus.file2) {
+                    setErrorMsg("Bắt buộc phải có Bảng 2 (Y lệnh) để dò giờ.");
+                    return;
+                }
+
+                setIsProcessing(true);
+                setErrorMsg('');
+                setResults([]);
+
+                setTimeout(() => {
+                try {
+                    // Map BN
+                    const patientMap = new Map();
+                    if (filesStatus.file1 && file1Data.length > 0) {
+                    file1Data.forEach(row => {
+                        const maLk = findValue(row, 'MA_LK');
+                        const hoTen = findValue(row, 'HO_TEN');
+                        if (maLk) patientMap.set(maLk, hoTen || 'Không có tên');
+                    });
+                    }
+
+                    // Map BS
+                    const doctorMap = new Map();
+                    if (filesStatus.file3 && file3Data.length > 0) {
+                    file3Data.forEach(row => {
+                        const cchn = findValue(row, 'CCHN');
+                        const ten = findValue(row, 'TEN', 'BS');
+                        if (cchn) doctorMap.set(cchn.trim(), ten || 'Tên không xác định');
+                    });
+                    }
+
+                    // Gom nhóm theo NGAY_YL
+                    const groups = {};
+
+                    file2Data.forEach((row, index) => {
+                    const maBacSi = findValue(row, 'MA_BAC_SI');
+                    const ngayYl = findValue(row, 'NGAY_YL'); 
+                    const maLk = findValue(row, 'MA_LK');
+                    const maThuoc = findValue(row, 'MA_THUOC', 'MA_DICH_VU');
+                    const tenThuoc = findValue(row, 'TEN_THUOC', 'TEN_DICH_VU') || maThuoc;
+
+                    if (!maBacSi || !ngayYl || !maLk) return;
+
+                    const key = `${maBacSi}_${ngayYl.trim()}`;
+                    if (!groups[key]) groups[key] = [];
+
+                    groups[key].push({
+                        id: index,
+                        maLk: maLk,
+                        tenBn: patientMap.get(maLk) || `BN Lạ (${maLk})`,
+                        maBacSi: maBacSi,
+                        tenBs: doctorMap.get(maBacSi) || maBacSi,
+                        thoiGian: ngayYl,
+                        chiTiet: tenThuoc
+                    });
+                    });
+
+                    // Tìm lỗi
+                    const conflictResults = [];
+                    const affectedPatients = new Set();
+                    const conflictDoctors = new Set();
+
+                    Object.keys(groups).forEach(key => {
+                    const group = groups[key];
+                    const uniquePatients = [...new Set(group.map(i => i.maLk))];
+
+                    if (uniquePatients.length > 1) {
+                        uniquePatients.forEach(p => affectedPatients.add(p));
+                        conflictDoctors.add(group[0].maBacSi);
+                        
+                        conflictResults.push({
+                        key: key,
+                        bacSi: group[0].tenBs,
+                        maBacSi: group[0].maBacSi,
+                        thoiGianRaw: group[0].thoiGian,
+                        thoiGianHienThi: formatDateTime(group[0].thoiGian),
+                        soBenhNhan: uniquePatients.length,
+                        chiTiet: group
+                        });
+                    }
+                    });
+
+                    conflictResults.sort((a, b) => a.bacSi.localeCompare(b.bacSi) || a.thoiGianRaw.localeCompare(b.thoiGianRaw));
+
+                    setResults(conflictResults);
+                    setStats({
+                    totalConflicts: conflictResults.length,
+                    totalDoctors: conflictDoctors.size,
+                    totalPatientsAffected: affectedPatients.size
+                    });
+
+                    if (conflictResults.length === 0) {
+                        setErrorMsg("Tuyệt vời! Không phát hiện trùng thời gian ra y lệnh (NGAY_YL).");
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    setErrorMsg("Lỗi phân tích dữ liệu. Vui lòng kiểm tra lại file đầu vào.");
+                } finally {
+                    setIsProcessing(false);
+                }
+                }, 600); 
+            };
+
+            const exportToCSV = () => {
+                if (results.length === 0) return;
+
+                const header = ['STT', 'Tên Bác Sĩ', 'Mã CCHN', 'Thời gian ra y lệnh (NGAY_YL)', 'Mã Bệnh Nhân', 'Tên Bệnh Nhân', 'Chi tiết thuốc/DV', 'Ghi chú Lỗi'];
+                const rows = [];
+                rows.push(header.join(','));
+
+                let stt = 1;
+                results.forEach(item => {
+                item.chiTiet.forEach(detail => {
+                    const row = [
+                    stt++,
+                    `"${item.bacSi}"`,
+                    `"${item.maBacSi}"`,
+                    `"${item.thoiGianHienThi}"`,
+                    `"${detail.maLk}"`,
+                    `"${detail.tenBn}"`,
+                    `"${detail.chiTiet ? detail.chiTiet.replace(/"/g, '""') : ''}"`,
+                    '"Trùng giờ Y Lệnh khác bệnh án"'
+                    ];
+                    rows.push(row.join(','));
+                });
+                });
+
+                const csvContent = "\uFEFF" + rows.join('\n'); 
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `Ket_qua_do_trung_gio_Don_Thuoc_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            if (!isAuthenticated) {
+                return <LoginScreen onLogin={handleLogin} />;
+            }
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20">
+                
+                {/* Navbar */}
+                <div className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50 backdrop-blur-md bg-white/90">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-20">
+                        <div className="flex items-center gap-4">
+                        <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/20">
+                            <LayoutDashboard className="w-7 h-7 text-white" />
                         </div>
-                      </td>
-
-                      {/* Cột Thời gian */}
-                      <td className="p-6 align-top border-r border-slate-50">
-                        <div className="flex flex-col gap-2">
-                           <div className="flex items-center gap-2">
-                             <Clock className="w-4 h-4 text-slate-400" />
-                             <span className="font-mono font-bold text-slate-700 text-sm bg-slate-100 px-2 py-1 rounded border border-slate-200">
-                               {item.thoiGianHienThi.split(' ngày ')[0]}
-                             </span>
-                           </div>
-                           <div className="text-xs text-slate-500 pl-6 font-medium">
-                             {item.thoiGianHienThi.split(' ngày ')[1]}
-                           </div>
+                        <div>
+                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 hidden sm:block">
+                            Dò Trùng Giờ Đơn Thuốc BHYT
+                            </h1>
+                            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 block sm:hidden">
+                            BHYT Audit
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium tracking-widest uppercase mt-0.5">Professional Audit System</p>
                         </div>
-                      </td>
-
-                      {/* Cột Chi tiết */}
-                      <td className="p-6 align-top bg-slate-50/30">
-                        <div className="grid gap-4">
-                          {item.chiTiet.map((detail, dIdx) => (
-                            <div key={dIdx} className="relative flex flex-col md:flex-row md:items-center gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-red-300 hover:shadow-md transition-all group/card">
-                              {/* Decorator Line */}
-                              <div className="absolute left-0 top-3 bottom-3 w-1 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-r-lg"></div>
-                              
-                              <div className="pl-3 min-w-[220px]">
-                                <div className="font-bold text-slate-800 text-sm group-hover/card:text-blue-700 transition-colors">{detail.tenBn}</div>
-                                <div className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-1">
-                                  <span className="bg-slate-100 px-1.5 rounded">{detail.maLk}</span>
-                                </div>
-                              </div>
-                              
-                              <div className="hidden md:block w-px h-10 bg-slate-100"></div>
-
-                              <div className="flex-1 text-sm text-slate-600 flex items-start gap-2.5">
-                                 <Pill className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                                 <span className="italic leading-relaxed">{detail.chiTiet}</span>
-                              </div>
-                            </div>
-                          ))}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+                        <button 
+                        onClick={handleLogout}
+                        className="group flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all font-medium"
+                        >
+                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
+                        <span className="hidden sm:inline">Đăng xuất</span>
+                        </button>
+                    </div>
+                    </div>
+                </div>
 
-        {/* Footer */}
-        <div className="text-center text-slate-400 text-sm pb-8">
-           © 2026 Hệ thống quản lý & rà soát BHYT. Hỗ trợ kỹ thuật: Duy.
-        </div>
-      </div>
-    </div>
-  );
-};
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                    
+                    {/* Dashboard */}
+                    {results.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
+                        <StatCard 
+                        icon={<CalendarClock className="w-8 h-8 text-white"/>} 
+                        title="Tổng số lần trùng" 
+                        value={stats.totalConflicts} 
+                        color="from-red-500 to-orange-500" 
+                        />
+                        <StatCard 
+                        icon={<Users className="w-8 h-8 text-white"/>} 
+                        title="Bệnh nhân ảnh hưởng" 
+                        value={stats.totalPatientsAffected} 
+                        color="from-blue-500 to-cyan-500" 
+                        />
+                        <StatCard 
+                        icon={<Stethoscope className="w-8 h-8 text-white"/>} 
+                        title="Bác sĩ liên quan" 
+                        value={stats.totalDoctors} 
+                        color="from-purple-500 to-indigo-500" 
+                        />
+                    </div>
+                    )}
 
-// --- Sub-components for Clean Code ---
+                    {/* Upload */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -translate-y-1/2 translate-x-1/3"></div>
+                    
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10 gap-4">
+                        <div>
+                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <FileSpreadsheet className="text-blue-600" />
+                            Dữ Liệu Đầu Vào
+                        </h2>
+                        <p className="text-slate-500 text-sm mt-1">
+                            Yêu cầu <span className="font-bold text-blue-600">Bảng 2 (Y lệnh)</span>. Hệ thống tự động nhận diện file Excel (.xlsx) & CSV.
+                        </p>
+                        </div>
+                        {(filesStatus.file1 || filesStatus.file2 || filesStatus.file3) && (
+                        <button onClick={resetApp} className="text-sm px-4 py-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-700 flex items-center gap-2 transition font-medium w-full md:w-auto justify-center">
+                            <RefreshCcw className="w-4 h-4" /> Làm mới dữ liệu
+                        </button>
+                        )}
+                    </div>
 
-const StatCard = ({ icon, title, value, color }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
-    <div className={`p-4 rounded-xl bg-gradient-to-br ${color} shadow-lg shadow-gray-200`}>
-      {icon}
-    </div>
-    <div>
-      <p className="text-slate-500 text-sm font-medium">{title}</p>
-      <p className="text-2xl font-bold text-slate-800">{value}</p>
-    </div>
-  </div>
-);
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                        <FileCard 
+                        title="Bảng 1: Thông tin BN" 
+                        desc="(Tùy chọn) Cột: MA_LK, HO_TEN" 
+                        status={filesStatus.file1} 
+                        onChange={(e) => handleFileUpload(e, 'file1')}
+                        color="blue"
+                        required={false}
+                        />
+                        <FileCard 
+                        title="Bảng 2: Y Lệnh" 
+                        desc="(Bắt buộc) Cột: NGAY_YL, MA_BAC_SI" 
+                        status={filesStatus.file2} 
+                        onChange={(e) => handleFileUpload(e, 'file2')}
+                        color="indigo"
+                        required={true}
+                        />
+                        <FileCard 
+                        title="Danh sách CCHN" 
+                        desc="(Tùy chọn) Cột: MA CCHN, TEN BS" 
+                        status={filesStatus.file3} 
+                        onChange={(e) => handleFileUpload(e, 'file3')}
+                        color="purple"
+                        required={false}
+                        />
+                    </div>
 
-const FileCard = ({ title, desc, status, onChange, color, required }) => {
-  const colorConfig = {
-    blue:   { border: "border-blue-500", bg: "bg-blue-50", text: "text-blue-600", hover: "hover:border-blue-400" },
-    indigo: { border: "border-indigo-500", bg: "bg-indigo-50", text: "text-indigo-600", hover: "hover:border-indigo-400" },
-    purple: { border: "border-purple-500", bg: "bg-purple-50", text: "text-purple-600", hover: "hover:border-purple-400" },
-  };
-  
-  const current = colorConfig[color];
+                    <div className="mt-10 flex justify-center relative z-10">
+                        <button 
+                        onClick={processData}
+                        disabled={isProcessing || !filesStatus.file2}
+                        className={`
+                            relative overflow-hidden group px-12 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all transform active:scale-95 flex items-center gap-3 w-full md:w-auto justify-center
+                            ${isProcessing || !filesStatus.file2
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
+                            : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white hover:shadow-indigo-500/40 hover:-translate-y-1'}
+                        `}
+                        >
+                        {isProcessing ? <Loader2 className="animate-spin w-6 h-6" /> : <Search className="w-6 h-6" />}
+                        {isProcessing ? 'Đang phân tích...' : 'Bắt Đầu Quét Lỗi'}
+                        
+                        {/* Shine Effect */}
+                        {!isProcessing && filesStatus.file2 && (
+                            <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
+                        )}
+                        </button>
+                    </div>
 
-  return (
-    <div className={`
-      relative p-6 rounded-2xl border-2 border-dashed transition-all duration-300 group cursor-pointer overflow-hidden
-      ${status ? `${current.border} ${current.bg}` : `border-slate-200 hover:bg-slate-50 ${current.hover}`}
-    `}>
-      <div className="flex flex-col items-center text-center space-y-4 relative z-10">
-        <div className={`
-          relative p-4 rounded-full bg-white shadow-sm transition-transform duration-300 group-hover:scale-110
-          ${status ? current.text : "text-slate-300"}
-        `}>
-          {status ? <CheckCircle className="w-8 h-8"/> : <FileSpreadsheet className="w-8 h-8"/>}
-          
-          {required && !status && (
-            <span className="absolute -top-1 -right-1 flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
-            </span>
-          )}
-        </div>
-        
-        <div>
-          <h3 className="font-bold text-slate-800 text-lg flex items-center justify-center gap-2">
-            {title}
-          </h3>
-          <p className="text-xs text-slate-500 mt-1 font-medium bg-white/50 px-2 py-0.5 rounded-full inline-block">{desc}</p>
-        </div>
-        
-        {/* Hidden Input */}
-        <input 
-          type="file" 
-          accept=".csv, .xlsx, .xls" 
-          onChange={onChange} 
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-        />
-        
-        <span className={`
-          text-xs font-bold px-4 py-2 rounded-xl transition-all
-          ${status 
-            ? 'bg-white text-emerald-600 shadow-sm' 
-            : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-blue-600 group-hover:shadow-sm'}
-        `}>
-          {status ? 'Đã tải lên' : 'Chọn file...'}
-        </span>
-      </div>
-    </div>
-  );
-}
+                    {errorMsg && (
+                        <div className="mt-8 mx-auto max-w-2xl p-4 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center gap-3 animate-pulse shadow-sm">
+                        <AlertTriangle className="w-6 h-6 flex-shrink-0 text-amber-600"/>
+                        <span className="font-medium">{errorMsg}</span>
+                        </div>
+                    )}
+                    </div>
 
-export default App;
+                    {/* Results Table */}
+                    {results.length > 0 && (
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden animate-fade-in-up">
+                        <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <CheckCircle className="text-emerald-500 w-7 h-7" />
+                            Kết Quả Chi Tiết
+                            </h2>
+                            <p className="text-slate-500 mt-1">Danh sách các trường hợp vi phạm quy chế trùng giờ.</p>
+                        </div>
+                        <button 
+                            onClick={exportToCSV}
+                            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 active:scale-95 w-full md:w-auto justify-center"
+                        >
+                            <Download className="w-5 h-5" /> Xuất Báo Cáo Excel
+                        </button>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-100/80 sticky top-0 z-10 backdrop-blur-sm border-b border-slate-200">
+                            <tr>
+                                <th className="p-6 font-bold text-slate-600 text-xs uppercase tracking-wider w-1/4">Bác sĩ thực hiện</th>
+                                <th className="p-6 font-bold text-slate-600 text-xs uppercase tracking-wider w-1/5">Thời gian y lệnh</th>
+                                <th className="p-6 font-bold text-slate-600 text-xs uppercase tracking-wider">Chi tiết xung đột (Đơn thuốc trùng)</th>
+                            </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                            {results.map((item, idx) => (
+                                <tr key={idx} className="hover:bg-blue-50/40 transition-colors group">
+                                <td className="p-6 align-top border-r border-slate-50">
+                                    <div className="flex items-start gap-4">
+                                    <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-sm group-hover:border-blue-300 transition-colors">
+                                        <User className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <div className="text-slate-900 font-bold text-base group-hover:text-blue-700 transition-colors">{item.bacSi}</div>
+                                        <div className="text-xs font-mono text-slate-400 mt-1.5 bg-slate-100 inline-block px-2 py-0.5 rounded border border-slate-200">{item.maBacSi}</div>
+                                        <div className="mt-3 flex items-center gap-2">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100">
+                                            <AlertTriangle className="w-3 h-3" /> {item.soBenhNhan} BN trùng
+                                        </span>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </td>
+                                <td className="p-6 align-top border-r border-slate-50">
+                                    <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-slate-400" />
+                                        <span className="font-mono font-bold text-slate-700 text-sm bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                                        {item.thoiGianHienThi.split(' ngày ')[0]}
+                                        </span>
+                                    </div>
+                                    <div className="text-xs text-slate-500 pl-6 font-medium">
+                                        {item.thoiGianHienThi.split(' ngày ')[1]}
+                                    </div>
+                                    </div>
+                                </td>
+                                <td className="p-6 align-top bg-slate-50/30">
+                                    <div className="grid gap-4">
+                                    {item.chiTiet.map((detail, dIdx) => (
+                                        <div key={dIdx} className="relative flex flex-col md:flex-row md:items-center gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-red-300 hover:shadow-md transition-all group/card">
+                                        <div className="absolute left-0 top-3 bottom-3 w-1 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-r-lg"></div>
+                                        <div className="pl-3 min-w-[220px]">
+                                            <div className="font-bold text-slate-800 text-sm group-hover/card:text-blue-700 transition-colors">{detail.tenBn}</div>
+                                            <div className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-1">
+                                            <span className="bg-slate-100 px-1.5 rounded">{detail.maLk}</span>
+                                            </div>
+                                        </div>
+                                        <div className="hidden md:block w-px h-10 bg-slate-100"></div>
+                                        <div className="flex-1 text-sm text-slate-600 flex items-start gap-2.5">
+                                            <Pill className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                            <span className="italic leading-relaxed">{detail.chiTiet}</span>
+                                        </div>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="text-center text-slate-400 text-sm pb-8">
+                    © 2026 Hệ thống quản lý & rà soát BHYT. Hỗ trợ kỹ thuật: 1402.
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
