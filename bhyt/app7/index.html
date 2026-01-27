@@ -13,7 +13,7 @@ const LoginScreen = ({ onLogin }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (password === '1234') {
+    if (password === '1402') {
       onLogin();
     } else {
       setError('Mật khẩu không đúng!');
@@ -22,7 +22,7 @@ const LoginScreen = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 p-4 font-sans">
-      <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden">
+      <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-10 rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden animate-fade-in">
         {/* Background blobs */}
         <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/30 rounded-full blur-3xl -translate-x-10 -translate-y-10"></div>
         <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500/30 rounded-full blur-3xl translate-x-10 translate-y-10"></div>
@@ -66,7 +66,7 @@ const LoginScreen = ({ onLogin }) => {
         </form>
         
         <div className="mt-6 text-center text-blue-400/60 text-xs">
-          Phiên bản 2.0 • Security Protected
+          Phiên bản Web 2.1 • Security Protected
         </div>
       </div>
     </div>
@@ -75,7 +75,12 @@ const LoginScreen = ({ onLogin }) => {
 
 // --- MAIN APP COMPONENT ---
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Sử dụng lazy initialization cho state để lấy giá trị từ sessionStorage nếu có
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Kiểm tra xem đã đăng nhập trong phiên làm việc này chưa
+    return sessionStorage.getItem('bhyt_auth_token') === 'true';
+  });
+
   const [file1Data, setFile1Data] = useState([]); // Bảng 1 (Bệnh nhân)
   const [file2Data, setFile2Data] = useState([]); // Bảng 2 (Y lệnh)
   const [file3Data, setFile3Data] = useState([]); // Danh sách BS
@@ -92,8 +97,16 @@ const App = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLibLoaded, setIsLibLoaded] = useState(false);
 
-  // --- Dynamic Script Loading for XLSX ---
+  // --- 1. Set Page Title & Load Library ---
   useEffect(() => {
+    document.title = "BHYT Audit System | Dò Trùng Giờ";
+    
+    // Kiểm tra nếu thư viện đã có sẵn (tránh load lại khi re-render)
+    if (window.XLSX) {
+      setIsLibLoaded(true);
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
     script.async = true;
@@ -102,9 +115,25 @@ const App = () => {
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      // Cleanup nếu cần, nhưng thường với CDN global thì giữ nguyên
     }
   }, []);
+
+  // --- 2. Auth Handlers ---
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    sessionStorage.setItem('bhyt_auth_token', 'true'); // Lưu trạng thái
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('bhyt_auth_token'); // Xóa trạng thái
+    setFile1Data([]);
+    setFile2Data([]);
+    setFile3Data([]);
+    setFilesStatus({ file1: false, file2: false, file3: false });
+    setResults([]);
+  };
 
   // --- Helper Functions ---
 
@@ -196,7 +225,7 @@ const App = () => {
     const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
     if (isExcel && !window.XLSX) {
-      setErrorMsg("Thư viện Excel chưa tải xong. Vui lòng đợi 1-2 giây rồi thử lại.");
+      setErrorMsg("Đang tải thư viện xử lý Excel... Vui lòng đợi vài giây.");
       return;
     }
 
@@ -419,7 +448,7 @@ const App = () => {
   };
 
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   // --- MAIN UI ---
@@ -435,18 +464,21 @@ const App = () => {
                 <LayoutDashboard className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700">
+                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 hidden sm:block">
                   Dò Trùng Giờ Đơn Thuốc BHYT
+                </h1>
+                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 block sm:hidden">
+                  BHYT Audit
                 </h1>
                 <p className="text-xs text-slate-500 font-medium tracking-widest uppercase mt-0.5">Professional Audit System</p>
               </div>
             </div>
             <button 
-              onClick={() => setIsAuthenticated(false)}
+              onClick={handleLogout}
               className="group flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all font-medium"
             >
               <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> 
-              Đăng xuất
+              <span className="hidden sm:inline">Đăng xuất</span>
             </button>
           </div>
         </div>
@@ -482,7 +514,7 @@ const App = () => {
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -translate-y-1/2 translate-x-1/3"></div>
           
-          <div className="flex justify-between items-center mb-8 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10 gap-4">
             <div>
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <FileSpreadsheet className="text-blue-600" />
@@ -493,7 +525,7 @@ const App = () => {
               </p>
             </div>
             {(filesStatus.file1 || filesStatus.file2 || filesStatus.file3) && (
-               <button onClick={resetApp} className="text-sm px-4 py-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-700 flex items-center gap-2 transition font-medium">
+               <button onClick={resetApp} className="text-sm px-4 py-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-blue-700 flex items-center gap-2 transition font-medium w-full md:w-auto justify-center">
                  <RefreshCcw className="w-4 h-4" /> Làm mới dữ liệu
                </button>
             )}
@@ -531,14 +563,14 @@ const App = () => {
               onClick={processData}
               disabled={isProcessing || !filesStatus.file2}
               className={`
-                relative overflow-hidden group px-12 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all transform active:scale-95 flex items-center gap-3
+                relative overflow-hidden group px-12 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all transform active:scale-95 flex items-center gap-3 w-full md:w-auto justify-center
                 ${isProcessing || !filesStatus.file2
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
                   : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white hover:shadow-indigo-500/40 hover:-translate-y-1'}
               `}
             >
               {isProcessing ? <Loader2 className="animate-spin w-6 h-6" /> : <Search className="w-6 h-6" />}
-              {isProcessing ? 'Đang phân tích dữ liệu...' : 'Bắt Đầu Quét Lỗi'}
+              {isProcessing ? 'Đang phân tích...' : 'Bắt Đầu Quét Lỗi'}
               
               {/* Shine Effect */}
               {!isProcessing && filesStatus.file2 && (
@@ -568,7 +600,7 @@ const App = () => {
               </div>
               <button 
                 onClick={exportToCSV}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 active:scale-95"
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 active:scale-95 w-full md:w-auto justify-center"
               >
                 <Download className="w-5 h-5" /> Xuất Báo Cáo Excel
               </button>
