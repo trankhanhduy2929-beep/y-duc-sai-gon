@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BHYT Smart Checker Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+            min-height: 100vh;
+        }
+        
+        /* Glassmorphism Effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .glass-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Login Screen Animation */
+        #loginScreen {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            border: 2px dashed #e2e8f0;
+            transition: all 0.3s;
+        }
+        .file-input-wrapper:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased overflow-x-hidden">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-[100] flex items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 text-center transform transition-all duration-300 scale-100">
+            <div class="mb-6">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                    <i class="fa-solid fa-user-shield text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Đăng Nhập</h2>
+                <p class="text-gray-500 text-sm mt-1">Hệ thống giám định BHYT</p>
+            </div>
+            
+            <div class="relative mb-6">
+                <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." 
+                    class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    onkeypress="if(event.key === 'Enter') checkLogin()">
+                <button onclick="checkLogin()" class="absolute right-2 top-2 p-1 text-gray-400 hover:text-blue-600">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <button onclick="checkLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+                Truy cập hệ thống
+            </button>
+            <p id="loginError" class="text-red-500 text-sm mt-3 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Mật khẩu không đúng</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden opacity-0 transition-opacity duration-700">
+        
+        <!-- Header -->
+        <header class="glass sticky top-0 z-40 border-b border-white/20">
+            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="bg-gradient-to-r from-blue-600 to-cyan-500 text-white p-2 rounded-lg shadow-lg">
+                        <i class="fa-solid fa-stethoscope text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800 tracking-tight">Giám Định Trùng Giờ BHYT</h1>
+                        <div class="text-xs text-slate-500 font-medium bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                            <i class="fa-solid fa-shield-halved mr-1"></i>Secure Local Processing
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="location.reload()" class="text-slate-500 hover:text-red-500 transition-colors" title="Đăng xuất">
+                        <i class="fa-solid fa-power-off text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-6 py-8 pb-20">
+            
+            <!-- Input Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10 fade-in-up" style="animation-delay: 0.1s;">
+                
+                <!-- CCHN -->
+                <div class="glass-card p-5 border-l-4 border-blue-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-blue-600 font-bold bg-blue-50 p-2 rounded-lg">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-cchn"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-700 mb-1">DS Chứng Chỉ HN</h3>
+                    <p class="text-xs text-gray-400 mb-4">File chứa Mã CCHN, Tên BS</p>
+                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
+                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-cchn">Chọn file...</span>
+                        <input type="file" id="fileCCHN" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-cchn', 'check-cchn')"/>
+                    </label>
+                </div>
+
+                <!-- Bang 1 -->
+                <div class="glass-card p-5 border-l-4 border-green-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-green-600 font-bold bg-green-50 p-2 rounded-lg">
+                            <i class="fa-solid fa-hospital-user"></i>
+                        </div>
+                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-bang1"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-700 mb-1">Bảng 1 (BN)</h3>
+                    <p class="text-xs text-gray-400 mb-4">File chứa Mã LK, Họ tên BN</p>
+                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
+                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-bang1">Chọn file...</span>
+                        <input type="file" id="fileBang1" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-bang1', 'check-bang1')"/>
+                    </label>
+                </div>
+
+                <!-- Bang 2 -->
+                <div class="glass-card p-5 border-l-4 border-purple-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-purple-600 font-bold bg-purple-50 p-2 rounded-lg">
+                            <i class="fa-solid fa-pills"></i>
+                        </div>
+                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-bang2"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-700 mb-1">Bảng 2 (Thuốc)</h3>
+                    <p class="text-xs text-gray-400 mb-4">Chỉ xét NGAY_YL (Bỏ NGAY_TH)</p>
+                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
+                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-bang2">Chọn file...</span>
+                        <input type="file" id="fileBang2" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-bang2', 'check-bang2')"/>
+                    </label>
+                </div>
+
+                <!-- Bang 3 -->
+                <div class="glass-card p-5 border-l-4 border-orange-500">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-orange-600 font-bold bg-orange-50 p-2 rounded-lg">
+                            <i class="fa-solid fa-microscope"></i>
+                        </div>
+                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-bang3"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-700 mb-1">Bảng 3 (Dịch Vụ)</h3>
+                    <p class="text-xs text-gray-400 mb-4">Xét NGAY_YL, NGAY_KQ (ĐT)</p>
+                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
+                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-bang3">Chọn file...</span>
+                        <input type="file" id="fileBang3" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-bang3', 'check-bang3')"/>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="flex justify-center mb-12 fade-in-up" style="animation-delay: 0.2s;">
+                <button onclick="processFiles()" class="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-blue-600 font-lg rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 hover:bg-blue-700 hover:shadow-2xl hover:-translate-y-1">
+                    <span class="absolute inset-0 w-full h-full -mt-1 rounded-full opacity-30 bg-gradient-to-b from-transparent via-transparent to-black"></span>
+                    <span class="relative flex items-center gap-3">
+                        <i class="fa-solid fa-bolt text-yellow-300 animate-pulse"></i>
+                        Quét Dữ Liệu
+                    </span>
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultSection" class="hidden fade-in-up">
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <!-- Header Result -->
+                    <div class="bg-gray-50 px-8 py-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <span class="bg-red-100 text-red-600 p-2 rounded-lg"><i class="fa-solid fa-bug"></i></span>
+                                Kết Quả Phân Tích
+                            </h2>
+                            <p class="text-sm text-gray-500 mt-1 ml-11">Tìm thấy <span id="errorCount" class="font-bold text-red-600 text-lg">0</span> trường hợp trùng giờ.</p>
+                        </div>
+                        <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md transition-all flex items-center gap-2 hover:-translate-y-0.5 font-medium">
+                            <i class="fa-solid fa-file-excel"></i> Xuất Báo Cáo
+                        </button>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider font-semibold">
+                                    <th class="px-8 py-4 border-b border-gray-100">Bác Sĩ</th>
+                                    <th class="px-6 py-4 border-b border-gray-100">Thời Gian Trùng</th>
+                                    <th class="px-6 py-4 border-b border-gray-100">Chi Tiết Xung Đột</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultTableBody" class="text-sm divide-y divide-gray-100">
+                                <!-- Data will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="bg-gray-50 px-8 py-4 text-center border-t border-gray-200">
+                        <span class="text-xs text-gray-400 font-medium">Hệ thống hiển thị tối đa 100 kết quả đầu tiên để tối ưu hiệu năng. Vui lòng xuất Excel để xem toàn bộ.</span>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 z-50 hidden flex flex-col justify-center items-center backdrop-blur-sm">
+        <div class="relative w-24 h-24">
+            <div class="absolute inset-0 rounded-full border-4 border-gray-100"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i class="fa-solid fa-user-doctor text-2xl text-blue-600"></i>
+            </div>
+        </div>
+        <h3 class="mt-6 text-xl font-bold text-gray-800" id="loadingTitle">Đang xử lý</h3>
+        <p class="text-gray-500 mt-2 animate-pulse" id="loadingStatus">Vui lòng đợi trong giây lát...</p>
+    </div>
+
+    <script>
+        // --- AUTHENTICATION ---
+        function checkLogin() {
+            const pass = document.getElementById('passwordInput').value;
+            const screen = document.getElementById('loginScreen');
+            const app = document.getElementById('mainApp');
+            const error = document.getElementById('loginError');
+
+            if (pass === '1402') {
+                // Success
+                screen.style.opacity = '0';
+                setTimeout(() => {
+                    screen.style.display = 'none';
+                    app.classList.remove('hidden');
+                    // Trigger fade in
+                    setTimeout(() => app.classList.remove('opacity-0'), 50);
+                }, 500);
+            } else {
+                // Fail
+                error.classList.remove('hidden');
+                // Remove animation class to reset it
+                const container = screen.querySelector('div');
+                container.classList.remove('shake');
+                void container.offsetWidth; // trigger reflow
+                container.classList.add('shake');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        }
+
+        // --- UI HELPERS ---
+        function updateFileName(input, nameId, iconId) {
+            const label = document.getElementById(nameId);
+            const icon = document.getElementById(iconId);
+            
+            if (input.files && input.files[0]) {
+                label.innerText = input.files[0].name;
+                label.classList.add('text-blue-600', 'font-semibold');
+                icon.classList.remove('text-gray-200');
+                icon.classList.add('text-green-500');
+                // Animation for valid input
+                icon.classList.add('scale-110');
+                setTimeout(() => icon.classList.remove('scale-110'), 200);
+            } else {
+                label.innerText = "Chọn file...";
+                label.classList.remove('text-blue-600', 'font-semibold');
+                icon.classList.add('text-gray-200');
+                icon.classList.remove('text-green-500');
+            }
+        }
+
+        function showLoading(show, msg = "") {
+            const overlay = document.getElementById('loadingOverlay');
+            const status = document.getElementById('loadingStatus');
+            if (show) {
+                overlay.classList.remove('hidden');
+                status.innerText = msg;
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // --- DATA PROCESSING LOGIC ---
+        let doctorsMap = {}; 
+        let patientsMap = {}; 
+        let conflictList = [];
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = e.target.result;
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    
+                    if (ext === 'csv') {
+                        Papa.parse(file, {
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: function(results) { resolve(results.data); },
+                            error: function(err) { reject(err); }
+                        });
+                    } else if (['xls', 'xlsx'].includes(ext)) {
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName]);
+                        resolve(jsonData);
+                    } else {
+                        reject("Định dạng file không hỗ trợ");
+                    }
+                };
+                reader.onerror = reject;
+                if (file.name.endsWith('.csv')) reader.readAsText(file);
+                else reader.readAsBinaryString(file);
+            });
+        }
+
+        async function processFiles() {
+            const fCCHN = document.getElementById('fileCCHN').files[0];
+            const fBang1 = document.getElementById('fileBang1').files[0];
+            const fBang2 = document.getElementById('fileBang2').files[0];
+            const fBang3 = document.getElementById('fileBang3').files[0];
+
+            if (!fCCHN || !fBang1 || !fBang2 || !fBang3) {
+                alert("Vui lòng chọn đủ 4 file dữ liệu!");
+                return;
+            }
+
+            showLoading(true, "Đang khởi tạo...");
+            
+            try {
+                // 1. Load CCHN
+                showLoading(true, "Đang đọc danh sách bác sĩ...");
+                const dataCCHN = await readFile(fCCHN);
+                doctorsMap = {};
+                dataCCHN.forEach(row => {
+                    const code = row['MA CCHN'] || row['MA_CCHN'];
+                    const name = row['TEN BS'] || row['TEN_BS'];
+                    if (code) doctorsMap[code.trim()] = name || "Không tên";
+                });
+
+                // 2. Load Bang 1 (Patients)
+                showLoading(true, "Đang đọc thông tin bệnh nhân...");
+                const dataBang1 = await readFile(fBang1);
+                patientsMap = {};
+                dataBang1.forEach(row => {
+                    const malk = row['MA_LK'];
+                    const hoten = row['HO_TEN'];
+                    if (malk) patientsMap[malk] = hoten || "Không tên";
+                });
+
+                // 3. Process Events
+                showLoading(true, "Đang quét lịch sử khám chữa bệnh...");
+                let doctorSchedule = {}; 
+
+                const addEvent = (bsCode, malk, timeRaw, source, type, desc) => {
+                    if (!bsCode || !timeRaw || !malk) return;
+                    const bs = bsCode.trim();
+                    if (!doctorSchedule[bs]) doctorSchedule[bs] = [];
+                    let timeStr = timeRaw.toString().trim();
+                    if (timeStr.length < 12) return; 
+
+                    doctorSchedule[bs].push({
+                        time: timeStr,
+                        malk: malk.toString(),
+                        source: source,
+                        type: type,
+                        desc: desc
+                    });
+                };
+
+                // Parse Bang 2
+                // CHANGE: ONLY CHECK NGAY_YL, IGNORE NGAY_TH_YL
+                const dataBang2 = await readFile(fBang2);
+                dataBang2.forEach(row => {
+                    const bs = row['MA_BAC_SI'];
+                    const malk = row['MA_LK'];
+                    const tenThuoc = row['TEN_THUOC'] || "Thuốc";
+                    
+                    // Logic mới: Chỉ lấy NGAY_YL
+                    if (row['NGAY_YL']) {
+                        addEvent(bs, malk, row['NGAY_YL'], 'Bảng 2', 'Y Lệnh Thuốc', tenThuoc);
+                    }
+                });
+
+                // Parse Bang 3
+                const dataBang3 = await readFile(fBang3);
+                dataBang3.forEach(row => {
+                    const bs = row['MA_BAC_SI'];
+                    const malk = row['MA_LK'];
+                    const tenDV = row['TEN_DICH_VU'] || "";
+                    
+                    if (row['NGAY_YL']) {
+                        addEvent(bs, malk, row['NGAY_YL'], 'Bảng 3', 'Y Lệnh DV', tenDV);
+                    }
+                    if (tenDV.toLowerCase().includes("điện tim") && row['NGAY_KQ']) {
+                        addEvent(bs, malk, row['NGAY_KQ'], 'Bảng 3', 'KQ Điện tim', tenDV);
+                    }
+                });
+
+                // 4. Detect Conflicts
+                showLoading(true, "Đang đối chiếu dữ liệu...");
+                conflictList = [];
+
+                for (const [bsCode, events] of Object.entries(doctorSchedule)) {
+                    const eventsByTime = {};
+                    events.forEach(evt => {
+                        if (!eventsByTime[evt.time]) eventsByTime[evt.time] = [];
+                        eventsByTime[evt.time].push(evt);
+                    });
+
+                    for (const [time, timeEvents] of Object.entries(eventsByTime)) {
+                        const uniquePatients = [...new Set(timeEvents.map(e => e.malk))];
+                        
+                        if (uniquePatients.length > 1) {
+                            const bsName = doctorsMap[bsCode] || bsCode;
+                            let details = [];
+                            uniquePatients.forEach(pid => {
+                                const pName = patientsMap[pid] || pid;
+                                const pEvents = timeEvents.filter(e => e.malk === pid);
+                                const uniqueDescs = [...new Set(pEvents.map(e => e.desc))];
+                                details.push(`<span class="font-bold text-gray-800">[${pName}]</span>: ${uniqueDescs.join(', ')}`);
+                            });
+
+                            conflictList.push({
+                                bsCode: bsCode,
+                                bsName: bsName,
+                                time: formatTime(time),
+                                rawTime: time,
+                                patientCount: uniquePatients.length,
+                                details: details
+                            });
+                        }
+                    }
+                }
+
+                renderResults();
+                showLoading(false);
+
+            } catch (error) {
+                console.error(error);
+                showLoading(false);
+                alert("Đã xảy ra lỗi: " + error.message);
+            }
+        }
+
+        function formatTime(str) {
+            if (!str || str.length < 12) return str;
+            const y = str.substring(0,4);
+            const m = str.substring(4,6);
+            const d = str.substring(6,8);
+            const h = str.substring(8,10);
+            const min = str.substring(10,12);
+            return `${h}:${min} - ${d}/${m}/${y}`;
+        }
+
+        function renderResults() {
+            const container = document.getElementById('resultSection');
+            const tbody = document.getElementById('resultTableBody');
+            const countSpan = document.getElementById('errorCount');
+
+            container.classList.remove('hidden');
+            // Slight scroll to result
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            countSpan.innerText = conflictList.length;
+            tbody.innerHTML = '';
+
+            const limit = Math.min(conflictList.length, 100);
+            
+            if (conflictList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-green-600 font-bold bg-green-50/30 rounded-lg"><i class="fa-solid fa-check-circle text-4xl mb-2 block"></i>Không tìm thấy lỗi trùng giờ nào!</td></tr>`;
+                return;
+            }
+
+            for (let i = 0; i < limit; i++) {
+                const item = conflictList[i];
+                const row = document.createElement('tr');
+                row.className = 'group hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0';
+                
+                // Construct HTML for details column
+                const detailHTML = item.details.map(d => 
+                    `<div class="mb-1 pl-2 border-l-2 border-blue-200 text-gray-600">${d}</div>`
+                ).join('');
+
+                row.innerHTML = `
+                    <td class="px-8 py-5 align-top">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs shadow-sm">
+                                ${getInitials(item.bsName)}
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors">${item.bsName}</div>
+                                <div class="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1">${item.bsCode}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-5 align-top">
+                        <span class="px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-600 border border-red-200 inline-flex items-center gap-1">
+                            <i class="fa-regular fa-clock"></i> ${item.time}
+                        </span>
+                    </td>
+                    <td class="px-6 py-5 text-sm align-top">
+                        <div class="bg-white/50 rounded-lg p-2 border border-gray-100 shadow-sm">
+                            ${detailHTML}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').slice(-2).toUpperCase();
+        }
+
+        function exportToExcel() {
+            if (conflictList.length === 0) {
+                alert("Không có dữ liệu để xuất!");
+                return;
+            }
+
+            // Convert HTML details back to text for excel
+            const exportData = conflictList.map(item => ({
+                "Mã CCHN": item.bsCode,
+                "Tên Bác Sĩ": item.bsName,
+                "Thời gian trùng": item.time,
+                "Thời gian gốc": item.rawTime,
+                "Số lượng BN trùng": item.patientCount,
+                "Chi tiết xung đột": item.details.map(d => d.replace(/<[^>]*>?/gm, '')).join(' | ')
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Loi_Trung_Gio");
+            
+            const now = new Date();
+            const fileName = `KetQua_GiamDinh_${now.getDate()}${now.getMonth()+1}_${now.getHours()}h${now.getMinutes()}.xlsx`;
+            
+            XLSX.writeFile(wb, fileName);
+        }
+    </script>
+</body>
+</html>
