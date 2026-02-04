@@ -94,7 +94,7 @@
                         </div>
                         <input type="password" id="password-input" 
                             class="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200 sm:text-sm" 
-                            placeholder="Nhập mã PIN (1402)"
+                            placeholder="Nhập mã PIN"
                             onkeydown="if(event.key === 'Enter') checkLogin()">
                     </div>
                     <p id="login-error" class="text-red-500 text-xs mt-2 hidden flex items-center">
@@ -108,7 +108,7 @@
             </div>
             
             <div class="mt-8 text-center">
-                <p class="text-xs text-slate-400">Phiên bản 2.2 &copy; 2026</p>
+                <p class="text-xs text-slate-400">Phiên bản 2.3 &copy; 2026</p>
             </div>
         </div>
     </div>
@@ -153,7 +153,8 @@
                         <h2 class="text-xl font-bold mb-2 relative z-10">Quy tắc kiểm tra</h2>
                         <ul class="space-y-2 text-slate-300 text-sm relative z-10">
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD trong cột CHAN_DOAN_RV.</span></li>
-                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Logic chéo: Acid Uric (Bảng 3) thì Bảng 1 và 3 đều phải có ít nhất một trong 3 mã: <strong>M25.5, M10.0, M10.5</strong>.</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span><strong>Mới:</strong> Cảnh báo nếu chỉ có 0 hoặc 1 mã ICD (Nghi ngờ thiếu mã).</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Logic chéo: Acid Uric (Bảng 3) thì Bảng 1 và 3 phải có mã M25.5/M10.0/M10.5.</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo tương tác: Nhóm sỏi thận (N20) & Nhóm thiếu chất (E58).</span></li>
                         </ul>
                     </div>
@@ -470,7 +471,7 @@
                 }
             });
 
-            // 2. Logic Check Table 1 (Count & Interactions)
+            // 2. Logic Check Table 1
             mapTable1.forEach((val, key) => {
                 const { HO_TEN, ICD_CODES } = val;
                 
@@ -480,6 +481,15 @@
                         MA_LK: key, HO_TEN: HO_TEN,
                         LOAI_LOI: "Dư mã ICD",
                         CHI_TIET: `Có ${ICD_CODES.length} mã (Giới hạn: 12).`
+                    });
+                }
+
+                // Rule 4 (NEW): Suspiciously few codes (<= 1)
+                if (ICD_CODES.length <= 1) {
+                     finalErrors.push({
+                        MA_LK: key, HO_TEN: HO_TEN,
+                        LOAI_LOI: "Nghi ngờ thiếu mã",
+                        CHI_TIET: `Chỉ tìm thấy ${ICD_CODES.length} mã ICD (Yêu cầu rà soát bổ sung).`
                     });
                 }
 
@@ -574,6 +584,7 @@
                     if (err.LOAI_LOI.includes("Dư mã")) badgeClass = "bg-yellow-100 text-yellow-800 border border-yellow-200";
                     if (err.LOAI_LOI.includes("Acid Uric")) badgeClass = "bg-red-100 text-red-800 border border-red-200";
                     if (err.LOAI_LOI.includes("Tương tác")) badgeClass = "bg-orange-100 text-orange-800 border border-orange-200";
+                    if (err.LOAI_LOI.includes("Nghi ngờ thiếu mã")) badgeClass = "bg-blue-100 text-blue-800 border border-blue-200";
 
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${index + 1}</td>
