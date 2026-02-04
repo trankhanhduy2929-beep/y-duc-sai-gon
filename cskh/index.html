@@ -3,599 +3,805 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSKH Bệnh Nhân - Ghép Hồ Sơ</title>
+    <title>CRM Y Tế - Chăm Sóc Bệnh Nhân Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS để đọc file Excel/CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Font Awesome cho icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        .drag-active { border-color: #3b82f6; background-color: #eff6ff; }
-        .table-cell-content { max-height: 80px; overflow-y: auto; font-size: 0.9em; }
-        
-        /* Loading Spinner */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Be Vietnam Pro"', 'sans-serif'] },
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#64748b',
+                        success: '#22c55e',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    }
+                }
+            }
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s; }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: all 0.2s; }
+
+        .row-animate { animation: slideIn 0.3s ease-out forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200 z-10 flex-none">
-        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-2 rounded-lg">
-                    <i class="fa-solid fa-heart-pulse text-xl"></i>
-                </div>
-                <h1 class="text-xl font-bold text-gray-800">Hệ Thống Chăm Sóc Bệnh Nhân</h1>
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-user-shield text-2xl"></i>
             </div>
-            <div class="flex gap-2">
-                 <button onclick="window.location.reload()" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
-                    <i class="fa-solid fa-rotate-right mr-2"></i>Làm mới
-                </button>
-                <button onclick="exportToExcel()" id="btnExport" disabled class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fa-solid fa-file-excel mr-2"></i>Xuất Báo Cáo
-                </button>
-            </div>
+            <h2 class="text-2xl font-bold mb-2">Đăng Nhập Hệ Thống</h2>
+            <p class="text-gray-500 mb-6 text-sm">Vui lòng nhập mật mã để truy cập dữ liệu bệnh nhân.</p>
+            <form onsubmit="event.preventDefault(); checkLogin();">
+                <input type="password" id="password-input" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mb-4 text-center tracking-widest text-lg" placeholder="••••" autofocus>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-blue-500/30">Truy Cập</button>
+                <p id="login-error" class="text-red-500 text-sm mt-3 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i>Mật khẩu không đúng</p>
+            </form>
         </div>
-    </header>
+    </div>
 
-    <!-- Main Content -->
-    <div class="flex flex-1 overflow-hidden">
+    <!-- APP CONTENT (Hidden until login) -->
+    <div id="app-content" class="flex-1 flex flex-col hidden h-full">
         
-        <!-- Sidebar - Input & Filters -->
-        <aside class="w-80 bg-white border-r border-gray-200 flex flex-col flex-none overflow-y-auto z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-            <div class="p-5 space-y-6">
-                
-                <!-- Step 1: Upload File 1 -->
+        <!-- Navbar -->
+        <header class="bg-white border-b border-gray-200 h-16 flex-none flex items-center justify-between px-6 z-20 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="bg-gradient-to-tr from-blue-600 to-cyan-500 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-hospital text-lg"></i>
+                </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        1. File Báo Cáo (Hành chính)
-                        <span class="block text-xs text-gray-400 font-normal mt-0.5">BaocaoKCBBHYTngoaitru...</span>
-                    </label>
-                    <div id="drop-zone-1" class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-blue-500 transition relative group">
-                        <input type="file" id="file-1" accept=".xls,.xlsx,.csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        <div class="text-gray-500 group-hover:text-blue-600 transition">
-                            <i class="fa-solid fa-cloud-arrow-up text-2xl mb-2"></i>
-                            <p class="text-xs font-medium" id="file-name-1">Kéo thả hoặc chọn file</p>
-                        </div>
+                    <h1 class="font-bold text-gray-800 text-lg leading-tight">CRM Bệnh Viện</h1>
+                    <p class="text-xs text-gray-500">Chăm sóc khách hàng & Quản lý hồ sơ</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                 <!-- Stats Badge -->
+                 <div class="hidden md:flex gap-3 mr-4">
+                    <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-100">
+                        Tổng: <span id="stat-total">0</span>
+                    </div>
+                    <div class="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-semibold border border-green-100">
+                        Đã gọi: <span id="stat-done">0</span>
                     </div>
                 </div>
 
-                <!-- Step 2: Upload File 2 -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        2. Sổ Khám Bệnh (Chuyên môn)
-                        <span class="block text-xs text-gray-400 font-normal mt-0.5">rp_sokhambenhlon...</span>
-                    </label>
-                    <div id="drop-zone-2" class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-blue-500 transition relative group">
-                        <input type="file" id="file-2" accept=".xls,.xlsx,.csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                        <div class="text-gray-500 group-hover:text-blue-600 transition">
-                            <i class="fa-solid fa-book-medical text-2xl mb-2"></i>
-                            <p class="text-xs font-medium" id="file-name-2">Kéo thả hoặc chọn file</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: Process -->
-                <button onclick="processFiles()" id="btnProcess" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition flex justify-center items-center gap-2">
-                    <span id="process-text">Xử Lý & Ghép Dữ Liệu</span>
-                    <div id="process-loader" class="loader hidden w-5 h-5 border-2"></div>
+                <button onclick="window.location.reload()" class="p-2 text-gray-400 hover:text-blue-600 transition" title="Làm mới">
+                    <i class="fa-solid fa-arrows-rotate"></i>
                 </button>
+                <button onclick="exportToExcel()" id="btnExport" disabled class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-file-excel"></i> Xuất Báo Cáo
+                </button>
+                 <div class="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 cursor-pointer" title="Admin">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            </div>
+        </header>
 
-                <!-- Filters -->
-                <div class="border-t pt-4 mt-2">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Bộ lọc & Tìm kiếm</h3>
-                    <div class="space-y-3">
-                        <div class="relative">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
-                            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Tên, SĐT, Mã y tế..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                        </div>
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <aside class="w-72 bg-white border-r border-gray-200 flex flex-col z-10">
+                <div class="p-4 space-y-4 flex-1 overflow-y-auto">
+                    
+                    <!-- Upload Section -->
+                    <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                        <h3 class="text-xs font-bold text-blue-800 uppercase mb-3">1. Nhập dữ liệu</h3>
                         
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">Đối tượng</label>
-                            <select id="filterType" onchange="filterTable()" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none">
-                                <option value="all">Tất cả</option>
+                        <div class="space-y-3">
+                            <div class="group relative">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">File Báo Cáo (Hành chính)</label>
+                                <div class="relative overflow-hidden rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm transition hover:border-blue-400">
+                                    <input type="file" id="file-1" accept=".xls,.xlsx,.csv" class="absolute inset-0 cursor-pointer opacity-0 h-full w-full" onchange="handleFileSelect(this, 'file-name-1', 'file1')">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-file-csv text-green-500"></i>
+                                        <span id="file-name-1" class="truncate text-xs text-gray-500">Chọn file...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="group relative">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">File Sổ Khám (Chuyên môn)</label>
+                                <div class="relative overflow-hidden rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm transition hover:border-blue-400">
+                                    <input type="file" id="file-2" accept=".xls,.xlsx,.csv" class="absolute inset-0 cursor-pointer opacity-0 h-full w-full" onchange="handleFileSelect(this, 'file-name-2', 'file2')">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-file-medical text-red-500"></i>
+                                        <span id="file-name-2" class="truncate text-xs text-gray-500">Chọn file...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="processFiles()" id="btnProcess" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                                <span id="btn-text">Xử lý & Ghép</span>
+                                <i id="btn-icon" class="fa-solid fa-bolt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-3 px-1">Bộ lọc nhanh</h3>
+                        <div class="space-y-2">
+                            <div class="relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+                                <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="Tìm tên, SĐT, Mã..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <select id="filterType" onchange="applyFilters()" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none">
+                                <option value="all">Tất cả đối tượng</option>
                                 <option value="BHYT">Bảo Hiểm Y Tế</option>
                                 <option value="Dịch vụ">Khám Dịch Vụ</option>
                             </select>
                         </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 border-t border-gray-200 text-center">
+                    <p class="text-[10px] text-gray-400">Phiên bản Pro 2.0</p>
+                </div>
+            </aside>
 
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">Trạng thái gọi</label>
-                            <select id="filterStatus" onchange="filterTable()" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none">
-                                <option value="all">Tất cả</option>
-                                <option value="pending">Chưa gọi</option>
-                                <option value="called">Đã gọi thành công</option>
-                                <option value="busy">Máy bận / Không nghe</option>
-                                <option value="wrong">Sai số</option>
-                            </select>
+            <!-- Main Workspace -->
+            <main class="flex-1 bg-slate-50 flex flex-col relative overflow-hidden">
+                
+                <!-- Tabs -->
+                <div class="bg-white border-b border-gray-200 px-6 pt-2 flex items-end gap-6 flex-none">
+                    <button onclick="switchTab('pending')" id="tab-pending" class="pb-3 border-b-2 px-1 text-sm font-medium transition flex items-center gap-2 text-blue-600 border-blue-600">
+                        <i class="fa-solid fa-list-ul"></i>
+                        Danh sách chờ (Chưa gọi)
+                        <span id="badge-pending" class="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button onclick="switchTab('done')" id="tab-done" class="pb-3 border-b-2 px-1 text-sm font-medium transition flex items-center gap-2 text-gray-500 border-transparent hover:text-gray-700">
+                        <i class="fa-solid fa-check-double"></i>
+                        Đã hoàn thành
+                        <span id="badge-done" class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center z-0">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486831.png" class="w-32 opacity-20 mb-4" alt="Empty">
+                    <h3 class="text-gray-500 font-medium">Chưa có dữ liệu</h3>
+                    <p class="text-gray-400 text-sm mt-1">Vui lòng tải file lên để bắt đầu làm việc</p>
+                </div>
+
+                <!-- Table Container (Scrollable) -->
+                <div id="table-container" class="flex-1 overflow-auto hidden z-10 px-6 py-4">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold border-b border-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="px-5 py-4 w-16">#</th>
+                                    <th class="px-5 py-4 w-40">Hành động</th>
+                                    <th class="px-5 py-4 min-w-[220px]">Bệnh nhân</th>
+                                    <th class="px-5 py-4">Liên hệ</th>
+                                    <th class="px-5 py-4">Thông tin khám</th>
+                                    <th class="px-5 py-4 w-20 text-center">Chi tiết</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="text-sm divide-y divide-gray-100">
+                                <!-- Data Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div id="pagination" class="hidden h-14 bg-white border-t border-gray-200 px-6 flex items-center justify-between flex-none z-20">
+                    <span class="text-xs text-gray-500">Hiển thị <span id="page-info" class="font-medium text-gray-700">0-0</span> trên <span id="total-items" class="font-medium text-gray-700">0</span></span>
+                    <div class="flex gap-2">
+                        <button onclick="prevPage()" id="btn-prev" class="px-3 py-1.5 border border-gray-300 rounded text-xs hover:bg-gray-50 disabled:opacity-50">Trước</button>
+                        <button onclick="nextPage()" id="btn-next" class="px-3 py-1.5 border border-gray-300 rounded text-xs hover:bg-gray-50 disabled:opacity-50">Sau</button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL DETAIL -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center backdrop-blur-sm" onclick="closeModal(event)">
+        <div id="modal-content" class="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg" id="m-avatar">
+                        A
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <span id="m-name">Tên Bệnh Nhân</span>
+                            <span id="m-badge" class="text-[10px] px-2 py-0.5 rounded-full border">Loại</span>
+                        </h2>
+                        <div class="text-xs text-gray-500 flex gap-3">
+                            <span><i class="fa-solid fa-id-card mr-1"></i><span id="m-id">ID</span></span>
+                            <span><i class="fa-solid fa-cake-candles mr-1"></i><span id="m-age">Tuổi</span></span>
                         </div>
                     </div>
                 </div>
+                <button onclick="closeModal(null, true)" class="h-8 w-8 rounded-full hover:bg-gray-200 flex items-center justify-center text-gray-500 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                <!-- Stats -->
-                <div class="bg-blue-50 rounded-lg p-3 mt-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-xs text-blue-600 font-medium">Tổng bệnh nhân</span>
-                        <span class="text-sm font-bold text-blue-800" id="stat-total">0</span>
+                <!-- Left Col: History & Contact -->
+                <div class="md:col-span-1 space-y-4">
+                    <!-- Contact Card -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Thông tin liên hệ</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-phone text-blue-500 mt-1"></i>
+                                <div>
+                                    <a href="#" id="m-phone" class="font-bold text-blue-700 hover:underline block">SĐT</a>
+                                    <span class="text-xs text-gray-400">Bấm để gọi</span>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-location-dot text-red-500 mt-1"></i>
+                                <span class="text-gray-600" id="m-address">Địa chỉ...</span>
+                            </div>
+                             <div class="flex items-start gap-2">
+                                <i class="fa-solid fa-credit-card text-green-500 mt-1"></i>
+                                <span class="text-gray-600" id="m-card">Số thẻ BHYT...</span>
+                            </div>
+                        </div>
                     </div>
-                     <div class="flex justify-between items-center">
-                        <span class="text-xs text-green-600 font-medium">BHYT</span>
-                        <span class="text-xs font-bold text-green-800" id="stat-bhyt">0</span>
-                    </div>
-                     <div class="flex justify-between items-center">
-                        <span class="text-xs text-purple-600 font-medium">Dịch vụ</span>
-                        <span class="text-xs font-bold text-purple-800" id="stat-dv">0</span>
+
+                    <!-- Visit History Stats -->
+                    <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                        <h4 class="text-xs font-bold text-orange-600 uppercase mb-2">Lịch sử khám tháng này</h4>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-3xl font-bold text-orange-700" id="m-visit-count">0</span>
+                            <span class="text-sm text-orange-600">lần đến khám</span>
+                        </div>
+                        <div class="text-xs text-gray-600 bg-white p-2 rounded border border-orange-100 max-h-24 overflow-y-auto" id="m-visit-dates">
+                            <!-- List of dates -->
+                        </div>
                     </div>
                 </div>
 
-            </div>
-        </aside>
+                <!-- Right Col: Clinical Info -->
+                <div class="md:col-span-2 space-y-4">
+                    <!-- Diagnosis -->
+                    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                        <h4 class="text-sm font-bold text-gray-800 mb-2 flex justify-between">
+                            <span>Chẩn đoán & Khám bệnh</span>
+                            <span class="text-xs font-normal text-gray-500" id="m-time">Giờ khám</span>
+                        </h4>
+                        <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                             <div><span class="text-gray-500 text-xs">Bác sĩ:</span> <span class="font-medium" id="m-doctor">...</span></div>
+                             <div><span class="text-gray-500 text-xs">Phòng:</span> <span class="font-medium" id="m-room">...</span></div>
+                        </div>
+                        <p class="text-red-600 font-medium bg-red-50 p-2 rounded border border-red-100 mb-2" id="m-diagnosis">...</p>
+                        <p class="text-gray-600 text-sm italic"><i class="fa-solid fa-user-injured mr-1"></i>Triệu chứng: <span id="m-symptoms">...</span></p>
+                    </div>
 
-        <!-- Main Data Table -->
-        <main class="flex-1 bg-white overflow-hidden flex flex-col relative">
-            
-            <!-- Empty State -->
-            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 z-0">
-                <div class="bg-blue-50 p-6 rounded-full mb-4">
-                    <i class="fa-solid fa-table-columns text-4xl text-blue-300"></i>
+                    <!-- Treatment -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-100">
+                            <h4 class="text-xs font-bold text-yellow-700 uppercase mb-2"><i class="fa-solid fa-pills mr-1"></i>Thuốc / Điều trị</h4>
+                            <p class="text-sm text-gray-700 whitespace-pre-line leading-relaxed" id="m-treatment">...</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                            <h4 class="text-xs font-bold text-blue-700 uppercase mb-2"><i class="fa-solid fa-flask mr-1"></i>Cận lâm sàng</h4>
+                            <p class="text-sm text-gray-700 whitespace-pre-line leading-relaxed" id="m-cls">...</p>
+                        </div>
+                    </div>
+
+                    <!-- Note Input -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Ghi chú CSKH (Sẽ tự động lưu)</label>
+                        <textarea id="m-note" oninput="saveNoteFromModal(this.value)" class="w-full h-20 border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50" placeholder="Nhập ghi chú sau khi gọi điện..."></textarea>
+                    </div>
+                    
+                    <!-- Quick Action -->
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button onclick="updateStatusFromModal('busy')" class="px-4 py-2 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 text-sm font-medium transition">
+                            <i class="fa-solid fa-phone-slash mr-1"></i> Không nghe máy
+                        </button>
+                        <button onclick="updateStatusFromModal('called')" class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-medium shadow-md transition">
+                            <i class="fa-solid fa-check mr-1"></i> Xác nhận Đã gọi
+                        </button>
+                    </div>
+
                 </div>
-                <h3 class="text-lg font-semibold text-gray-700">Chưa có dữ liệu</h3>
-                <p class="text-gray-500 max-w-md mt-2">Vui lòng tải lên 2 file Excel từ hệ thống phần mềm bệnh viện (Báo cáo KCBB và Sổ khám bệnh) để bắt đầu.</p>
             </div>
-
-            <!-- Table Container -->
-            <div id="table-container" class="hidden flex-1 overflow-auto w-full z-10">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                        <tr>
-                            <th class="px-4 py-3 w-16 text-center">STT</th>
-                            <th class="px-4 py-3 w-24">Trạng thái</th>
-                            <th class="px-4 py-3 min-w-[200px]">Thông tin Hành Chính</th>
-                            <th class="px-4 py-3 min-w-[150px]">Liên hệ & Địa chỉ</th>
-                            <th class="px-4 py-3 min-w-[250px]">Chuyên Môn (Sổ Khám)</th>
-                            <th class="px-4 py-3 min-w-[200px]">Thuốc & CLS</th>
-                            <th class="px-4 py-3 min-w-[200px]">Ghi chú CSKH</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dataTableBody" class="text-sm divide-y divide-gray-100">
-                        <!-- Rows will be injected here -->
-                    </tbody>
-                </table>
-            </div>
-        </main>
+        </div>
     </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
-        <i class="fa-solid fa-circle-info text-blue-400"></i>
-        <span id="toast-msg">Thông báo</span>
-    </div>
-
+    <!-- LOGIC -->
     <script>
-        // --- Global Variables ---
-        let rawDataFile1 = null; // Admin info
-        let rawDataFile2 = null; // Clinical info
-        let mergedData = [];
-        
-        // --- Helper: Debounce ---
-        function debounce(func, timeout = 300){
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => { func.apply(this, args); }, timeout);
-            };
+        // --- CONSTANTS & STATE ---
+        const PASSWORD = "1234";
+        const ITEMS_PER_PAGE = 50;
+
+        let state = {
+            rawFile1: null,
+            rawFile2: null,
+            allData: [],
+            filteredData: [], // Data after search/filter
+            displayData: [], // Data for current view (tab)
+            visitHistoryMap: {}, // Store all dates for each ID
+            
+            currentPage: 1,
+            currentTab: 'pending', // 'pending' | 'done'
+            selectedId: null
+        };
+
+        // --- AUTH ---
+        function checkLogin() {
+            const input = document.getElementById('password-input').value;
+            if (input === PASSWORD) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+                document.getElementById('password-input').value = '';
+            }
         }
 
-        // --- Helper: Find Header Row Dynamically ---
-        // Hospital reports often have merged cells and titles on top.
-        // We scan for a specific column name to identify the real header.
+        // --- FILE HANDLING ---
+        function handleFileSelect(input, labelId, key) {
+            if (input.files.length > 0) {
+                document.getElementById(labelId).innerText = input.files[0].name;
+                document.getElementById(labelId).classList.add('text-blue-600', 'font-medium');
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    
+                    if (key === 'file1') state.rawFile1 = sheet;
+                    if (key === 'file2') state.rawFile2 = sheet;
+                };
+                reader.readAsArrayBuffer(input.files[0]);
+            }
+        }
+
         function findHeaderRow(sheet, keyColumnName) {
             const range = XLSX.utils.decode_range(sheet['!ref']);
-            for (let R = range.s.r; R <= Math.min(range.e.r, 20); ++R) { // Scan first 20 rows
+            for (let R = range.s.r; R <= Math.min(range.e.r, 20); ++R) {
                 for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const cellAddress = {c: C, r: R};
-                    const cellRef = XLSX.utils.encode_cell(cellAddress);
-                    const cell = sheet[cellRef];
+                    const cell = sheet[XLSX.utils.encode_cell({c: C, r: R})];
                     if (cell && cell.v && String(cell.v).toLowerCase().includes(keyColumnName.toLowerCase())) {
-                        return R; // Found the header row index
+                        return R;
                     }
                 }
             }
-            return 0; // Default to first row if not found
+            return 0;
         }
 
-        // --- Helper: Clean Text ---
-        function cleanText(text) {
-            if (!text) return '';
-            return String(text).trim();
-        }
-
-        // --- File Upload Handling ---
-        function setupDropZone(dropZoneId, fileInputId, fileNameId, storeVarName) {
-            const dropZone = document.getElementById(dropZoneId);
-            const input = document.getElementById(fileInputId);
-            const nameDisplay = document.getElementById(fileNameId);
-
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('drag-active');
-            });
-
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('drag-active');
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('drag-active');
-                if (e.dataTransfer.files.length) {
-                    input.files = e.dataTransfer.files;
-                    handleFile(input.files[0], fileNameId, storeVarName);
-                }
-            });
-
-            input.addEventListener('change', () => {
-                if (input.files.length) {
-                    handleFile(input.files[0], fileNameId, storeVarName);
-                }
-            });
-        }
-
-        function handleFile(file, fileNameId, storeVarName) {
-            document.getElementById(fileNameId).innerText = file.name;
-            document.getElementById(fileNameId).classList.add('text-blue-600', 'font-bold');
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                // Use first sheet
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                // Store raw worksheet to process later
-                if (storeVarName === 'file1') rawDataFile1 = worksheet;
-                if (storeVarName === 'file2') rawDataFile2 = worksheet;
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        setupDropZone('drop-zone-1', 'file-1', 'file-name-1', 'file1');
-        setupDropZone('drop-zone-2', 'file-2', 'file-name-2', 'file2');
-
-        // --- MAIN PROCESSING LOGIC ---
         function processFiles() {
-            if (!rawDataFile1 || !rawDataFile2) {
-                showToast("Vui lòng tải lên cả 2 file trước khi xử lý!");
+            if (!state.rawFile1 || !state.rawFile2) {
+                alert("Vui lòng tải đủ 2 file!");
                 return;
             }
 
-            const btn = document.getElementById('btnProcess');
-            const loader = document.getElementById('process-loader');
-            const text = document.getElementById('process-text');
-            
-            btn.disabled = true;
-            loader.classList.remove('hidden');
-            text.innerText = "Đang xử lý...";
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+            btnText.innerText = "Đang xử lý...";
+            btnIcon.classList.add('fa-spin');
 
             setTimeout(() => {
                 try {
-                    // 1. Process File 1 (BaocaoKCBBHYTngoaitru)
-                    // Look for header containing "Mã y tế" or "Họ tên"
-                    const headerRow1 = findHeaderRow(rawDataFile1, "Mã y tế");
-                    const data1 = XLSX.utils.sheet_to_json(rawDataFile1, { range: headerRow1, defval: "" });
+                    // 1. Parse File 1 (Admin)
+                    const header1 = findHeaderRow(state.rawFile1, "Mã y tế");
+                    const json1 = XLSX.utils.sheet_to_json(state.rawFile1, { range: header1, defval: "" });
 
-                    // 2. Process File 2 (rp_sokhambenhlon)
-                    // This file often has complex headers. 
-                    const headerRow2 = findHeaderRow(rawDataFile2, "Mã y tế");
-                    const data2 = XLSX.utils.sheet_to_json(rawDataFile2, { range: headerRow2, defval: "" });
+                    // 2. Build Visit History & Frequency
+                    state.visitHistoryMap = {};
+                    json1.forEach(row => {
+                         // Normalize key
+                         let r = {};
+                         for (let k in row) r[k.trim().toLowerCase()] = row[k];
+                         
+                         const id = r['mã y tế'];
+                         const date = r['ngày khám'] || r['thời gian tiếp nhận'] || '';
+                         
+                         if(id) {
+                             if(!state.visitHistoryMap[id]) state.visitHistoryMap[id] = new Set();
+                             // Clean date string if needed, storing raw string for now
+                             if(date) state.visitHistoryMap[id].add(date.toString().split(' ')[0]); // take date part only
+                         }
+                    });
 
-                    // 3. Create Map for fast lookup from File 2
-                    // Key: Mã y tế
+                    // 3. Parse File 2 (Clinical)
+                    const header2 = findHeaderRow(state.rawFile2, "Mã y tế");
+                    const json2 = XLSX.utils.sheet_to_json(state.rawFile2, { range: header2, defval: "" });
+                    
                     const clinicalMap = {};
-                    data2.forEach(row => {
-                        // Normalize keys (remove spaces, lowercase) to find standard columns if names vary slightly
-                        let rowData = {};
-                        for (let k in row) {
-                            rowData[k.trim().toLowerCase()] = row[k];
-                        }
-
-                        // Try to find the Key
-                        // Keys usually: 'mã y tế'
-                        const id = rowData['mã y tế'];
+                    json2.forEach(row => {
+                        let r = {};
+                        for (let k in row) r[k.trim().toLowerCase()] = row[k];
+                        const id = r['mã y tế'];
                         if (id) {
-                            // Extract relevant clinical info
-                            // Note: We search for keys loosely because excel headers might have newlines or slight variations
-                            
-                            // Find specific keys dynamically
-                            const symptomKey = Object.keys(rowData).find(k => k.includes('triệu chứng'));
-                            const diagKey = Object.keys(rowData).find(k => k.includes('chẩn đoán'));
-                            const doctorKey = Object.keys(rowData).find(k => k.includes('bác sĩ') || k.includes('bs'));
-                            const treatmentKey = Object.keys(rowData).find(k => k.includes('chỉ định') || k.includes('thuốc') || k.includes('điều trị'));
-                            
-                            // Combine Paraclinical (Xét nghiệm + CĐHA)
-                            const testKey = Object.keys(rowData).find(k => k.includes('xét nghiệm'));
-                            const imageKey = Object.keys(rowData).find(k => k.includes('hình ảnh') || k.includes('siêu âm') || k.includes('x-quang'));
-                            
-                            let cls = [];
-                            if (rowData[testKey]) cls.push(rowData[testKey]);
-                            if (rowData[imageKey]) cls.push(rowData[imageKey]);
+                            // Smart Key Detection
+                            const getVal = (keywords) => {
+                                const key = Object.keys(r).find(k => keywords.some(kw => k.includes(kw)));
+                                return key ? r[key] : '';
+                            };
+
+                            const clsPart1 = getVal(['xét nghiệm']);
+                            const clsPart2 = getVal(['hình ảnh', 'siêu âm', 'x-quang']);
 
                             clinicalMap[id] = {
-                                doctor: rowData[doctorKey] || "---",
-                                symptoms: rowData[symptomKey] || "",
-                                diagnosis: rowData[diagKey] || "",
-                                treatment: rowData[treatmentKey] || "",
-                                paraclinical: cls.join(", ")
+                                doctor: getVal(['bác sĩ', 'bs']),
+                                symptoms: getVal(['triệu chứng']),
+                                diagnosis: getVal(['chẩn đoán']),
+                                treatment: getVal(['chỉ định', 'thuốc', 'điều trị']),
+                                cls: [clsPart1, clsPart2].filter(Boolean).join(", ")
                             };
                         }
                     });
 
-                    // 4. Merge Data (Base is File 1)
-                    mergedData = [];
-                    data1.forEach((row, index) => {
-                        let rowData = {};
-                        for (let k in row) {
-                            rowData[k.trim().toLowerCase()] = row[k];
-                        }
+                    // 4. Merge
+                    state.allData = [];
+                    const seenIdsToday = new Set(); // Prevent duplicates if file has multiple rows per visit for services
 
-                        const id = rowData['mã y tế'];
-                        if (!id) return; // Skip empty rows
+                    json1.forEach((row, idx) => {
+                        let r = {};
+                        for (let k in row) r[k.trim().toLowerCase()] = row[k];
+                        
+                        const id = r['mã y tế'];
+                        if (!id) return;
+                        
+                        // Simple dedup for main list based on ID (optional, depends on if user wants multiple rows per patient)
+                        // Assuming we want unique patients per list
+                        // if(seenIdsToday.has(id)) return; 
+                        // seenIdsToday.add(id);
 
-                        // Determine Insurance vs Service
-                        const insuranceCard = rowData['số thẻ'] || rowData['số thẻ bhyt'];
-                        const isService = !insuranceCard || String(insuranceCard).trim() === '' || String(insuranceCard).trim() === '0';
-                        const type = isService ? 'Dịch vụ' : 'BHYT';
+                        const insurance = r['số thẻ'] || r['số thẻ bhyt'];
+                        const isService = !insurance || String(insurance).trim().length < 5; // Basic check
+                        const clinical = clinicalMap[id] || {};
+                        const visitCount = state.visitHistoryMap[id] ? state.visitHistoryMap[id].size : 1;
+                        const visitDates = state.visitHistoryMap[id] ? Array.from(state.visitHistoryMap[id]) : [];
 
-                        // Get Clinical Data
-                        const clinical = clinicalMap[id] || { doctor: '', symptoms: '', diagnosis: '', treatment: '', paraclinical: '' };
-
-                        mergedData.push({
+                        state.allData.push({
+                            uniqueKey: idx, // stable key
                             id: id,
-                            name: rowData['họ tên'],
-                            yob: rowData['năm sinh'] || (new Date().getFullYear() - (parseInt(rowData['tuổi']) || 0)),
-                            age: rowData['tuổi'],
-                            weight: rowData['cân nặng'],
-                            phone: cleanText(rowData['số điện thoại'] || rowData['sđt'] || rowData['điện thoại']),
-                            address: rowData['địa chỉ'],
-                            cccd: rowData['cccd'],
-                            cardNo: insuranceCard,
-                            room: rowData['phòng khám'] || rowData['phòng'],
-                            time: rowData['thời gian tiếp nhận'] || rowData['thời gian đến khám'],
-                            type: type,
+                            name: r['họ tên'],
+                            age: r['tuổi'],
+                            phone: r['số điện thoại'] || r['sđt'] || r['điện thoại'],
+                            address: r['địa chỉ'],
+                            card: insurance,
+                            type: isService ? 'Dịch vụ' : 'BHYT',
+                            time: r['thời gian tiếp nhận'] || r['thời gian đến khám'],
+                            room: r['phòng khám'] || r['phòng'],
+                            
                             // Clinical
-                            doctor: clinical.doctor,
-                            symptoms: clinical.symptoms,
-                            diagnosis: clinical.diagnosis,
-                            treatment: clinical.treatment,
-                            paraclinical: clinical.paraclinical,
-                            // CSKH State
-                            callStatus: 'pending', // pending, called, busy, wrong
+                            doctor: clinical.doctor || '---',
+                            symptoms: clinical.symptoms || '',
+                            diagnosis: clinical.diagnosis || '',
+                            treatment: clinical.treatment || '',
+                            cls: clinical.cls || '',
+                            
+                            // Stats
+                            visitCount: visitCount,
+                            visitDates: visitDates,
+
+                            // App State
+                            status: 'pending', // pending, called, busy, wrong
                             note: ''
                         });
                     });
 
-                    renderTable(mergedData);
-                    updateStats();
-                    
+                    // UI Updates
                     document.getElementById('empty-state').classList.add('hidden');
                     document.getElementById('table-container').classList.remove('hidden');
+                    document.getElementById('pagination').classList.remove('hidden');
                     document.getElementById('btnExport').disabled = false;
-                    showToast(`Đã xử lý thành công ${mergedData.length} hồ sơ!`);
+                    
+                    applyFilters();
 
-                } catch (err) {
-                    console.error(err);
-                    showToast("Lỗi xử lý file: " + err.message);
+                } catch (e) {
+                    alert("Lỗi xử lý file: " + e.message);
+                    console.error(e);
                 } finally {
-                    btn.disabled = false;
-                    loader.classList.add('hidden');
-                    text.innerText = "Xử Lý & Ghép Dữ Liệu";
+                    btnText.innerText = "Xử lý & Ghép";
+                    btnIcon.classList.remove('fa-spin');
                 }
-            }, 500); // UI delay for better UX
+            }, 500);
         }
 
-        // --- Rendering ---
-        function renderTable(data) {
-            const tbody = document.getElementById('dataTableBody');
+        // --- CORE LOGIC: FILTER & TABS ---
+        function switchTab(tabName) {
+            state.currentTab = tabName;
+            
+            // UI Tab Styles
+            const tPending = document.getElementById('tab-pending');
+            const tDone = document.getElementById('tab-done');
+            
+            if (tabName === 'pending') {
+                tPending.classList.add('text-blue-600', 'border-blue-600');
+                tPending.classList.remove('text-gray-500', 'border-transparent');
+                tDone.classList.add('text-gray-500', 'border-transparent');
+                tDone.classList.remove('text-blue-600', 'border-blue-600');
+            } else {
+                tDone.classList.add('text-blue-600', 'border-blue-600');
+                tDone.classList.remove('text-gray-500', 'border-transparent');
+                tPending.classList.add('text-gray-500', 'border-transparent');
+                tPending.classList.remove('text-blue-600', 'border-blue-600');
+            }
+
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const typeVal = document.getElementById('filterType').value;
+
+            // 1. Filter by Search & Type
+            let result = state.allData.filter(item => {
+                const matchSearch = !term || 
+                                    (item.name && item.name.toLowerCase().includes(term)) || 
+                                    (item.phone && String(item.phone).includes(term)) ||
+                                    (item.id && String(item.id).includes(term));
+                const matchType = typeVal === 'all' || item.type === typeVal;
+                return matchSearch && matchType;
+            });
+
+            state.filteredData = result; // Data matching search
+
+            // 2. Filter by Tab (Status)
+            if (state.currentTab === 'pending') {
+                state.displayData = result.filter(item => item.status === 'pending' || item.status === 'busy' || item.status === 'wrong');
+            } else {
+                state.displayData = result.filter(item => item.status === 'called');
+            }
+
+            // Update Badges & Stats
+            document.getElementById('badge-pending').innerText = result.filter(i => i.status !== 'called').length;
+            document.getElementById('badge-done').innerText = result.filter(i => i.status === 'called').length;
+            document.getElementById('stat-total').innerText = state.allData.length;
+            document.getElementById('stat-done').innerText = state.allData.filter(i => i.status === 'called').length;
+
+            state.currentPage = 1;
+            renderTable();
+        }
+
+        const debounceSearch = debounce(() => applyFilters(), 300);
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // --- RENDERING & PAGINATION ---
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
 
-            data.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-blue-50 transition group border-b border-gray-100";
-                
-                // Styles for Badge
-                const typeClass = item.type === 'BHYT' 
-                    ? 'bg-green-100 text-green-700 border border-green-200' 
-                    : 'bg-purple-100 text-purple-700 border border-purple-200';
+            const start = (state.currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageItems = state.displayData.slice(start, end);
 
-                // Status Dropdown Color Logic
-                const getStatusColor = (status) => {
-                    switch(status) {
-                        case 'called': return 'text-green-600 bg-green-50 border-green-200';
-                        case 'busy': return 'text-orange-600 bg-orange-50 border-orange-200';
-                        case 'wrong': return 'text-red-600 bg-red-50 border-red-200';
-                        default: return 'text-gray-600 bg-gray-50 border-gray-200';
-                    }
-                };
+            // Update Pagination Text
+            document.getElementById('page-info').innerText = `${state.displayData.length > 0 ? start + 1 : 0}-${Math.min(end, state.displayData.length)}`;
+            document.getElementById('total-items').innerText = state.displayData.length;
+            document.getElementById('btn-prev').disabled = state.currentPage === 1;
+            document.getElementById('btn-next').disabled = end >= state.displayData.length;
+
+            if (pageItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-gray-400">Không có dữ liệu trong danh sách này</td></tr>`;
+                return;
+            }
+
+            pageItems.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/50 transition border-b border-gray-100 group row-animate";
+                
+                // Status Color
+                let statusBadge = '';
+                if(item.status === 'pending') statusBadge = '<span class="text-gray-400 bg-gray-100 px-2 py-0.5 rounded text-xs">Chờ gọi</span>';
+                if(item.status === 'called') statusBadge = '<span class="text-green-600 bg-green-100 px-2 py-0.5 rounded text-xs">Đã gọi</span>';
+                if(item.status === 'busy') statusBadge = '<span class="text-orange-600 bg-orange-100 px-2 py-0.5 rounded text-xs">Bận</span>';
+                if(item.status === 'wrong') statusBadge = '<span class="text-red-600 bg-red-100 px-2 py-0.5 rounded text-xs">Sai số</span>';
 
                 tr.innerHTML = `
-                    <td class="px-4 py-3 text-center text-gray-500 font-mono text-xs">${index + 1}</td>
+                    <td class="px-5 py-3 text-gray-400 font-mono text-xs">${start + index + 1}</td>
                     
-                    <td class="px-4 py-3">
-                        <select onchange="updateStatus('${item.id}', this.value)" class="w-full text-xs font-medium py-1 px-2 rounded border focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer ${getStatusColor(item.callStatus)}">
-                            <option value="pending" ${item.callStatus === 'pending' ? 'selected' : ''}>Chưa gọi</option>
-                            <option value="called" ${item.callStatus === 'called' ? 'selected' : ''}>Đã gọi</option>
-                            <option value="busy" ${item.callStatus === 'busy' ? 'selected' : ''}>Máy bận</option>
-                            <option value="wrong" ${item.callStatus === 'wrong' ? 'selected' : ''}>Sai số</option>
-                        </select>
-                    </td>
-
-                    <td class="px-4 py-3 align-top">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-gray-800 text-sm">${item.name}</span>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded-full ${typeClass}">${item.type}</span>
-                        </div>
-                        <div class="text-xs text-gray-500 space-y-0.5">
-                            <div><span class="font-medium">Mã:</span> ${item.id}</div>
-                            <div><span class="font-medium">Tuổi:</span> ${item.age} | <span class="font-medium">Cân nặng:</span> ${item.weight}kg</div>
-                            <div><span class="font-medium">Giờ khám:</span> ${item.time}</div>
-                        </div>
-                    </td>
-
-                    <td class="px-4 py-3 align-top">
-                        <div class="mb-1">
-                            ${item.phone ? 
-                                `<a href="tel:${item.phone}" class="flex items-center gap-1.5 text-blue-600 font-bold hover:underline bg-blue-50 px-2 py-1 rounded w-max">
-                                    <i class="fa-solid fa-phone text-xs"></i> ${item.phone}
-                                </a>` : 
-                                `<span class="text-gray-400 italic text-xs">Không có SĐT</span>`
-                            }
-                        </div>
-                        <div class="text-xs text-gray-500 line-clamp-2" title="${item.address}">
-                            <i class="fa-solid fa-location-dot mr-1 text-gray-400"></i>${item.address}
-                        </div>
-                    </td>
-
-                    <td class="px-4 py-3 align-top">
-                        <div class="table-cell-content">
-                            <div class="mb-1 text-xs"><span class="font-bold text-gray-700">BS:</span> ${item.doctor} - <span class="text-gray-600">${item.room}</span></div>
-                            <div class="mb-1 text-xs"><span class="font-bold text-red-600">Chẩn đoán:</span> ${item.diagnosis}</div>
-                            <div class="text-xs italic text-gray-500"><span class="font-medium">Triệu chứng:</span> ${item.symptoms}</div>
-                        </div>
-                    </td>
-
-                    <td class="px-4 py-3 align-top">
-                        <div class="table-cell-content space-y-1">
-                            <div class="text-xs bg-yellow-50 p-1.5 rounded border border-yellow-100 text-gray-700">
-                                <i class="fa-solid fa-pills mr-1 text-yellow-600"></i>${item.treatment || 'Không có thuốc'}
+                    <td class="px-5 py-3">
+                         <div class="relative">
+                            <select onchange="quickUpdateStatus(${item.uniqueKey}, this.value)" class="appearance-none w-full bg-white border border-gray-200 text-gray-700 py-1.5 px-3 pr-8 rounded focus:outline-none focus:border-blue-500 text-xs font-medium cursor-pointer shadow-sm">
+                                <option value="pending" ${item.status === 'pending' ? 'selected' : ''}>Chờ gọi</option>
+                                <option value="called" ${item.status === 'called' ? 'selected' : ''}>✔ Đã gọi</option>
+                                <option value="busy" ${item.status === 'busy' ? 'selected' : ''}>⌛ Bận</option>
+                                <option value="wrong" ${item.status === 'wrong' ? 'selected' : ''}>✖ Sai số</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
                             </div>
-                            ${item.paraclinical ? 
-                                `<div class="text-xs bg-blue-50 p-1.5 rounded border border-blue-100 text-gray-700">
-                                    <i class="fa-solid fa-microscope mr-1 text-blue-600"></i>${item.paraclinical}
-                                </div>` : ''
-                            }
                         </div>
                     </td>
 
-                    <td class="px-4 py-3 align-top">
-                        <textarea 
-                            onchange="updateNote('${item.id}', this.value)"
-                            class="w-full text-xs border border-gray-200 rounded p-1.5 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-gray-50 h-20 resize-none" 
-                            placeholder="Ghi chú sau cuộc gọi...">${item.note}</textarea>
+                    <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition">${item.name}</span>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[10px] uppercase font-bold px-1.5 rounded border ${item.type === 'BHYT' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-purple-50 text-purple-600 border-purple-200'}">${item.type}</span>
+                                <span class="text-xs text-gray-500">${item.age} tuổi</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-5 py-3">
+                        ${item.phone ? 
+                            `<a href="tel:${item.phone}" class="text-blue-600 font-bold hover:underline text-sm"><i class="fa-solid fa-phone mr-1"></i>${item.phone}</a>` : 
+                            '<span class="text-gray-400 italic text-xs">--</span>'
+                        }
+                        <div class="text-xs text-gray-400 truncate max-w-[150px]" title="${item.address}">${item.address || ''}</div>
+                    </td>
+
+                    <td class="px-5 py-3">
+                        <div class="text-xs text-gray-600">
+                            <p class="font-medium text-gray-800 truncate max-w-[200px]" title="${item.diagnosis}">${item.diagnosis || 'Chưa có chẩn đoán'}</p>
+                            <p class="text-gray-400 mt-0.5">BS: ${item.doctor}</p>
+                        </div>
+                    </td>
+
+                    <td class="px-5 py-3 text-center">
+                        <button onclick="openModal(${item.uniqueKey})" class="h-8 w-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center shadow-sm mx-auto" title="Xem chi tiết">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // --- Actions: Filter, Update, Export ---
-
-        function updateStatus(id, newStatus) {
-            const idx = mergedData.findIndex(x => x.id == id);
-            if (idx >= 0) {
-                mergedData[idx].callStatus = newStatus;
-                // Re-render only class update ideally, but full render for simplicity here or DOM manipulation
-                const select = document.querySelector(`select[onchange="updateStatus('${id}', this.value)"]`);
-                
-                // Update select styling immediately
-                select.className = select.className.replace(/text-[\w-]+ bg-[\w-]+ border-[\w-]+/, '');
-                
-                if (newStatus == 'called') select.classList.add('text-green-600', 'bg-green-50', 'border-green-200');
-                else if (newStatus == 'busy') select.classList.add('text-orange-600', 'bg-orange-50', 'border-orange-200');
-                else if (newStatus == 'wrong') select.classList.add('text-red-600', 'bg-red-50', 'border-red-200');
-                else select.classList.add('text-gray-600', 'bg-gray-50', 'border-gray-200');
+        function nextPage() {
+            state.currentPage++;
+            renderTable();
+        }
+        function prevPage() {
+            if (state.currentPage > 1) {
+                state.currentPage--;
+                renderTable();
             }
         }
 
-        function updateNote(id, newNote) {
-            const idx = mergedData.findIndex(x => x.id == id);
-            if (idx >= 0) mergedData[idx].note = newNote;
-        }
-
-        function filterTable() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const typeFilter = document.getElementById('filterType').value;
-            const statusFilter = document.getElementById('filterStatus').value;
-
-            const filtered = mergedData.filter(item => {
-                const matchTerm = (item.name && item.name.toLowerCase().includes(term)) || 
-                                  (item.phone && item.phone.includes(term)) || 
-                                  (item.id && String(item.id).includes(term));
+        // --- ACTIONS ---
+        function quickUpdateStatus(uniqueKey, newStatus) {
+            const item = state.allData.find(i => i.uniqueKey === uniqueKey);
+            if (item) {
+                item.status = newStatus;
                 
-                const matchType = typeFilter === 'all' || item.type === typeFilter;
-                const matchStatus = statusFilter === 'all' || item.callStatus === statusFilter;
-
-                return matchTerm && matchType && matchStatus;
-            });
-
-            renderTable(filtered);
+                // If moving to "Called" (Done), and we are in "Pending" tab, it will disappear upon re-filter
+                // If user wants it to disappear immediately:
+                applyFilters();
+            }
         }
 
-        function updateStats() {
-            document.getElementById('stat-total').innerText = mergedData.length;
-            document.getElementById('stat-bhyt').innerText = mergedData.filter(x => x.type === 'BHYT').length;
-            document.getElementById('stat-dv').innerText = mergedData.filter(x => x.type === 'Dịch vụ').length;
+        // --- MODAL ---
+        function openModal(uniqueKey) {
+            const item = state.allData.find(i => i.uniqueKey === uniqueKey);
+            if (!item) return;
+
+            state.selectedId = uniqueKey;
+
+            // Fill Data
+            document.getElementById('m-name').innerText = item.name;
+            document.getElementById('m-avatar').innerText = item.name.charAt(0);
+            document.getElementById('m-id').innerText = item.id;
+            document.getElementById('m-age').innerText = item.age ? item.age + ' tuổi' : '';
+            
+            const badge = document.getElementById('m-badge');
+            badge.innerText = item.type;
+            badge.className = item.type === 'BHYT' 
+                ? "text-[10px] px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-200"
+                : "text-[10px] px-2 py-0.5 rounded-full border bg-purple-100 text-purple-700 border-purple-200";
+
+            document.getElementById('m-phone').innerText = item.phone || "Không có";
+            document.getElementById('m-phone').href = item.phone ? `tel:${item.phone}` : "#";
+            document.getElementById('m-address').innerText = item.address || "---";
+            document.getElementById('m-card').innerText = item.card || "Không có thẻ";
+
+            // Visit Stats
+            document.getElementById('m-visit-count').innerText = item.visitCount;
+            document.getElementById('m-visit-dates').innerHTML = item.visitDates.map(d => `<div class="border-b border-gray-100 last:border-0 py-1">${d}</div>`).join('');
+
+            // Clinical
+            document.getElementById('m-time').innerText = item.time || '';
+            document.getElementById('m-doctor').innerText = item.doctor;
+            document.getElementById('m-room').innerText = item.room || '';
+            document.getElementById('m-diagnosis').innerText = item.diagnosis || 'Không có thông tin chẩn đoán';
+            document.getElementById('m-symptoms').innerText = item.symptoms || '---';
+            document.getElementById('m-treatment').innerText = item.treatment ? item.treatment.replace(/;/g, '\n• ') : 'Không kê đơn thuốc';
+            document.getElementById('m-cls').innerText = item.cls || 'Không có chỉ định CLS';
+
+            // Note & Status
+            document.getElementById('m-note').value = item.note || '';
+
+            // Show Modal
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            overlay.classList.remove('hidden');
+            // Animation trick
+            setTimeout(() => {
+                content.classList.remove('opacity-0', 'scale-95');
+                content.classList.add('opacity-100', 'scale-100');
+            }, 10);
         }
 
+        function closeModal(e, force = false) {
+            if (force || e.target.id === 'modal-overlay') {
+                const content = document.getElementById('modal-content');
+                content.classList.remove('opacity-100', 'scale-100');
+                content.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    document.getElementById('modal-overlay').classList.add('hidden');
+                }, 200);
+            }
+        }
+
+        function saveNoteFromModal(val) {
+            const item = state.allData.find(i => i.uniqueKey === state.selectedId);
+            if(item) item.note = val;
+        }
+
+        function updateStatusFromModal(status) {
+            const item = state.allData.find(i => i.uniqueKey === state.selectedId);
+            if(item) {
+                item.status = status;
+                applyFilters(); // List updates in background
+                if (status === 'called') {
+                     // Nice animation/feedback could go here
+                     closeModal(null, true);
+                }
+            }
+        }
+
+        // --- EXPORT ---
         function exportToExcel() {
-            if (mergedData.length === 0) return;
+            if (state.allData.length === 0) return;
 
-            // Prepare data for export
-            const exportData = mergedData.map(item => ({
-                "STT": "",
-                "Mã Y Tế": item.id,
-                "Họ Tên": item.name,
-                "Tuổi": item.age,
-                "Giới tính": "", // Not parsed explicitly but could be added
+            const exportData = state.allData.map(item => ({
+                "Trạng thái": item.status === 'called' ? 'Đã gọi' : (item.status === 'pending' ? 'Chưa gọi' : item.status),
+                "Họ tên": item.name,
                 "SĐT": item.phone,
                 "Địa chỉ": item.address,
                 "Loại": item.type,
-                "Phòng khám": item.room,
-                "Bác sĩ": item.doctor,
+                "Số lần khám (tháng)": item.visitCount,
                 "Chẩn đoán": item.diagnosis,
-                "Thuốc": item.treatment,
-                "Trạng thái gọi": item.callStatus === 'pending' ? 'Chưa gọi' : 
-                                  item.callStatus === 'called' ? 'Đã gọi' : 
-                                  item.callStatus === 'busy' ? 'Máy bận' : 'Sai số',
                 "Ghi chú CSKH": item.note
             }));
 
-            // Add STT
-            exportData.forEach((row, i) => row["STT"] = i + 1);
-
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "BaoCaoCSKH");
-            XLSX.writeFile(wb, "KetQua_CSKH_" + new Date().toISOString().slice(0,10) + ".xlsx");
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = message;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            XLSX.utils.book_append_sheet(wb, ws, "CSKH");
+            XLSX.writeFile(wb, `BaoCao_CSKH_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
     </script>
 </body>
