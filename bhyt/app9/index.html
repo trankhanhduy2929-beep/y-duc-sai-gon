@@ -3,494 +3,647 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BHYT Checker Pro</title>
-    <!-- Tailwind CSS -->
+    <title>BHYT Audit Pro - Hệ Thống Dò Lỗi Hồ Sơ</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS để đọc file Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                        'bounce-slow': 'bounce 3s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-            overflow-x: hidden;
-        }
-
-        /* Glassmorphism Classes */
-        .glass {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .glass-dark {
-            background: rgba(17, 24, 39, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-up { animation: fadeInUp 0.6s ease-out forwards; }
-        .delay-100 { animation-delay: 0.1s; }
-        .delay-200 { animation-delay: 0.2s; }
-        .delay-300 { animation-delay: 0.3s; }
-
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-        }
-        
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        .file-drop-zone {
-            transition: all 0.3s ease;
-            border: 2px dashed #cbd5e1;
+        /* Glassmorphism Utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .file-drop-zone:hover, .file-drop-zone.active {
-            border-color: #4f46e5;
-            background-color: rgba(79, 70, 229, 0.05);
-            transform: scale(1.01);
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ffffff;
+            width: 20px; height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .drag-active {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.02);
         }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden flex flex-col relative selection:bg-brand-200 selection:text-brand-900">
+
+    <!-- Background Decoration -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+        <div class="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" style="animation-delay: 2s"></div>
+    </div>
 
     <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-90 animate-fade-up">
-        <div class="glass p-8 rounded-2xl shadow-2xl w-full max-w-md text-center transform transition-all hover:scale-105 duration-300">
-            <div class="mb-6">
-                <div class="w-20 h-20 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-4">
-                    <i class="fas fa-shield-alt text-3xl text-white"></i>
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-50/80 backdrop-blur-sm transition-all duration-700 ease-in-out">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 transform transition-all duration-500 hover:shadow-brand-500/10 animate-slide-up">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-gradient-to-br from-brand-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
+                    <i class="fa-solid fa-shield-halved text-white text-2xl"></i>
                 </div>
-                <h2 class="text-3xl font-bold text-gray-800 mb-1">Bảo Mật Hệ Thống</h2>
-                <p class="text-gray-500 text-sm">Vui lòng nhập mã truy cập để tiếp tục</p>
-            </div>
-            
-            <div class="relative mb-6">
-                <input type="password" id="passwordInput" 
-                    class="w-full px-5 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-center text-lg tracking-widest"
-                    placeholder="••••" maxlength="4" onkeyup="checkEnter(event)">
-                <p id="loginError" class="text-red-500 text-xs mt-2 hidden"><i class="fas fa-exclamation-circle mr-1"></i>Mật khẩu không đúng!</p>
+                <h1 class="text-2xl font-bold text-slate-800">BHYT Audit Pro</h1>
+                <p class="text-slate-500 text-sm mt-1">Hệ thống kiểm soát hồ sơ y tế</p>
             </div>
 
-            <button onclick="checkLogin()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl shadow-lg transform transition active:scale-95">
-                Đăng Nhập <i class="fas fa-arrow-right ml-2"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- MAIN APP (Hidden by default) -->
-    <div id="mainApp" class="w-full max-w-7xl hidden">
-        
-        <!-- Header -->
-        <header class="glass rounded-2xl p-6 mb-8 flex flex-col md:flex-row justify-between items-center shadow-lg animate-fade-up">
-            <div class="flex items-center mb-4 md:mb-0">
-                <div class="bg-blue-100 p-3 rounded-lg mr-4 text-blue-600">
-                    <i class="fas fa-hospital-user text-2xl"></i>
-                </div>
+            <div class="space-y-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Dò Lỗi BHYT <span class="text-xs bg-gradient-to-r from-pink-500 to-orange-400 text-white px-2 py-0.5 rounded-full ml-2 uppercase tracking-wide">Pro</span></h1>
-                    <p class="text-gray-500 text-sm">Hỗ trợ Excel & CSV • Phát hiện trùng giờ</p>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Mật khẩu truy cập</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-slate-400 group-focus-within:text-brand-500 transition-colors"></i>
+                        </div>
+                        <input type="password" id="password-input" 
+                            class="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200 sm:text-sm" 
+                            placeholder="Nhập mã PIN (1402)"
+                            onkeydown="if(event.key === 'Enter') checkLogin()">
+                    </div>
+                    <p id="login-error" class="text-red-500 text-xs mt-2 hidden flex items-center">
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i> Mật khẩu không đúng
+                    </p>
                 </div>
+
+                <button onclick="checkLogin()" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-slate-900 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-lg shadow-slate-900/20 hover:shadow-brand-600/30 transition-all duration-300 transform hover:-translate-y-0.5">
+                    Đăng Nhập Hệ Thống
+                </button>
             </div>
-            <button onclick="window.location.reload()" class="text-sm text-gray-500 hover:text-red-500 transition font-medium flex items-center">
-                <i class="fas fa-sign-out-alt mr-2"></i>Thoát
-            </button>
-        </header>
-
-        <!-- Input Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 animate-fade-up delay-100">
-            <!-- File 1 -->
-            <div class="glass rounded-2xl p-6 shadow-md relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-2 h-full bg-green-500"></div>
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-gray-700 text-lg"><i class="fas fa-file-excel text-green-600 mr-2"></i>Bảng 1 (Thông tin)</h3>
-                    <span id="statusIcon1" class="text-gray-300"><i class="fas fa-check-circle text-2xl"></i></span>
-                </div>
-                <div class="file-drop-zone rounded-xl p-8 text-center cursor-pointer relative" onclick="document.getElementById('fileBang1').click()">
-                    <input type="file" id="fileBang1" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect('fileBang1', 'statusBang1', 'statusIcon1', 'green')">
-                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2 group-hover:text-green-500 transition-colors"></i>
-                    <p class="text-sm text-gray-600 font-medium">Click để chọn file Excel/CSV</p>
-                    <p id="statusBang1" class="text-xs text-gray-400 mt-2">Chưa chọn file</p>
-                </div>
-            </div>
-
-            <!-- File 3 -->
-            <div class="glass rounded-2xl p-6 shadow-md relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-gray-700 text-lg"><i class="fas fa-file-medical-alt text-blue-600 mr-2"></i>Bảng 3 (Dịch vụ)</h3>
-                    <span id="statusIcon3" class="text-gray-300"><i class="fas fa-check-circle text-2xl"></i></span>
-                </div>
-                <div class="file-drop-zone rounded-xl p-8 text-center cursor-pointer relative" onclick="document.getElementById('fileBang3').click()">
-                    <input type="file" id="fileBang3" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect('fileBang3', 'statusBang3', 'statusIcon3', 'blue')">
-                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2 group-hover:text-blue-500 transition-colors"></i>
-                    <p class="text-sm text-gray-600 font-medium">Click để chọn file Excel/CSV</p>
-                    <p id="statusBang3" class="text-xs text-gray-400 mt-2">Chưa chọn file</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Action Button -->
-        <div class="flex justify-center mb-10 animate-fade-up delay-200">
-            <button onclick="processFiles()" class="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-full shadow-lg hover:shadow-2xl transform transition-all hover:-translate-y-1 active:scale-95 overflow-hidden">
-                <span class="relative z-10 flex items-center text-lg">
-                    <i class="fas fa-search mr-2 group-hover:rotate-90 transition-transform duration-300"></i> Quét Dữ Liệu
-                </span>
-                <div class="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-        </div>
-
-        <!-- Loading Overlay (Modern) -->
-        <div id="loading" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-80 backdrop-blur-sm flex flex-col items-center justify-center">
-            <div class="relative w-24 h-24">
-                <div class="absolute top-0 left-0 right-0 bottom-0 border-4 border-blue-500 rounded-full animate-ping opacity-25"></div>
-                <div class="absolute top-0 left-0 right-0 bottom-0 border-4 border-t-transparent border-blue-400 rounded-full animate-spin"></div>
-            </div>
-            <h3 class="text-white mt-6 text-xl font-bold tracking-wider">Đang Phân Tích...</h3>
-            <p class="text-blue-200 text-sm mt-2">Vui lòng đợi trong giây lát</p>
-        </div>
-
-        <!-- Results Area -->
-        <div id="resultsArea" class="hidden animate-fade-up delay-300 pb-12">
             
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- Card Total -->
-                <div class="glass rounded-xl p-5 border-l-4 border-gray-400 flex items-center">
-                    <div class="p-3 rounded-full bg-gray-100 text-gray-600 mr-4">
-                        <i class="fas fa-vial text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-gray-500 uppercase font-semibold">Tổng mẫu XN</p>
-                        <h4 id="totalCount" class="text-2xl font-bold text-gray-800">0</h4>
-                    </div>
-                </div>
-                <!-- Card TH Warning -->
-                <div class="glass rounded-xl p-5 border-l-4 border-red-500 flex items-center bg-red-50 bg-opacity-50">
-                    <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
-                        <i class="fas fa-clock text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-red-500 uppercase font-semibold">Trùng Giờ Thực Hiện</p>
-                        <h4 id="conflictTHCount" class="text-2xl font-bold text-red-700">0</h4>
-                    </div>
-                </div>
-                <!-- Card KQ Warning -->
-                <div class="glass rounded-xl p-5 border-l-4 border-orange-500 flex items-center bg-orange-50 bg-opacity-50">
-                    <div class="p-3 rounded-full bg-orange-100 text-orange-600 mr-4">
-                        <i class="fas fa-file-signature text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs text-orange-500 uppercase font-semibold">Trùng Giờ Kết Quả</p>
-                        <h4 id="conflictKQCount" class="text-2xl font-bold text-orange-700">0</h4>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Content Grid -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                
-                <!-- Table TH -->
-                <div class="glass rounded-2xl shadow-xl overflow-hidden flex flex-col h-[600px]">
-                    <div class="bg-gradient-to-r from-red-500 to-pink-600 px-6 py-4 flex justify-between items-center shrink-0">
-                        <h3 class="text-white font-bold text-lg"><i class="fas fa-exclamation-triangle mr-2"></i>Trùng NGAY_TH_YL</h3>
-                        <span class="bg-white bg-opacity-20 text-white text-xs px-2 py-1 rounded-md backdrop-blur-md">Nghiêm trọng</span>
-                    </div>
-                    <div id="containerTH" class="p-4 overflow-y-auto grow space-y-4 bg-gray-50 bg-opacity-50 scroll-smooth">
-                        <!-- Dynamic -->
-                    </div>
-                </div>
-
-                <!-- Table KQ -->
-                <div class="glass rounded-2xl shadow-xl overflow-hidden flex flex-col h-[600px]">
-                    <div class="bg-gradient-to-r from-orange-500 to-yellow-500 px-6 py-4 flex justify-between items-center shrink-0">
-                        <h3 class="text-white font-bold text-lg"><i class="fas fa-clipboard-check mr-2"></i>Trùng NGAY_KQ</h3>
-                        <span class="bg-white bg-opacity-20 text-white text-xs px-2 py-1 rounded-md backdrop-blur-md">Cảnh báo</span>
-                    </div>
-                    <div id="containerKQ" class="p-4 overflow-y-auto grow space-y-4 bg-gray-50 bg-opacity-50 scroll-smooth">
-                        <!-- Dynamic -->
-                    </div>
-                </div>
-
+            <div class="mt-8 text-center">
+                <p class="text-xs text-slate-400">Phiên bản 2.4 &copy; 2026</p>
             </div>
         </div>
     </div>
 
-    <!-- NOTIFICATION TOAST -->
-    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300">
-        <div class="bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center">
-            <i class="fas fa-info-circle mr-3 text-blue-400"></i>
-            <span id="toastMsg">Thông báo</span>
+    <!-- APP SCREEN -->
+    <div id="app-screen" class="relative z-10 flex flex-col h-full hidden opacity-0 transition-opacity duration-700">
+        
+        <!-- Navbar -->
+        <nav class="glass sticky top-0 z-40 border-b border-slate-200/60">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 flex items-center gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-xs">
+                                <i class="fa-solid fa-stethoscope"></i>
+                            </div>
+                            <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+                                BHYT Checker
+                            </span>
+                        </div>
+                        <div class="hidden md:ml-6 md:flex md:space-x-8">
+                            <a href="#" class="border-brand-500 text-slate-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Dashboard</a>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <button onclick="logout()" class="ml-4 px-4 py-1.5 rounded-full text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors">
+                            <i class="fa-solid fa-power-off mr-2"></i>Thoát
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-8">
+            <div class="max-w-7xl mx-auto space-y-8">
+                
+                <!-- Status & Info Card -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+                    <div class="md:col-span-2 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl shadow-slate-900/10 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform duration-700 group-hover:scale-110"></div>
+                        <h2 class="text-xl font-bold mb-2 relative z-10">Quy tắc kiểm tra</h2>
+                        <ul class="space-y-2 text-slate-300 text-sm relative z-10">
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD trong cột CHAN_DOAN_RV.</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span><strong>Mới:</strong> Cảnh báo 0 hoặc 1 mã ICD (Hiển thị chi tiết tên bệnh).</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Logic chéo: Acid Uric (Bảng 3) thì Bảng 1 và 3 phải có mã M25.5/M10.0/M10.5.</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo tương tác: Nhóm sỏi thận (N20) & Nhóm thiếu chất (E58).</span></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+                        <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3 text-xl">
+                            <i class="fa-solid fa-file-excel"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800">Hỗ trợ File</h3>
+                        <p class="text-xs text-slate-500 mt-1">Excel (.xlsx, .xls) & CSV</p>
+                        <p class="text-xs text-slate-400 mt-4">Kéo thả file để tải lên nhanh chóng</p>
+                    </div>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Bảng 1 -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-md">
+                        <div class="p-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-semibold text-slate-700 flex items-center">
+                                <span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> Bảng 1 (Thông tin)
+                            </h3>
+                            <span id="status-1" class="text-xs font-medium text-slate-400 px-2 py-1 rounded bg-slate-100">Chờ file</span>
+                        </div>
+                        <div id="drop-zone-1" class="p-8 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 m-4 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all duration-200 group h-48">
+                            <div id="icon-1" class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                            </div>
+                            <p class="text-sm font-medium text-slate-600 group-hover:text-blue-600">Chọn hoặc kéo thả file Bảng 1</p>
+                            <p class="text-xs text-slate-400 mt-1">Hỗ trợ .xlsx, .xls, .csv</p>
+                            <input type="file" id="file-1" class="hidden" accept=".csv, .xlsx, .xls">
+                        </div>
+                    </div>
+
+                    <!-- Bảng 3 -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-md">
+                        <div class="p-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-semibold text-slate-700 flex items-center">
+                                <span class="w-2 h-2 rounded-full bg-purple-500 mr-2"></span> Bảng 3 (Dịch vụ)
+                            </h3>
+                            <span id="status-3" class="text-xs font-medium text-slate-400 px-2 py-1 rounded bg-slate-100">Chờ file</span>
+                        </div>
+                        <div id="drop-zone-3" class="p-8 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 m-4 rounded-xl cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all duration-200 group h-48">
+                            <div id="icon-3" class="w-12 h-12 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                            </div>
+                            <p class="text-sm font-medium text-slate-600 group-hover:text-purple-600">Chọn hoặc kéo thả file Bảng 3</p>
+                            <p class="text-xs text-slate-400 mt-1">Hỗ trợ .xlsx, .xls, .csv</p>
+                            <input type="file" id="file-3" class="hidden" accept=".csv, .xlsx, .xls">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Bar -->
+                <div class="flex justify-center py-4">
+                    <button id="btn-process" class="group relative inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-all duration-200 bg-gradient-to-r from-brand-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl hover:shadow-brand-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1 w-64" disabled>
+                        <span class="absolute inset-0 w-full h-full -mt-1 rounded-lg opacity-30 bg-gradient-to-b from-transparent via-transparent to-black"></span>
+                        <span class="relative flex items-center">
+                            <i class="fa-solid fa-bolt mr-2"></i> Bắt đầu dò lỗi
+                        </span>
+                        <div id="loading-spinner" class="loader ml-3 hidden relative z-10"></div>
+                    </button>
+                </div>
+
+                <!-- Results Area -->
+                <div id="result-section" class="hidden animate-slide-up">
+                    <div class="flex flex-col md:flex-row justify-between items-end md:items-center mb-4 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">Kết quả phân tích</h2>
+                            <p class="text-slate-500 text-sm">Tìm thấy <span id="error-count" class="font-bold text-red-500">0</span> vấn đề cần xử lý</p>
+                        </div>
+                        <button onclick="exportToCSV()" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium text-sm transition-colors shadow-sm">
+                            <i class="fa-solid fa-file-excel text-green-600 mr-2"></i> Xuất Excel
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-100">
+                                <thead class="bg-slate-50/50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">STT</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã Liên Kết</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Họ Tên</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Loại Lỗi</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Chi Tiết</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="result-table-body" class="bg-white divide-y divide-slate-100">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div id="no-error-msg" class="hidden p-12 text-center">
+                            <div class="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl animate-bounce-slow">
+                                <i class="fa-solid fa-trophy"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-800">Tuyệt vời!</h3>
+                            <p class="text-slate-500">Không tìm thấy lỗi nào trong dữ liệu được cung cấp.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- NOTIFICATION TOAST (Hidden by default) -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="bg-slate-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center">
+            <i class="fa-solid fa-circle-check text-green-400 mr-3"></i>
+            <span id="toast-msg">Thông báo</span>
         </div>
     </div>
 
     <script>
-        // --- 1. LOGIN LOGIC ---
-        function checkEnter(event) {
-            if (event.key === "Enter") checkLogin();
-        }
+        // --- GLOBAL VARIABLES ---
+        const PASSWORD = "1402";
+        let dataTable1 = [];
+        let dataTable3 = [];
+        let isFile1Loaded = false;
+        let isFile3Loaded = false;
+        let finalErrors = [];
 
+        // --- LOGIN LOGIC ---
         function checkLogin() {
-            const pass = document.getElementById('passwordInput').value;
-            const errorMsg = document.getElementById('loginError');
-            const loginScreen = document.getElementById('loginScreen');
-            const mainApp = document.getElementById('mainApp');
+            const input = document.getElementById('password-input');
+            const errorMsg = document.getElementById('login-error');
+            const loginScreen = document.getElementById('login-screen');
+            const appScreen = document.getElementById('app-screen');
 
-            if (pass === '1402') {
-                // Success Animation
-                loginScreen.classList.add('opacity-0', 'pointer-events-none');
+            if (input.value === PASSWORD) {
+                errorMsg.classList.add('hidden');
+                
+                // Animation transition
+                loginScreen.style.opacity = '0';
                 setTimeout(() => {
-                    loginScreen.style.display = 'none';
-                    mainApp.classList.remove('hidden');
-                    mainApp.classList.add('animate-fade-up');
+                    loginScreen.classList.add('hidden');
+                    appScreen.classList.remove('hidden');
+                    // Trigger reflow
+                    void appScreen.offsetWidth; 
+                    appScreen.style.opacity = '1';
                 }, 500);
             } else {
-                // Error Animation
                 errorMsg.classList.remove('hidden');
-                document.getElementById('passwordInput').classList.add('border-red-500', 'ring-2', 'ring-red-200');
+                input.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+                // Shake effect
+                input.parentElement.classList.add('animate-pulse');
                 setTimeout(() => {
-                    document.getElementById('passwordInput').classList.remove('border-red-500', 'ring-2', 'ring-red-200');
-                }, 2000);
+                    input.parentElement.classList.remove('animate-pulse');
+                }, 500);
             }
         }
 
-        // --- 2. FILE HANDLING LOGIC (EXCEL SUPPORT) ---
-        
-        function handleFileSelect(inputId, statusId, iconId, color) {
-            const file = document.getElementById(inputId).files[0];
+        function logout() {
+            location.reload();
+        }
+
+        // --- FILE HANDLING ---
+        const setupDragDrop = (dropZoneId, fileInputId, statusId, iconId, tableType) => {
+            const dropZone = document.getElementById(dropZoneId);
+            const fileInput = document.getElementById(fileInputId);
+            
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            // Drag effects
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('drag-active');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drag-active');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if(files.length) handleFile(files[0], tableType, statusId, iconId);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if(e.target.files.length) handleFile(e.target.files[0], tableType, statusId, iconId);
+            });
+        };
+
+        const handleFile = (file, tableType, statusId, iconId) => {
             const statusEl = document.getElementById(statusId);
             const iconEl = document.getElementById(iconId);
             
-            if (file) {
-                statusEl.innerHTML = `<span class="text-${color}-600 font-bold">${file.name}</span> <br> <span class="text-xs text-gray-400">${(file.size/1024).toFixed(1)} KB</span>`;
-                iconEl.innerHTML = `<i class="fas fa-check-circle text-2xl text-${color}-500 animate-bounce"></i>`;
-                iconEl.classList.remove('text-gray-300');
-            }
-        }
+            // UI Update: Loading
+            statusEl.textContent = "Đang đọc...";
+            statusEl.className = "text-xs font-medium text-blue-600 px-2 py-1 rounded bg-blue-50 animate-pulse";
 
-        // Helper to read file (Supports both Excel and CSV via SheetJS)
-        function readFileData(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {type: 'array'});
-                        // Get first sheet
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-                        // Convert to JSON
-                        const json = XLSX.utils.sheet_to_json(worksheet, {raw: false}); // raw:false ensures dates/numbers are parsed safely
-                        resolve(json);
-                    } catch (err) {
-                        reject(err);
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName]);
+                    
+                    // Normalize Headers
+                    const normalizedData = jsonData.map(row => {
+                        const newRow = {};
+                        Object.keys(row).forEach(key => {
+                            newRow[key.trim().toUpperCase()] = row[key];
+                        });
+                        return newRow;
+                    });
+
+                    // Store Data
+                    if (tableType === 1) {
+                        dataTable1 = normalizedData;
+                        isFile1Loaded = true;
+                    } else {
+                        dataTable3 = normalizedData;
+                        isFile3Loaded = true;
                     }
-                };
-                reader.onerror = (err) => reject(err);
-                reader.readAsArrayBuffer(file);
-            });
-        }
 
-        // --- 3. CORE PROCESSING LOGIC ---
-        const targetServiceKeyword = "Tổng phân tích tế bào máu ngoại vi";
+                    // UI Update: Success
+                    statusEl.textContent = "Đã tải xong";
+                    statusEl.className = "text-xs font-medium text-green-700 px-2 py-1 rounded bg-green-100";
+                    
+                    iconEl.innerHTML = '<i class="fa-solid fa-check text-xl"></i>';
+                    iconEl.className = "w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-3 transition-transform transform scale-110";
 
-        async function processFiles() {
-            const file1 = document.getElementById('fileBang1').files[0];
-            const file3 = document.getElementById('fileBang3').files[0];
-
-            if (!file1 || !file3) {
-                showToast("Vui lòng chọn đủ cả 2 file!", "error");
-                return;
-            }
-
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('loading').classList.add('flex');
-
-            try {
-                // Read files concurrently
-                const [dataBang1, dataBang3] = await Promise.all([
-                    readFileData(file1),
-                    readFileData(file3)
-                ]);
-
-                analyzeData(dataBang1, dataBang3);
-                
-                // Hide loading, show results
-                setTimeout(() => {
-                    document.getElementById('loading').classList.add('hidden');
-                    document.getElementById('loading').classList.remove('flex');
-                    const results = document.getElementById('resultsArea');
-                    results.classList.remove('hidden');
-                    results.scrollIntoView({behavior: 'smooth', block: 'start'});
-                }, 800); // Artificial delay for smoothness
-
-            } catch (error) {
-                console.error(error);
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('loading').classList.remove('flex');
-                alert("Lỗi đọc file: " + error.message + "\nHãy đảm bảo file không bị lỗi định dạng.");
-            }
-        }
-
-        function analyzeData(table1, table3) {
-            // 1. Map Table 1 for Quick Lookup: MA_LK -> HO_TEN
-            const patientMap = {};
-            table1.forEach(row => {
-                if(row.MA_LK) {
-                    patientMap[row.MA_LK] = row.HO_TEN || "Không có tên";
+                    showToast(`Đã tải thành công: ${file.name}`);
+                    checkReady();
+                } catch (err) {
+                    console.error(err);
+                    statusEl.textContent = "Lỗi file";
+                    statusEl.className = "text-xs font-medium text-red-700 px-2 py-1 rounded bg-red-100";
+                    showToast("Lỗi định dạng file! Vui lòng kiểm tra lại.", true);
                 }
-            });
-
-            // 2. Filter Table 3 for the specific service
-            // Note: Normalizing strings (lowercase) for better matching
-            // Check keys carefully as SheetJS preserves headers
-            const targetServices = table3.filter(row => {
-                const serviceName = row.TEN_DICH_VU || "";
-                return serviceName.toLowerCase().includes(targetServiceKeyword.toLowerCase());
-            });
-
-            // Animate number count
-            animateValue("totalCount", 0, targetServices.length, 1500);
-
-            // 3. Find Duplicates
-            const groupBy = (array, key) => {
-                return array.reduce((result, currentValue) => {
-                    const timeValue = currentValue[key];
-                    if (!timeValue || String(timeValue).trim() === '') return result;
-                    const safeKey = String(timeValue).trim();
-                    (result[safeKey] = result[safeKey] || []).push(currentValue);
-                    return result;
-                }, {});
             };
 
-            const conflictsTH = Object.entries(groupBy(targetServices, 'NGAY_TH_YL'))
-                                    .filter(([time, group]) => group.length > 1);
-            
-            const conflictsKQ = Object.entries(groupBy(targetServices, 'NGAY_KQ'))
-                                    .filter(([time, group]) => group.length > 1);
+            reader.readAsBinaryString(file);
+        };
 
-            // 4. Render
-            renderConflicts(conflictsTH, 'containerTH', patientMap, 'NGAY_TH_YL');
-            renderConflicts(conflictsKQ, 'containerKQ', patientMap, 'NGAY_KQ');
+        const checkReady = () => {
+            const btn = document.getElementById('btn-process');
+            if (isFile1Loaded && isFile3Loaded) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.add('animate-bounce-slow'); // Add attention grabber
+                setTimeout(() => btn.classList.remove('animate-bounce-slow'), 3000);
+            }
+        };
+
+        setupDragDrop('drop-zone-1', 'file-1', 'status-1', 'icon-1', 1);
+        setupDragDrop('drop-zone-3', 'file-3', 'status-3', 'icon-3', 3);
+
+        // --- PROCESSING LOGIC ---
+        document.getElementById('btn-process').addEventListener('click', () => {
+            const btn = document.getElementById('btn-process');
+            const spinner = document.getElementById('loading-spinner');
             
-            animateValue("conflictTHCount", 0, conflictsTH.length, 1500);
-            animateValue("conflictKQCount", 0, conflictsKQ.length, 1500);
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            
+            setTimeout(() => {
+                processFiles();
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                
+                // Scroll to results
+                document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+        });
+
+        // ---------------------------------------------------------
+        // CẬP NHẬT: Xử lý mã ICD trong chuỗi hỗn độn (VD: (M25.5) Đau khớp)
+        // ---------------------------------------------------------
+        function parseICD(icdString) {
+            if (!icdString) return [];
+            // Bước 1: Tách chuỗi bằng dấu ; hoặc ,
+            return icdString.split(/[;,]/).map(s => {
+                s = s.trim().toUpperCase();
+                
+                // Bước 2: Dùng Regex để "đào" lấy mã ICD chuẩn
+                // Mẫu: Chữ cái in hoa [A-Z] + 2 số \d{2} + (tùy chọn: dấu chấm và số đằng sau)
+                // Ví dụ khớp: "M25", "M25.5", "(M25.5)", "M25.59"
+                // Không khớp: "Đau khớp", "Sốt"
+                const match = s.match(/[A-Z]\d{2}(\.\d+)?/); 
+                
+                // Nếu tìm thấy mã (match) thì lấy mã đó, nếu không thì giữ nguyên chuỗi gốc
+                // để tính vào số lượng mã (cho Quy tắc 1)
+                return match ? match[0] : s; 
+            }).filter(s => s !== "" && s.length >= 3); // Lọc bỏ rác quá ngắn
         }
 
-        function formatTime(str) {
-            str = String(str);
-            if (!str || str.length < 12) return str;
-            const y = str.substring(0,4);
-            const m = str.substring(4,6);
-            const d = str.substring(6,8);
-            const h = str.substring(8,10);
-            const min = str.substring(10,12);
-            return `${h}:${min} - ${d}/${m}/${y}`;
+        function processFiles() {
+            finalErrors = [];
+            
+            // 1. Indexing Table 1
+            const mapTable1 = new Map();
+            dataTable1.forEach(row => {
+                if (row.MA_LK) {
+                    mapTable1.set(String(row.MA_LK), {
+                        HO_TEN: row.HO_TEN || "Không tên",
+                        CHAN_DOAN_RV: row.CHAN_DOAN_RV || "",
+                        ICD_CODES: parseICD(row.CHAN_DOAN_RV)
+                    });
+                }
+            });
+
+            // 2. Logic Check Table 1
+            mapTable1.forEach((val, key) => {
+                const { HO_TEN, CHAN_DOAN_RV, ICD_CODES } = val;
+                
+                // Rule 1: Max 12 ICD
+                if (ICD_CODES.length > 12) {
+                    finalErrors.push({
+                        MA_LK: key, HO_TEN: HO_TEN,
+                        LOAI_LOI: "Dư mã ICD",
+                        CHI_TIET: `Có ${ICD_CODES.length} mã (Giới hạn: 12).`
+                    });
+                }
+
+                // Rule 4 (NEW): Suspiciously few codes (<= 1) -> Updated to show details
+                if (ICD_CODES.length <= 1) {
+                     let detailMsg = "";
+                     if (ICD_CODES.length === 0) {
+                         detailMsg = "Không tìm thấy mã ICD nào trong cột CHAN_DOAN_RV.";
+                     } else {
+                         // Lấy mã đầu tiên
+                         const code = ICD_CODES[0];
+                         // Lấy mô tả bệnh (cắt ngắn nếu quá dài để hiển thị đẹp)
+                         let diagnosis = CHAN_DOAN_RV || "Không có mô tả";
+                         // Cắt chuỗi nếu dài quá 100 ký tự
+                         if (diagnosis.length > 80) diagnosis = diagnosis.substring(0, 80) + "...";
+                         
+                         detailMsg = `Hiện chỉ có 1 mã: ${code}. Nội dung: "${diagnosis}"`;
+                     }
+
+                     finalErrors.push({
+                        MA_LK: key, HO_TEN: HO_TEN,
+                        LOAI_LOI: "Nghi ngờ thiếu mã",
+                        CHI_TIET: detailMsg
+                    });
+                }
+
+                // Rule 3: Drug Interaction
+                const hasGroupA = ICD_CODES.some(c => c === 'N20' || c === 'N20.0');
+                const hasGroupB = ICD_CODES.some(c => c === 'E58' || c === 'D53.2');
+                
+                if (hasGroupA && hasGroupB) {
+                    finalErrors.push({
+                        MA_LK: key, HO_TEN: HO_TEN,
+                        LOAI_LOI: "Tương tác thuốc",
+                        CHI_TIET: `Xung đột: Sỏi thận (N20/N20.0) và Thiếu chất (E58/D53.2).`
+                    });
+                }
+            });
+
+            // 3. Logic Check Table 3 (Acid Uric)
+            const requiredCodes = ['M25.5', 'M10.0', 'M10.5'];
+
+            dataTable3.forEach(row => {
+                const maLK = String(row.MA_LK);
+                const tenDichVu = (row.TEN_DICH_VU || "").toLowerCase();
+                const maBenhTable3 = parseICD(row.MA_BENH);
+
+                if (tenDichVu.includes("acid uric") || tenDichVu.includes("định lượng acid uric")) {
+                    const infoTable1 = mapTable1.get(maLK);
+                    
+                    if (infoTable1) {
+                        const icdTable1 = infoTable1.ICD_CODES;
+                        
+                        // Check if ANY of the required codes exist in Table 3
+                        const checkT3 = maBenhTable3.some(c => requiredCodes.includes(c));
+                        
+                        // Check if ANY of the required codes exist in Table 1
+                        const checkT1 = icdTable1.some(c => requiredCodes.includes(c));
+
+                        let details = [];
+                        if (!checkT3) details.push("B3 thiếu (M25.5/M10.0/M10.5)");
+                        if (!checkT1) details.push("B1 thiếu (M25.5/M10.0/M10.5)");
+
+                        if (details.length > 0) {
+                            finalErrors.push({
+                                MA_LK: maLK, HO_TEN: infoTable1.HO_TEN,
+                                LOAI_LOI: "Sai chỉ định Acid Uric",
+                                CHI_TIET: details.join(". ") + ". Yêu cầu có ít nhất 1 trong 3 mã này."
+                            });
+                        }
+                    } else {
+                        finalErrors.push({
+                            MA_LK: maLK, HO_TEN: "N/A (Lệch dữ liệu)",
+                            LOAI_LOI: "Lỗi dữ liệu",
+                            CHI_TIET: "Có dịch vụ B3 nhưng không có thông tin B1."
+                        });
+                    }
+                }
+            });
+
+            renderResults();
         }
 
-        function renderConflicts(conflicts, containerId, patientMap, timeKey) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            const isRed = timeKey === 'NGAY_TH_YL';
+        function renderResults() {
+            const tableBody = document.getElementById('result-table-body');
+            const resultSection = document.getElementById('result-section');
+            const errorCountLabel = document.getElementById('error-count');
+            const noErrorMsg = document.getElementById('no-error-msg');
+            const tableContainer = document.querySelector('table');
+            
+            tableBody.innerHTML = '';
+            resultSection.classList.remove('hidden');
+            
+            // Unique Filter
+            const uniqueErrors = finalErrors.filter((value, index, self) =>
+                index === self.findIndex((t) => (
+                    t.MA_LK === value.MA_LK && t.LOAI_LOI === value.LOAI_LOI && t.CHI_TIET === value.CHI_TIET
+                ))
+            );
 
-            if (conflicts.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-center py-10 opacity-70">
-                        <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
-                        <p class="text-gray-600 font-medium">Tuyệt vời! Không có dữ liệu trùng.</p>
-                    </div>`;
+            errorCountLabel.textContent = uniqueErrors.length;
+
+            if (uniqueErrors.length === 0) {
+                noErrorMsg.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+            } else {
+                noErrorMsg.classList.add('hidden');
+                tableContainer.classList.remove('hidden');
+
+                uniqueErrors.forEach((err, index) => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-50 transition-colors";
+                    
+                    let badgeClass = "bg-slate-100 text-slate-800";
+                    if (err.LOAI_LOI.includes("Dư mã")) badgeClass = "bg-yellow-100 text-yellow-800 border border-yellow-200";
+                    if (err.LOAI_LOI.includes("Acid Uric")) badgeClass = "bg-red-100 text-red-800 border border-red-200";
+                    if (err.LOAI_LOI.includes("Tương tác")) badgeClass = "bg-orange-100 text-orange-800 border border-orange-200";
+                    if (err.LOAI_LOI.includes("Nghi ngờ thiếu mã")) badgeClass = "bg-blue-100 text-blue-800 border border-blue-200";
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${index + 1}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">${err.MA_LK}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-semibold">${err.HO_TEN}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeClass}">
+                                ${err.LOAI_LOI}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">${err.CHI_TIET}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+        }
+
+        function exportToCSV() {
+            if (finalErrors.length === 0) {
+                showToast("Không có dữ liệu lỗi để xuất!", true);
                 return;
             }
+            
+            const uniqueErrors = finalErrors.filter((value, index, self) =>
+                index === self.findIndex((t) => (
+                    t.MA_LK === value.MA_LK && t.LOAI_LOI === value.LOAI_LOI && t.CHI_TIET === value.CHI_TIET
+                ))
+            );
 
-            // Sort logic
-            conflicts.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-
-            conflicts.forEach(([timeString, rows], index) => {
-                const displayTime = formatTime(timeString);
-                const delay = Math.min(index * 50, 500); // Stagger animation
-                
-                let html = `
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 transition hover:shadow-md animate-fade-up" style="animation-delay: ${delay}ms">
-                        <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-                            <div class="flex items-center">
-                                <span class="${isRed ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'} px-3 py-1 rounded-lg text-sm font-mono font-bold mr-3">
-                                    ${timeString}
-                                </span>
-                                <span class="text-gray-500 text-sm font-medium"><i class="far fa-clock mr-1"></i> ${displayTime}</span>
-                            </div>
-                            <span class="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-full">${rows.length} người</span>
-                        </div>
-                        
-                        <div class="space-y-2">
-                `;
-
-                rows.forEach(row => {
-                    const name = patientMap[row.MA_LK] || "Không xác định";
-                    html += `
-                        <div class="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-50 transition">
-                            <div class="flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold mr-3">
-                                    ${name.charAt(0)}
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-800">${name}</p>
-                                    <p class="text-xs text-gray-400 font-mono">${row.MA_LK}</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="block text-xs text-gray-400">Ngày ${isRed ? 'TH' : 'KQ'}</span>
-                                <span class="${isRed ? 'text-red-600' : 'text-orange-600'} font-bold font-mono text-xs">
-                                    ${isRed ? row.NGAY_TH_YL : row.NGAY_KQ}
-                                </span>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                html += `</div></div>`;
-                container.innerHTML += html;
-            });
+            const worksheet = XLSX.utils.json_to_sheet(uniqueErrors);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DS_Loi");
+            XLSX.writeFile(workbook, "Danh_Sach_Loi_BHYT.xlsx");
+            showToast("Đã tải xuống file Excel!");
         }
 
-        // --- UTILS ---
-        function animateValue(id, start, end, duration) {
-            if (start === end) return;
-            const range = end - start;
-            let current = start;
-            const increment = end > start ? 1 : -1;
-            const stepTime = Math.abs(Math.floor(duration / range));
-            const obj = document.getElementById(id);
-            const timer = setInterval(function() {
-                current += increment;
-                obj.innerHTML = current;
-                if (current == end) {
-                    clearInterval(timer);
-                }
-            }, Math.max(stepTime, 20)); // Min 20ms to avoid freeze
-        }
-
-        function showToast(msg, type) {
+        function showToast(msg, isError = false) {
             const toast = document.getElementById('toast');
-            document.getElementById('toastMsg').innerText = msg;
-            toast.classList.remove('translate-y-20', 'opacity-0');
+            const toastMsg = document.getElementById('toast-msg');
+            const icon = toast.querySelector('i');
+            
+            toastMsg.textContent = msg;
+            toast.className = `fixed bottom-5 right-5 transform translate-y-0 opacity-100 transition-all duration-300 z-50 flex items-center px-6 py-3 rounded-lg shadow-xl ${isError ? 'bg-red-600 text-white' : 'bg-slate-800 text-white'}`;
+            icon.className = isError ? 'fa-solid fa-triangle-exclamation mr-3' : 'fa-solid fa-circle-check mr-3 text-green-400';
+            
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
