@@ -94,7 +94,7 @@
                         </div>
                         <input type="password" id="password-input" 
                             class="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200 sm:text-sm" 
-                            placeholder="Nhập mã PIN"
+                            placeholder="Nhập mã PIN (1402)"
                             onkeydown="if(event.key === 'Enter') checkLogin()">
                     </div>
                     <p id="login-error" class="text-red-500 text-xs mt-2 hidden flex items-center">
@@ -108,7 +108,7 @@
             </div>
             
             <div class="mt-8 text-center">
-                <p class="text-xs text-slate-400">Phiên bản 2.3 &copy; 2026</p>
+                <p class="text-xs text-slate-400">Phiên bản 2.4 &copy; 2026</p>
             </div>
         </div>
     </div>
@@ -153,7 +153,7 @@
                         <h2 class="text-xl font-bold mb-2 relative z-10">Quy tắc kiểm tra</h2>
                         <ul class="space-y-2 text-slate-300 text-sm relative z-10">
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD trong cột CHAN_DOAN_RV.</span></li>
-                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span><strong>Mới:</strong> Cảnh báo nếu chỉ có 0 hoặc 1 mã ICD (Nghi ngờ thiếu mã).</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span><strong>Mới:</strong> Cảnh báo 0 hoặc 1 mã ICD (Hiển thị chi tiết tên bệnh).</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Logic chéo: Acid Uric (Bảng 3) thì Bảng 1 và 3 phải có mã M25.5/M10.0/M10.5.</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo tương tác: Nhóm sỏi thận (N20) & Nhóm thiếu chất (E58).</span></li>
                         </ul>
@@ -473,7 +473,7 @@
 
             // 2. Logic Check Table 1
             mapTable1.forEach((val, key) => {
-                const { HO_TEN, ICD_CODES } = val;
+                const { HO_TEN, CHAN_DOAN_RV, ICD_CODES } = val;
                 
                 // Rule 1: Max 12 ICD
                 if (ICD_CODES.length > 12) {
@@ -484,12 +484,26 @@
                     });
                 }
 
-                // Rule 4 (NEW): Suspiciously few codes (<= 1)
+                // Rule 4 (NEW): Suspiciously few codes (<= 1) -> Updated to show details
                 if (ICD_CODES.length <= 1) {
+                     let detailMsg = "";
+                     if (ICD_CODES.length === 0) {
+                         detailMsg = "Không tìm thấy mã ICD nào trong cột CHAN_DOAN_RV.";
+                     } else {
+                         // Lấy mã đầu tiên
+                         const code = ICD_CODES[0];
+                         // Lấy mô tả bệnh (cắt ngắn nếu quá dài để hiển thị đẹp)
+                         let diagnosis = CHAN_DOAN_RV || "Không có mô tả";
+                         // Cắt chuỗi nếu dài quá 100 ký tự
+                         if (diagnosis.length > 80) diagnosis = diagnosis.substring(0, 80) + "...";
+                         
+                         detailMsg = `Hiện chỉ có 1 mã: ${code}. Nội dung: "${diagnosis}"`;
+                     }
+
                      finalErrors.push({
                         MA_LK: key, HO_TEN: HO_TEN,
                         LOAI_LOI: "Nghi ngờ thiếu mã",
-                        CHI_TIET: `Chỉ tìm thấy ${ICD_CODES.length} mã ICD (Yêu cầu rà soát bổ sung).`
+                        CHI_TIET: detailMsg
                     });
                 }
 
