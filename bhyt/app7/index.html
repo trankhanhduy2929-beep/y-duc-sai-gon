@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, Search, CheckCircle, AlertCircle, Upload, Download, Filter, UserCheck, Users } from 'lucide-react';
+import { Activity, Search, CheckCircle, AlertCircle, Upload, Download, Filter, UserCheck, Users, Lock, KeyRound } from 'lucide-react';
 
 // --- Helper Functions ---
 
@@ -195,6 +195,12 @@ const ErrorCard = ({ error }) => {
 };
 
 export default function App() {
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // App Data State
   const [table1, setTable1] = useState([]);
   const [table2, setTable2] = useState([]);
   const [table3, setTable3] = useState([]);
@@ -254,6 +260,16 @@ export default function App() {
     setSelectedDoctorIds(new Set(doctors.map(d => d.id)));
 
   }, [table3, cchn]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (passwordInput === '1402') {
+        setIsAuthenticated(true);
+        setAuthError('');
+    } else {
+        setAuthError('Mật khẩu không đúng. Vui lòng thử lại.');
+    }
+  };
 
   const runAnalysis = () => {
     if (table1.length === 0 || table3.length === 0) {
@@ -316,15 +332,9 @@ export default function App() {
         }
 
         // 2. If this row has NGUOI_THUC_HIEN -> They are doing a "Work Block" from NGAY_TH_YL to NGAY_KQ
-        // If NGUOI_THUC_HIEN is missing, sometimes MA_BAC_SI implies execution? 
-        // Strict mapping: Use NGUOI_THUC_HIEN for execution time. If empty, maybe skip execution check or fallback?
-        // Let's assume user wants to check NGUOI_THUC_HIEN.
         const performer = row.NGUOI_THUC_HIEN || row.MA_BAC_SI; // Fallback to doctor if explicit performer not set
         
         if (performer && ngayTh && selectedDoctorIds.has(performer)) {
-            // End time is NGAY_KQ. If missing, assume it takes at least 1 min or same as start?
-            // User said: "thời gian đang làm được tính từ NGAY_TH_YL- NGAY_TH_YL" -> implies start to end.
-            // Using NGAY_KQ as end. If null, use NGAY_TH_YL.
             let endTime = ngayKq;
             if (!endTime || endTime < ngayTh) endTime = ngayTh; 
 
@@ -340,29 +350,19 @@ export default function App() {
       });
 
       // 3. Detect Conflicts
-      // Loop through each doctor's activities
       Object.keys(doctorActivities).forEach(actorId => {
         const activities = doctorActivities[actorId];
-        // Filter out Work blocks to check against
         const workBlocks = activities.filter(a => a.type === 'WORK');
-        // Sort work blocks by start time
         workBlocks.sort((a, b) => a.start - b.start);
 
-        // Conflict Check 1: Work vs Work (Overlapping Execution Times)
+        // Conflict Check 1: Work vs Work
         for (let i = 0; i < workBlocks.length; i++) {
             const current = workBlocks[i];
-            
-            // Compare with other Work blocks
             for (let j = i + 1; j < workBlocks.length; j++) {
                 const next = workBlocks[j];
-                // Optimization: If next start is after current end, no further overlap possible (since sorted)
-                if (next.start > current.end) break; // Assuming strict sort, actually simple break is safe if strictly sorted by start
+                if (next.start > current.end) break; 
 
-                // Check Overlap
-                // Overlap logic: (StartA <= EndB) and (EndA >= StartB)
-                // We know StartA <= StartB due to sort. So just check StartB < EndA.
                 if (next.start < current.end) {
-                    // Must be different patients
                     if (current.maLk !== next.maLk) {
                         const tenBnGayXungDot = patientMap[current.maLk] || current.maLk;
                         const tenBnBiLoi = patientMap[next.maLk] || next.maLk;
@@ -375,7 +375,7 @@ export default function App() {
                             type: 'Chồng chéo thực hiện',
                             message: `Xung đột với BN ${tenBnGayXungDot}. Đang thực hiện "${current.tenDichVu}" (${formatDate(current.start)}-${formatDate(current.end)}) thì lại làm "${next.tenDichVu}" cho người khác.`,
                             tenDichVu: next.tenDichVu,
-                            ngayYl: next.start, // Using Start execution as timestamp
+                            ngayYl: next.start,
                             ngayThYl: next.end
                         });
                     }
@@ -383,16 +383,11 @@ export default function App() {
             }
         }
 
-        // Conflict Check 2: Work vs Order (Ordering while Working)
-        // For each Work Block, check if there are any ORDERS inside it
+        // Conflict Check 2: Work vs Order
         const orders = activities.filter(a => a.type === 'ORDER');
-        
         workBlocks.forEach(work => {
             orders.forEach(order => {
-                // Check if Order Time is INSIDE Work Interval
-                // work.start <= order.time <= work.end
                 if (order.time >= work.start && order.time <= work.end) {
-                    // Must be different patients
                     if (work.maLk !== order.maLk) {
                         const tenBnDangLam = patientMap[work.maLk] || work.maLk;
                         const tenBnRaLenh = patientMap[order.maLk] || order.maLk;
@@ -415,8 +410,7 @@ export default function App() {
 
       });
 
-      // 4. Check Drug Sequence (Table 2) - Keep existing logic but linked to doctor
-      // Group Table 3 exams for context
+      // 4. Check Drug Sequence (Table 2)
       const patientExams = {};
       table3.forEach(row => {
         if (row.MA_NHOM === 13 || (row.TEN_DICH_VU && row.TEN_DICH_VU.toLowerCase().includes("khám"))) {
@@ -482,19 +476,77 @@ export default function App() {
     window.XLSX.writeFile(workbook, "KetQuaKiemTraBHYT.xlsx");
   };
 
+  // --- LOGIN SCREEN RENDER ---
+  if (!isAuthenticated) {
+      return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-100 font-sans p-4">
+            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+              <div className="text-center mb-8">
+                 <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+                    <Lock className="w-8 h-8 text-white" />
+                 </div>
+                 <h1 className="text-2xl font-bold text-gray-800">Hệ Thống Dò Lỗi BHYT</h1>
+                 <p className="text-gray-500 mt-2 text-sm">Vui lòng nhập mật khẩu để truy cập hệ thống</p>
+              </div>
+              
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <KeyRound className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input 
+                    type="password" 
+                    value={passwordInput}
+                    onChange={(e) => { setPasswordInput(e.target.value); setAuthError(''); }}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-700 bg-gray-50 focus:bg-white"
+                    placeholder="Mật khẩu truy cập..."
+                    autoFocus
+                  />
+                </div>
+                
+                {authError && (
+                    <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm animate-pulse">
+                        <AlertCircle className="w-4 h-4" />
+                        {authError}
+                    </div>
+                )}
+                
+                <button 
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-md transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Đăng Nhập
+                </button>
+              </form>
+              <div className="mt-6 text-center">
+                  <p className="text-xs text-gray-400">Phiên bản 2.0 - Bảo mật & Dữ liệu</p>
+              </div>
+            </div>
+          </div>
+      );
+  }
+
+  // --- MAIN APP RENDER ---
   return (
     <div className="min-h-screen pb-10 font-sans text-gray-800 bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white p-6 shadow-lg">
-        <div className="container mx-auto">
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Activity className="w-8 h-8" />
-            Hệ Thống Dò Lỗi BHYT
-          </h1>
-          <p className="opacity-90 mt-2 text-blue-100 text-sm max-w-2xl">
-            Tự động phát hiện lỗi chồng chéo thời gian khám chữa bệnh và sai sót trình tự cấp phát thuốc.
-            Hỗ trợ lọc theo bác sĩ và nhân viên thực hiện.
-          </p>
+        <div className="container mx-auto flex justify-between items-center">
+          <div>
+              <h1 className="text-2xl font-bold flex items-center gap-3">
+                <Activity className="w-8 h-8" />
+                Hệ Thống Dò Lỗi BHYT
+              </h1>
+              <p className="opacity-90 mt-2 text-blue-100 text-sm max-w-2xl">
+                Tự động phát hiện lỗi chồng chéo thời gian khám chữa bệnh và sai sót trình tự cấp phát thuốc.
+              </p>
+          </div>
+          <button 
+            onClick={() => setIsAuthenticated(false)}
+            className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded backdrop-blur-sm transition-colors"
+          >
+            Đăng xuất
+          </button>
         </div>
       </div>
 
