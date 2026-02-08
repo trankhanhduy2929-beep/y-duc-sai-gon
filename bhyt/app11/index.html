@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Check BHYT - CLS Time</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; }
+        
+        /* Glassmorphism for Login & Cards */
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        /* Animated Gradient Background */
+        .bg-animate {
+            background: linear-gradient(-45deg, #1e3a8a, #2563eb, #0ea5e9, #22d3ee);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .hidden-fade { opacity: 0; visibility: hidden; transition: all 0.5s ease; }
+        .show-fade { opacity: 1; visibility: visible; transition: all 0.5s ease; }
+        
+        /* Table Sticky Header */
+        .table-container { max-height: 70vh; overflow-y: auto; }
+        thead th { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden text-slate-800">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-50 bg-animate flex items-center justify-center p-4">
+        <div class="glass p-8 rounded-2xl shadow-2xl w-full max-w-md text-center transform transition-all duration-300 hover:scale-105">
+            <div class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+                <i class="fa-solid fa-user-shield text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Đăng Nhập Hệ Thống</h2>
+            <p class="text-gray-500 mb-6 text-sm">Công cụ kiểm tra thời gian CLS BHYT</p>
+            
+            <div class="relative mb-6">
+                <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." 
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    onkeypress="handleEnter(event)">
+                <i class="fa-solid fa-lock absolute right-4 top-3.5 text-gray-400"></i>
+            </div>
+            
+            <button onclick="checkLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transform transition active:scale-95 duration-200">
+                Truy Cập Ngay <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+            <p id="loginError" class="text-red-500 text-sm mt-3 hidden"><i class="fa-solid fa-circle-exclamation"></i> Mật khẩu không đúng!</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden-fade h-full flex flex-col bg-slate-50">
+        
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex justify-between items-center z-20">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2 rounded-lg shadow-md">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800">BHYT Time Checker Pro</h1>
+                    <p class="text-xs text-gray-500">Phát hiện lỗi logic thời gian CLS</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="window.location.reload()" class="text-gray-500 hover:text-blue-600 transition p-2" title="Thoát / Tải lại">
+                    <i class="fa-solid fa-power-off text-xl"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-hidden flex flex-col p-6 gap-6">
+            
+            <!-- File Input Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- File 1 -->
+                <label class="group relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-white hover:bg-blue-50 hover:border-blue-400 transition-all duration-300">
+                    <div class="text-center">
+                        <i class="fa-solid fa-hospital-user text-3xl text-gray-400 group-hover:text-blue-500 mb-2 transition-colors"></i>
+                        <h3 class="font-semibold text-gray-700">Bảng 1 (Thông tin BN)</h3>
+                        <p class="text-xs text-gray-400 mt-1" id="nameFile1">Chưa chọn file</p>
+                    </div>
+                    <input type="file" id="fileBang1" class="hidden" accept=".xlsx,.xls,.csv" onchange="updateFileName(this, 'nameFile1')">
+                    <div class="absolute top-2 right-2 text-green-500 hidden" id="checkFile1"><i class="fa-solid fa-check-circle"></i></div>
+                </label>
+
+                <!-- File 3 -->
+                <label class="group relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-white hover:bg-green-50 hover:border-green-400 transition-all duration-300">
+                    <div class="text-center">
+                        <i class="fa-solid fa-file-invoice-dollar text-3xl text-gray-400 group-hover:text-green-500 mb-2 transition-colors"></i>
+                        <h3 class="font-semibold text-gray-700">Bảng 3 (Dịch vụ)</h3>
+                        <p class="text-xs text-gray-400 mt-1" id="nameFile3">Chưa chọn file</p>
+                    </div>
+                    <input type="file" id="fileBang3" class="hidden" accept=".xlsx,.xls,.csv" onchange="updateFileName(this, 'nameFile3')">
+                    <div class="absolute top-2 right-2 text-green-500 hidden" id="checkFile3"><i class="fa-solid fa-check-circle"></i></div>
+                </label>
+
+                <!-- File Time -->
+                <label class="group relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-white hover:bg-purple-50 hover:border-purple-400 transition-all duration-300">
+                    <div class="text-center">
+                        <i class="fa-solid fa-clock text-3xl text-gray-400 group-hover:text-purple-500 mb-2 transition-colors"></i>
+                        <h3 class="font-semibold text-gray-700">Quy định Thời gian</h3>
+                        <p class="text-xs text-gray-400 mt-1" id="nameFileTG">Chưa chọn file</p>
+                    </div>
+                    <input type="file" id="fileThoiGian" class="hidden" accept=".xlsx,.xls,.csv" onchange="updateFileName(this, 'nameFileTG')">
+                    <div class="absolute top-2 right-2 text-green-500 hidden" id="checkFileTG"><i class="fa-solid fa-check-circle"></i></div>
+                </label>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex items-center gap-3">
+                    <button onclick="processData()" class="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transform transition hover:-translate-y-0.5 flex items-center gap-2">
+                        <span id="btnText"><i class="fa-solid fa-bolt"></i> Phân Tích Dữ Liệu</span>
+                        <div id="loading" class="loader hidden"></div>
+                    </button>
+                    <span id="statusText" class="text-sm font-medium text-gray-500 ml-2">Sẵn sàng</span>
+                </div>
+                
+                <div id="exportZone" class="hidden flex items-center gap-3">
+                    <span id="errorCount" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold border border-red-200">
+                        0 Lỗi
+                    </span>
+                    <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Xuất Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Result -->
+            <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative">
+                
+                <!-- Empty State -->
+                <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-gray-300">
+                    <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-50"></i>
+                    <p class="text-lg font-medium">Vui lòng nhập dữ liệu để bắt đầu</p>
+                </div>
+
+                <!-- Actual Table -->
+                <div class="table-container w-full hidden" id="resultTableContainer">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-3 text-center border-b w-12">#</th>
+                                <th class="px-4 py-3 border-b">Họ Tên Bệnh Nhân</th>
+                                <th class="px-4 py-3 border-b">Tên Dịch Vụ</th>
+                                <th class="px-4 py-3 text-center border-b">Đơn Giá</th>
+                                <th class="px-4 py-3 border-b text-center">Thời Gian (Thực Hiện <i class="fa-solid fa-arrow-right text-xs mx-1"></i> KQ)</th>
+                                <th class="px-4 py-3 text-center border-b text-blue-600">Phút</th>
+                                <th class="px-4 py-3 text-center border-b">Quy Định (Min-Max)</th>
+                                <th class="px-4 py-3 border-b text-red-600">Chi Tiết Lỗi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-100">
+                            <!-- Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // --- LOGIN LOGIC ---
+        function checkLogin() {
+            const pass = document.getElementById('passwordInput').value;
+            const loginScreen = document.getElementById('loginScreen');
+            const mainApp = document.getElementById('mainApp');
+            const errorMsg = document.getElementById('loginError');
+
+            if (pass === '1402') {
+                loginScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    mainApp.classList.remove('hidden-fade');
+                    mainApp.classList.add('show-fade');
+                }, 300);
+            } else {
+                errorMsg.classList.remove('hidden');
+                document.getElementById('passwordInput').classList.add('border-red-500');
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') checkLogin();
+        }
+
+        function updateFileName(input, labelId) {
+            if (input.files && input.files[0]) {
+                document.getElementById(labelId).innerText = input.files[0].name;
+                document.getElementById(labelId).classList.add('text-blue-600', 'font-medium');
+                // Show checkmark
+                const checkId = labelId.replace('name', 'check');
+                document.getElementById(checkId).classList.remove('hidden');
+            }
+        }
+
+        // --- PROCESSING LOGIC (SAME AS BEFORE BUT OPTIMIZED) ---
+        let resultData = [];
+
+        const readExcelFile = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                        resolve(jsonData);
+                    } catch (err) { reject(err); }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        };
+
+        const normalizeStr = (str) => String(str || "").trim().toUpperCase().replace(/\s+/g, ' ');
+        
+        const parseDateTime = (str) => {
+            if (!str) return null;
+            let s = String(str).trim();
+            if (s.length < 12) return null;
+            const y = parseInt(s.substring(0, 4));
+            const m = parseInt(s.substring(4, 6)) - 1;
+            const d = parseInt(s.substring(6, 8));
+            const h = parseInt(s.substring(8, 10));
+            const min = parseInt(s.substring(10, 12));
+            const date = new Date(y, m, d, h, min);
+            return (date instanceof Date && !isNaN(date)) ? date : null;
+        };
+
+        const findHeaderRow = (data, keyword) => {
+            for (let i = 0; i < Math.min(data.length, 30); i++) {
+                const rowStr = data[i].join("||").toUpperCase();
+                if (rowStr.includes(keyword.toUpperCase())) {
+                    return { index: i, headers: data[i].map(h => normalizeStr(h)) };
+                }
+            }
+            return null;
+        };
+
+        const mapDataToObjects = (data, headerInfo) => {
+            const result = [];
+            for (let i = headerInfo.index + 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length === 0) continue;
+                const obj = {};
+                headerInfo.headers.forEach((h, idx) => obj[h] = row[idx]);
+                result.push(obj);
+            }
+            return result;
+        };
+
+        async function processData() {
+            const fileB1 = document.getElementById('fileBang1').files[0];
+            const fileB3 = document.getElementById('fileBang3').files[0];
+            const fileTG = document.getElementById('fileThoiGian').files[0];
+
+            if (!fileB1 || !fileB3 || !fileTG) {
+                alert("Vui lòng chọn đủ 3 file dữ liệu!");
+                return;
+            }
+
+            // UI Loading State
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('btnText').innerText = "Đang xử lý...";
+            document.getElementById('statusText').innerText = "Đang đọc dữ liệu...";
+            document.getElementById('resultTableContainer').classList.add('hidden');
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.getElementById('exportZone').classList.add('hidden');
+
+            try {
+                const [rawB1, rawB3, rawTG] = await Promise.all([
+                    readExcelFile(fileB1), readExcelFile(fileB3), readExcelFile(fileTG)
+                ]);
+
+                // Bảng 1
+                document.getElementById('statusText').innerText = "Đang map thông tin bệnh nhân...";
+                const hB1 = findHeaderRow(rawB1, "MA_LK");
+                if(!hB1) throw new Error("File Bảng 1 lỗi: Không có cột MA_LK");
+                const dataB1 = mapDataToObjects(rawB1, hB1);
+                const mapB1 = new Map();
+                dataB1.forEach(i => { if(i['MA_LK']) mapB1.set(String(i['MA_LK']), i); });
+
+                // Thời gian
+                document.getElementById('statusText').innerText = "Đang đọc cấu hình thời gian...";
+                const hTG = findHeaderRow(rawTG, "TEN_DVKT_PHEDUYET");
+                if(!hTG) throw new Error("File Thời gian lỗi: Thiếu cột TEN_DVKT_PHEDUYET");
+                const dataTG = mapDataToObjects(rawTG, hTG);
+                const mapTG = new Map();
+                
+                // Tìm đúng tên cột min/max
+                let minKey = hTG.headers.find(k => k.includes("MIN")) || "";
+                let maxKey = hTG.headers.find(k => k.includes("MAX")) || "";
+
+                dataTG.forEach(item => {
+                    const ten = normalizeStr(item['TEN_DVKT_PHEDUYET']);
+                    const gia = parseInt(item['DON_GIA']) || 0;
+                    const min = parseFloat(item[minKey]) || 0;
+                    const max = parseFloat(item[maxKey]) || 0;
+                    if(ten && (min > 0 || max > 0)) {
+                        mapTG.set(`${ten}_${gia}`, { min, max });
+                    }
+                });
+
+                // Bảng 3 & So sánh
+                document.getElementById('statusText').innerText = "Đang kiểm tra logic...";
+                const hB3 = findHeaderRow(rawB3, "MA_LK");
+                if(!hB3) throw new Error("File Bảng 3 lỗi: Không có cột MA_LK");
+                const dataB3 = mapDataToObjects(rawB3, hB3);
+
+                resultData = [];
+                let countErrors = 0;
+
+                dataB3.forEach(row => {
+                    const maLK = String(row['MA_LK'] || "");
+                    const tenDV = normalizeStr(row['TEN_DICH_VU']);
+                    const gia = parseInt(row['DON_GIA_BH']) || parseInt(row['DON_GIA_BV']) || 0;
+                    const ngayTH = String(row['NGAY_TH_YL'] || "");
+                    const ngayKQ = String(row['NGAY_KQ'] || "");
+
+                    if (maLK && tenDV && ngayTH && ngayKQ) {
+                        const key = `${tenDV}_${gia}`;
+                        if (mapTG.has(key)) {
+                            const config = mapTG.get(key);
+                            const tStart = parseDateTime(ngayTH);
+                            const tEnd = parseDateTime(ngayKQ);
+
+                            if (tStart && tEnd) {
+                                const diffMs = tEnd - tStart;
+                                const diffMins = Math.floor(diffMs / 60000);
+                                let errorMsg = "";
+
+                                if (diffMins < 0) errorMsg = "Ngày KQ < Ngày TH";
+                                else if (config.min > 0 && diffMins < config.min) errorMsg = `Quá nhanh (< ${config.min} p)`;
+                                else if (config.max > 0 && diffMins > config.max) errorMsg = `Quá lâu (> ${config.max} p)`;
+
+                                if (errorMsg) {
+                                    const bnInfo = mapB1.get(maLK) || {};
+                                    resultData.push({
+                                        HO_TEN: bnInfo['HO_TEN'] || "Không có trong B1",
+                                        TEN_DICH_VU: row['TEN_DICH_VU'],
+                                        DON_GIA: gia,
+                                        NGAY_TH: ngayTH,
+                                        NGAY_KQ: ngayKQ,
+                                        PHUT_THUC_TE: diffMins,
+                                        MIN: config.min || 0,
+                                        MAX: config.max || '∞',
+                                        LOI: errorMsg
+                                    });
+                                    countErrors++;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Finish
+                renderTable();
+                document.getElementById('statusText').innerText = "Hoàn tất kiểm tra!";
+                document.getElementById('errorCount').innerText = `${countErrors} Lỗi`;
+                document.getElementById('exportZone').classList.remove('hidden');
+
+            } catch (err) {
+                alert("Lỗi: " + err.message);
+                document.getElementById('statusText').innerText = "Đã xảy ra lỗi";
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('btnText').innerHTML = '<i class="fa-solid fa-bolt"></i> Phân Tích Dữ Liệu';
+            }
+        }
+
+        // --- RENDER TABLE (UPDATED COLUMNS) ---
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = "";
+            
+            if (resultData.length === 0) {
+                // If checked but no errors found, show alert instead of empty table
+                alert("Tuyệt vời! Không phát hiện lỗi thời gian nào.");
+                return;
+            }
+
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('resultTableContainer').classList.remove('hidden');
+
+            // Limit display to prevent lag
+            const displayData = resultData.slice(0, 500);
+
+            displayData.forEach((row, index) => {
+                // Format dates: YYYYMMDDHHMM -> HH:mm dd/MM
+                const fmt = (s) => s.length >= 12 ? `${s.substring(8,10)}:${s.substring(10,12)} ${s.substring(6,8)}/${s.substring(4,6)}` : s;
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0";
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-center text-gray-500">${index + 1}</td>
+                    <td class="px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">${row.HO_TEN}</td>
+                    <td class="px-4 py-3 text-gray-600 max-w-xs truncate" title="${row.TEN_DICH_VU}">${row.TEN_DICH_VU}</td>
+                    <td class="px-4 py-3 text-center text-gray-500 font-mono">${row.DON_GIA.toLocaleString()}</td>
+                    <td class="px-4 py-3 text-center text-xs text-gray-500 whitespace-nowrap">
+                        <div class="flex flex-col items-center">
+                            <span>${fmt(row.NGAY_TH)}</span>
+                            <span class="text-gray-300 text-[10px]"><i class="fa-solid fa-arrow-down"></i></span>
+                            <span>${fmt(row.NGAY_KQ)}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center font-bold text-blue-600 text-lg">${row.PHUT_THUC_TE}'</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 rounded bg-gray-100 text-gray-600 text-xs font-medium border border-gray-200">
+                            ${row.MIN} - ${row.MAX}p
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-left">
+                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${row.LOI}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (resultData.length > 500) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="8" class="text-center py-4 text-gray-400 text-sm">... và còn ${resultData.length - 500} dòng lỗi nữa. Vui lòng xuất Excel để xem hết.</td>`;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function exportToExcel() {
+            if (resultData.length === 0) return;
+            
+            // Format data for nice Excel output
+            const exportData = resultData.map((item, idx) => ({
+                "STT": idx + 1,
+                "Họ Tên BN": item.HO_TEN,
+                "Tên Dịch Vụ": item.TEN_DICH_VU,
+                "Đơn Giá": item.DON_GIA,
+                "TG Thực Hiện": item.NGAY_TH,
+                "TG Kết Quả": item.NGAY_KQ,
+                "Số Phút": item.PHUT_THUC_TE,
+                "Quy Định Min": item.MIN,
+                "Quy Định Max": item.MAX,
+                "Chi Tiết Lỗi": item.LOI
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DanhSachLoi");
+            
+            // Column widths
+            ws['!cols'] = [{wch:5}, {wch:25}, {wch:40}, {wch:10}, {wch:15}, {wch:15}, {wch:10}, {wch:10}, {wch:10}, {wch:25}];
+
+            XLSX.writeFile(wb, "BaoCao_Loi_ThoiGian_BHYT_Pro.xlsx");
+        }
+    </script>
+</body>
+</html>
