@@ -94,7 +94,7 @@
                         </div>
                         <input type="password" id="password-input" 
                             class="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200 sm:text-sm" 
-                            placeholder="Nhập mã PIN"
+                            placeholder="Nhập mã PIN (1402)"
                             onkeydown="if(event.key === 'Enter') checkLogin()">
                     </div>
                     <p id="login-error" class="text-red-500 text-xs mt-2 hidden flex items-center">
@@ -108,7 +108,7 @@
             </div>
             
             <div class="mt-8 text-center">
-                <p class="text-xs text-slate-400">Phiên bản 2.4 &copy; 2026</p>
+                <p class="text-xs text-slate-400">Phiên bản 2.5 &copy; 2026</p>
             </div>
         </div>
     </div>
@@ -153,7 +153,7 @@
                         <h2 class="text-xl font-bold mb-2 relative z-10">Quy tắc kiểm tra</h2>
                         <ul class="space-y-2 text-slate-300 text-sm relative z-10">
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD trong cột CHAN_DOAN_RV.</span></li>
-                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span><strong>Mới:</strong> Cảnh báo 0 hoặc 1 mã ICD (Hiển thị chi tiết tên bệnh).</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo 0 hoặc 1 mã ICD (Hiển thị chi tiết tên bệnh).</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Logic chéo: Acid Uric (Bảng 3) thì Bảng 1 và 3 phải có mã M25.5/M10.0/M10.5.</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo tương tác: Nhóm sỏi thận (N20) & Nhóm thiếu chất (E58).</span></li>
                         </ul>
@@ -238,6 +238,7 @@
                                     <tr>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">STT</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mã Liên Kết</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Thời Gian Vào</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Họ Tên</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Loại Lỗi</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Chi Tiết</th>
@@ -436,8 +437,30 @@
         });
 
         // ---------------------------------------------------------
-        // CẬP NHẬT: Xử lý mã ICD trong chuỗi hỗn độn (VD: (M25.5) Đau khớp)
+        // UTILS: Format Date
         // ---------------------------------------------------------
+        function formatDateTime(dateStr) {
+            if (!dateStr) return "";
+            const s = String(dateStr);
+            // Format YYYYMMDDHHMM -> DD/MM/YYYY HH:MM
+            if (s.length >= 12) {
+                const year = s.substring(0, 4);
+                const month = s.substring(4, 6);
+                const day = s.substring(6, 8);
+                const hour = s.substring(8, 10);
+                const min = s.substring(10, 12);
+                return `${day}/${month}/${year} ${hour}:${min}`;
+            }
+            // Format YYYYMMDD -> DD/MM/YYYY
+            if (s.length === 8) {
+                const year = s.substring(0, 4);
+                const month = s.substring(4, 6);
+                const day = s.substring(6, 8);
+                return `${day}/${month}/${year}`;
+            }
+            return s; // Trả về nguyên bản nếu không khớp định dạng
+        }
+
         function parseICD(icdString) {
             if (!icdString) return [];
             // Bước 1: Tách chuỗi bằng dấu ; hoặc ,
@@ -466,19 +489,22 @@
                     mapTable1.set(String(row.MA_LK), {
                         HO_TEN: row.HO_TEN || "Không tên",
                         CHAN_DOAN_RV: row.CHAN_DOAN_RV || "",
-                        ICD_CODES: parseICD(row.CHAN_DOAN_RV)
+                        ICD_CODES: parseICD(row.CHAN_DOAN_RV),
+                        NGAY_VAO: row.NGAY_VAO || "" // Extract Date
                     });
                 }
             });
 
             // 2. Logic Check Table 1
             mapTable1.forEach((val, key) => {
-                const { HO_TEN, CHAN_DOAN_RV, ICD_CODES } = val;
+                const { HO_TEN, CHAN_DOAN_RV, ICD_CODES, NGAY_VAO } = val;
                 
                 // Rule 1: Max 12 ICD
                 if (ICD_CODES.length > 12) {
                     finalErrors.push({
-                        MA_LK: key, HO_TEN: HO_TEN,
+                        MA_LK: key, 
+                        NGAY_VAO: NGAY_VAO,
+                        HO_TEN: HO_TEN,
                         LOAI_LOI: "Dư mã ICD",
                         CHI_TIET: `Có ${ICD_CODES.length} mã (Giới hạn: 12).`
                     });
@@ -501,7 +527,9 @@
                      }
 
                      finalErrors.push({
-                        MA_LK: key, HO_TEN: HO_TEN,
+                        MA_LK: key, 
+                        NGAY_VAO: NGAY_VAO,
+                        HO_TEN: HO_TEN,
                         LOAI_LOI: "Nghi ngờ thiếu mã",
                         CHI_TIET: detailMsg
                     });
@@ -513,7 +541,9 @@
                 
                 if (hasGroupA && hasGroupB) {
                     finalErrors.push({
-                        MA_LK: key, HO_TEN: HO_TEN,
+                        MA_LK: key, 
+                        NGAY_VAO: NGAY_VAO,
+                        HO_TEN: HO_TEN,
                         LOAI_LOI: "Tương tác thuốc",
                         CHI_TIET: `Xung đột: Sỏi thận (N20/N20.0) và Thiếu chất (E58/D53.2).`
                     });
@@ -546,14 +576,18 @@
 
                         if (details.length > 0) {
                             finalErrors.push({
-                                MA_LK: maLK, HO_TEN: infoTable1.HO_TEN,
+                                MA_LK: maLK, 
+                                NGAY_VAO: infoTable1.NGAY_VAO,
+                                HO_TEN: infoTable1.HO_TEN,
                                 LOAI_LOI: "Sai chỉ định Acid Uric",
                                 CHI_TIET: details.join(". ") + ". Yêu cầu có ít nhất 1 trong 3 mã này."
                             });
                         }
                     } else {
                         finalErrors.push({
-                            MA_LK: maLK, HO_TEN: "N/A (Lệch dữ liệu)",
+                            MA_LK: maLK, 
+                            NGAY_VAO: "",
+                            HO_TEN: "N/A (Lệch dữ liệu)",
                             LOAI_LOI: "Lỗi dữ liệu",
                             CHI_TIET: "Có dịch vụ B3 nhưng không có thông tin B1."
                         });
@@ -603,6 +637,7 @@
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${index + 1}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 font-mono">${err.MA_LK}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">${formatDateTime(err.NGAY_VAO)}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-semibold">${err.HO_TEN}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeClass}">
@@ -627,8 +662,14 @@
                     t.MA_LK === value.MA_LK && t.LOAI_LOI === value.LOAI_LOI && t.CHI_TIET === value.CHI_TIET
                 ))
             );
+            
+            // Format date for export
+            const exportData = uniqueErrors.map(item => ({
+                ...item,
+                NGAY_VAO_FORMAT: formatDateTime(item.NGAY_VAO)
+            }));
 
-            const worksheet = XLSX.utils.json_to_sheet(uniqueErrors);
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "DS_Loi");
             XLSX.writeFile(workbook, "Danh_Sach_Loi_BHYT.xlsx");
