@@ -77,6 +77,13 @@
             animation: spin-slow 25s linear infinite;
         }
 
+        /* Pixel Art Rendering for Pokemon */
+        .pixelated {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -166,7 +173,72 @@
             );
         };
 
-        // 2. Status Ticker (Chữ chạy qua chạy lại)
+        // 2. Pokemon Layer (New Feature)
+        const PokemonLayer = () => {
+            return (
+                <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden">
+                    {/* Pikachu running on the floor */}
+                    <motion.div
+                        className="absolute bottom-0 left-0 w-full h-16"
+                    >
+                         <motion.img 
+                            src="https://img.pokemondb.net/sprites/black-white/anim/normal/pikachu.gif"
+                            alt="Pikachu"
+                            className="absolute bottom-1 w-12 h-12 md:w-16 md:h-16 object-contain pixelated pointer-events-auto cursor-pointer"
+                            initial={{ x: "-10vw" }}
+                            animate={{ 
+                                x: ["-10vw", "110vw", "110vw", "-10vw", "-10vw"],
+                                scaleX: [1, 1, -1, -1, 1]
+                            }}
+                            transition={{ 
+                                duration: 25, 
+                                ease: "linear", 
+                                repeat: Infinity,
+                                times: [0, 0.45, 0.5, 0.95, 1] // Timing to flip exactly at edges
+                            }}
+                            whileHover={{ scale: 1.2, y: -10 }}
+                            whileTap={{ scale: 0.9, y: 0 }}
+                        />
+                    </motion.div>
+
+                    {/* Mew floating randomly */}
+                    <motion.img 
+                        src="https://img.pokemondb.net/sprites/black-white/anim/normal/mew.gif"
+                        alt="Mew"
+                        className="absolute top-20 w-10 h-10 md:w-14 md:h-14 object-contain opacity-60 hover:opacity-100 transition-opacity pixelated pointer-events-auto cursor-pointer"
+                        animate={{ 
+                            x: ["5vw", "85vw", "40vw", "90vw", "5vw"],
+                            y: ["15vh", "25vh", "10vh", "35vh", "15vh"],
+                            rotate: [0, 10, -10, 5, 0]
+                        }}
+                        transition={{ 
+                            duration: 40, 
+                            ease: "easeInOut", 
+                            repeat: Infinity,
+                        }}
+                        whileHover={{ scale: 1.3, rotate: 360, transition: { duration: 0.5 } }}
+                    />
+                    
+                    {/* Eevee sitting somewhere occasionally */}
+                    <motion.img 
+                        src="https://img.pokemondb.net/sprites/black-white/anim/normal/eevee.gif"
+                        alt="Eevee"
+                        className="absolute bottom-2 right-10 w-10 h-10 md:w-14 md:h-14 object-contain pixelated pointer-events-auto cursor-pointer"
+                        animate={{ 
+                            y: [0, -3, 0],
+                        }}
+                        transition={{ 
+                            duration: 2, 
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, 0] }}
+                    />
+                </div>
+            )
+        }
+
+        // 3. Status Ticker (Chữ chạy qua chạy lại)
         const SystemTicker = ({ theme }) => {
             return (
                 <div className={`w-full overflow-hidden border-b py-1.5 ${theme === 'dark' ? 'bg-slate-900/80 border-white/5 text-blue-400' : 'bg-slate-50 border-slate-200 text-blue-600'}`}>
@@ -197,7 +269,7 @@
             );
         };
 
-        // 3. 3D Tilt Card (Tương tác cao cấp)
+        // 4. 3D Tilt Card (Tương tác cao cấp)
         const TiltCard = ({ children, className, href }) => {
             const x = useMotionValue(0);
             const y = useMotionValue(0);
@@ -257,16 +329,16 @@
             const apps = [
                 { id: 1, dept: 'cskh', name: "Đối Soát CSKH", description: "Phân tích hồ sơ bệnh án, lọc BHYT & Dịch vụ chuyên dụng.", icon: "Notebook", link: "./cskh/index.html", color: "from-blue-500 to-blue-700", tag: "V10" },
                 { id: 2, dept: 'bhyt', name: "Dò số lượng bảng kê", description: "Dò số lượng bệnh BHYT từ VNPT HIS so với cổng giám định.", icon: "FileSearch", link: "./bhyt/app1/index.html", color: "from-indigo-500 to-indigo-700", tag: "App 1" },
-                { id: 3, dept: 'bhyt', name: "Dò điện châm", description: "Hệ thống đối soát chỉ định điện châm YHCT.", icon: "Shield", link: "./bhyt/app2/index.html", color: "from-cyan-500 to-blue-700", tag: "App 2" },
-                { id: 4, dept: 'bhyt', name: "Dò ICD Gan Mật-Đường", description: "Kiểm tra thiếu mã ICD các bệnh lý gan, đường HBA1C.", icon: "Activity", link: "./bhyt/app3/index.html", color: "from-teal-500 to-emerald-700", tag: "App 3" },
+                { id: 3, dept: 'bhyt', name: "Dò điện châm", description: "Hệ thống đối soát chỉ định điện châm YHCT, mã máy, người thực hiện.", icon: "Shield", link: "./bhyt/app2/index.html", color: "from-cyan-500 to-blue-700", tag: "App 2" },
+                { id: 4, dept: 'bhyt', name: "Dò ICD Gan-Đường", description: "Kiểm tra thiếu mã ICD các bệnh lý gan, đường HBA1C.", icon: "Activity", link: "./bhyt/app3/index.html", color: "from-teal-500 to-emerald-700", tag: "App 3" },
                 { id: 5, dept: 'bhyt', name: "K.BHYT Cơ Bản", description: "Hệ thống đối soát quy trình khám BHYT mức cơ bản.", icon: "Database", link: "./bhyt/app4/index.html", color: "from-violet-500 to-purple-700", tag: "App 4" },
                 { id: 6, dept: 'bhyt', name: "K.BHYT Nâng Cao", description: "Module đối soát chuyên sâu khám chữa bệnh BHYT.", icon: "Shield", link: "./bhyt/app5/index.html", color: "from-fuchsia-500 to-pink-700", tag: "App 5" },
-                { id: 7, dept: 'bhyt', name: "Mã Máy CLS", description: "Tra cứu và đồng bộ mã máy Cận lâm sàng.", icon: "FileSearch", link: "./bhyt/app6/index.html", color: "from-sky-500 to-blue-600", tag: "App 6" },
-                { id: 8, dept: 'bhyt', name: "Dò Bác Sỹ Trùng Giờ", description: "Dò bác sĩ khám chồng giờ cận lâm sàng hoặc y lệnh.", icon: "FileSearch", link: "./bhyt/app7/index.html", color: "from-sky-500 to-blue-600", tag: "App 7" },
-                { id: 9, dept: 'bhyt', name: "Dò Trùng Giờ Y Lệnh", description: "Dò trùng giờ công khám, thuốc, điện tim, CLS.", icon: "Activity", link: "./bhyt/app8/index.html", color: "from-teal-500 to-emerald-700", tag: "App 8" },   
-                { id: 10, dept: 'bhyt', name: "TPTT Tế Bào Máu", description: "Dò trùng giờ thực hiện/kết quả TPTTBM.", icon: "Database", link: "./bhyt/app9/index.html", color: "from-violet-500 to-purple-700", tag: "App 9" },
-                { id: 11, dept: 'bhyt', name: "Dò ICD Phức Tạp", description: "Dò trên 12 mã ICD, tương tác sỏi, acid uric.", icon: "Cpu", link: "./bhyt/app10/index.html", color: "from-violet-500 to-purple-700", tag: "App 10" },
-                { id: 12, dept: 'bhyt', name: "Thời Gian CLS", description: "Kiểm tra logic thời gian thực hiện - kết thúc.", icon: "Database", link: "./bhyt/app11/index.html", color: "from-violet-500 to-purple-700", tag: "App 11" },
+                { id: 7, dept: 'bhyt', name: "Dò Mã Máy CLS", description: "Tra cứu và đồng bộ mã máy Cận lâm sàng.", icon: "FileSearch", link: "./bhyt/app6/index.html", color: "from-sky-500 to-blue-600", tag: "App 6" },
+                { id: 8, dept: 'bhyt', name: "Dò Khám Chồng Giờ", description: "Dò bác sĩ khám chồng giờ cận lâm sàng hoặc y lệnh.", icon: "FileSearch", link: "./bhyt/app7/index.html", color: "from-sky-500 to-blue-600", tag: "App 7" },
+                { id: 9, dept: 'bhyt', name: "Dò Khám Trùng Giờ", description: "Dò trùng giờ công khám, thuốc, điện tim, CLS.", icon: "Activity", link: "./bhyt/app8/index.html", color: "from-teal-500 to-emerald-700", tag: "App 8" },   
+                { id: 10, dept: 'bhyt', name: "Dò Xét Nghiệm Máu", description: "Dò trùng giờ thực hiện/kết quả TPTTBM.", icon: "Database", link: "./bhyt/app9/index.html", color: "from-violet-500 to-purple-700", tag: "App 9" },
+                { id: 11, dept: 'bhyt', name: "Dò ICD SỎI THẬN-GOUT", description: "Dò trên 12 mã ICD, tương tác sỏi, acid uric.", icon: "Cpu", link: "./bhyt/app10/index.html", color: "from-violet-500 to-purple-700", tag: "App 10" },
+                { id: 12, dept: 'bhyt', name: "Dò Thời Gian CLS", description: "Kiểm tra logic thời gian thực hiện - kết thúc.", icon: "Database", link: "./bhyt/app11/index.html", color: "from-violet-500 to-purple-700", tag: "App 11" },
                 { id: 100, dept: 'ungdung', name: "Dò Excel Vlookup", description: "Dò hai nguồn dữ liệu excel nhanh.", icon: "Pill", link: "./ungdung/app1/index.html", color: "from-emerald-500 to-teal-700", tag: "Tool" },
                 { id: 101, dept: 'ungdung', name: "Thống kê Bảng Kê", description: "Thống kê số lượng theo quý/năm.", icon: "Pill", link: "./ungdung/app2/index.html", color: "from-emerald-500 to-teal-700", tag: "Stats" },
                 { id: 200, dept: 'media', name: "Website Chính", description: "Quản lý tài nguyên & phản hồi MXH.", icon: "Radio", link: "https://phongkhamyducsaigon.com/", color: "from-rose-500 to-red-700", tag: "Web" },
@@ -281,6 +353,7 @@
             return (
                 <div className="min-h-screen flex flex-col relative overflow-hidden text-sm md:text-base">
                     <InteractiveBackground />
+                    <PokemonLayer />
 
                     {/* Header */}
                     <header className={`sticky top-0 z-50 transition-all duration-500 ${theme === 'dark' ? 'bg-slate-900/80 border-b border-white/5' : 'bg-white/80 border-b border-slate-200'} backdrop-blur-xl`}>
