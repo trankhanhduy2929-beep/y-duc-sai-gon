@@ -94,7 +94,7 @@
                         </div>
                         <input type="password" id="password-input" 
                             class="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all duration-200 sm:text-sm" 
-                            placeholder="Nhập mã PIN"
+                            placeholder="Nhập mã PIN (1402)"
                             onkeydown="if(event.key === 'Enter') checkLogin()">
                     </div>
                     <p id="login-error" class="text-red-500 text-xs mt-2 hidden flex items-center">
@@ -108,7 +108,7 @@
             </div>
             
             <div class="mt-8 text-center">
-                <p class="text-xs text-slate-400">Phiên bản 2.5 &copy; 2026</p>
+                <p class="text-xs text-slate-400">Phiên bản 2.6 &copy; 2026</p>
             </div>
         </div>
     </div>
@@ -152,7 +152,7 @@
                         <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform duration-700 group-hover:scale-110"></div>
                         <h2 class="text-xl font-bold mb-2 relative z-10">Quy tắc kiểm tra</h2>
                         <ul class="space-y-2 text-slate-300 text-sm relative z-10">
-                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD trong cột CHAN_DOAN_RV.</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD (Thuật toán quét chính xác cả mã có/không ngoặc).</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo 0 hoặc 1 mã ICD (Hiển thị chi tiết tên bệnh).</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Logic chéo: Acid Uric (Bảng 3) thì Bảng 1 và 3 phải có mã M25.5/M10.0/M10.5.</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo tương tác: Nhóm sỏi thận (N20) & Nhóm thiếu chất (E58).</span></li>
@@ -461,22 +461,25 @@
             return s; // Trả về nguyên bản nếu không khớp định dạng
         }
 
+        // ---------------------------------------------------------
+        // CẬP NHẬT: Parse ICD bằng Global Regex (Khắc phục lỗi mã chính không ngoặc)
+        // ---------------------------------------------------------
         function parseICD(icdString) {
             if (!icdString) return [];
-            // Bước 1: Tách chuỗi bằng dấu ; hoặc ,
-            return icdString.split(/[;,]/).map(s => {
-                s = s.trim().toUpperCase();
-                
-                // Bước 2: Dùng Regex để "đào" lấy mã ICD chuẩn
-                // Mẫu: Chữ cái in hoa [A-Z] + 2 số \d{2} + (tùy chọn: dấu chấm và số đằng sau)
-                // Ví dụ khớp: "M25", "M25.5", "(M25.5)", "M25.59"
-                // Không khớp: "Đau khớp", "Sốt"
-                const match = s.match(/[A-Z]\d{2}(\.\d+)?/); 
-                
-                // Nếu tìm thấy mã (match) thì lấy mã đó, nếu không thì giữ nguyên chuỗi gốc
-                // để tính vào số lượng mã (cho Quy tắc 1)
-                return match ? match[0] : s; 
-            }).filter(s => s !== "" && s.length >= 3); // Lọc bỏ rác quá ngắn
+            // Chuyển thành string nếu là số
+            const str = String(icdString).toUpperCase();
+            
+            // Regex bắt mẫu: Ký tự chữ cái [A-Z] + 2 ký tự số \d{2} + (option: dấu chấm và 1-4 số sau)
+            // Ví dụ khớp: A00, A00.9, J20.12, M25...
+            // Phương pháp này bỏ qua dấu ; , hoặc dấu ngoặc đơn ()
+            const regex = /[A-Z]\d{2}(\.\d{1,4})?/g;
+            
+            const matches = str.match(regex);
+            
+            // Nếu tìm thấy mảng mã thì trả về, nếu không thì trả về mảng rỗng
+            // Dùng Set để loại bỏ mã trùng lặp nếu cần (nhưng logic BHYT thường đếm tổng số mã xuất hiện)
+            // Ở đây ta cứ trả về danh sách matches thô để đếm số lượng
+            return matches ? matches : [];
         }
 
         function processFiles() {
@@ -506,11 +509,11 @@
                         NGAY_VAO: NGAY_VAO,
                         HO_TEN: HO_TEN,
                         LOAI_LOI: "Dư mã ICD",
-                        CHI_TIET: `Có ${ICD_CODES.length} mã (Giới hạn: 12).`
+                        CHI_TIET: `Có ${ICD_CODES.length} mã (Giới hạn: 12). Danh sách mã tìm thấy: ${ICD_CODES.join(", ")}`
                     });
                 }
 
-                // Rule 4 (NEW): Suspiciously few codes (<= 1) -> Updated to show details
+                // Rule 4 (NEW): Suspiciously few codes (<= 1)
                 if (ICD_CODES.length <= 1) {
                      let detailMsg = "";
                      if (ICD_CODES.length === 0) {
