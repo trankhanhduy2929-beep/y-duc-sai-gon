@@ -108,7 +108,7 @@
             </div>
             
             <div class="mt-8 text-center">
-                <p class="text-xs text-slate-400">Phiên bản 2.6 &copy; 2026</p>
+                <p class="text-xs text-slate-400">Phiên bản 2.7 &copy; 2026</p>
             </div>
         </div>
     </div>
@@ -152,7 +152,7 @@
                         <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform duration-700 group-hover:scale-110"></div>
                         <h2 class="text-xl font-bold mb-2 relative z-10">Quy tắc kiểm tra</h2>
                         <ul class="space-y-2 text-slate-300 text-sm relative z-10">
-                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD (Thuật toán quét chính xác cả mã có/không ngoặc).</span></li>
+                            <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Tối đa 12 mã ICD (Hiển thị chi tiết mã dư nếu vượt quá).</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo 0 hoặc 1 mã ICD (Hiển thị chi tiết tên bệnh).</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Logic chéo: Acid Uric (Bảng 3) thì Bảng 1 và 3 phải có mã M25.5/M10.0/M10.5.</span></li>
                             <li class="flex items-start"><i class="fa-solid fa-check-circle text-brand-400 mt-1 mr-2"></i> <span>Cảnh báo tương tác: Nhóm sỏi thận (N20) & Nhóm thiếu chất (E58).</span></li>
@@ -509,7 +509,8 @@
                         NGAY_VAO: NGAY_VAO,
                         HO_TEN: HO_TEN,
                         LOAI_LOI: "Dư mã ICD",
-                        CHI_TIET: `Có ${ICD_CODES.length} mã (Giới hạn: 12). Danh sách mã tìm thấy: ${ICD_CODES.join(", ")}`
+                        // Cập nhật: Hiển thị danh sách các mã tìm thấy
+                        CHI_TIET: `Dư mã (${ICD_CODES.length} mã): ${ICD_CODES.join(", ")}`
                     });
                 }
 
