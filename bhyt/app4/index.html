@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Rà Soát BHYT Thông Minh v2.1</title>
+    <title>Hệ Thống Rà Soát BHYT Thông Minh v2.2</title>
     
     <!-- Thư viện giao diện & Icon -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,41 +14,96 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
+        /* --- 1. BIẾN MÀU SẮC (THEMING) --- */
+        :root {
+            /* Mặc định là Dark Mode */
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            --input-bg: rgba(0, 0, 0, 0.3);
+            --input-border: rgba(255, 255, 255, 0.1);
+            --panel-bg: rgba(15, 23, 42, 0.95);
+            --table-head-bg: #1e293b;
+            --table-row-hover: rgba(51, 65, 85, 0.5);
+            --table-border: #334155;
+            --scrollbar-track: #1e293b;
+            --scrollbar-thumb: #475569;
+        }
+
+        [data-theme="light"] {
+            /* Light Mode */
+            --bg-gradient-start: #f0f9ff;
+            --bg-gradient-end: #e0f2fe;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.75); /* Kính đục hơn ở nền sáng */
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --input-border: #cbd5e1;
+            --panel-bg: rgba(255, 255, 255, 0.98);
+            --table-head-bg: #f1f5f9;
+            --table-row-hover: #e2e8f0;
+            --table-border: #cbd5e1;
+            --scrollbar-track: #f1f5f9;
+            --scrollbar-thumb: #cbd5e1;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--text-main);
             min-height: 100vh;
+            transition: background 0.5s ease, color 0.5s ease;
         }
+
+        /* Utility Classes sử dụng biến */
+        .text-theme-main { color: var(--text-main) !important; }
+        .text-theme-muted { color: var(--text-muted) !important; }
+        .border-theme { border-color: var(--table-border) !important; }
 
         /* Glassmorphism Classes */
         .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            transition: all 0.3s ease;
         }
 
         .glass-panel {
-            background: rgba(15, 23, 42, 0.8);
+            background: var(--panel-bg);
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid var(--glass-border);
         }
 
         .glass-input {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-main);
             transition: all 0.3s ease;
         }
 
         .glass-input:focus {
             outline: none;
             border-color: #3b82f6;
-            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
 
+        .glass-input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        /* Table Styles */
+        .table-head-theme { background-color: var(--table-head-bg); color: var(--text-muted); }
+        .table-row-hover:hover { background-color: var(--table-row-hover); }
+        
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -61,36 +116,38 @@
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
         .modal-open { overflow: hidden; }
     </style>
 </head>
-<body class="overflow-x-hidden">
+<body class="overflow-x-hidden" data-theme="dark">
 
     <!-- PHẦN 1: MÀN HÌNH ĐĂNG NHẬP -->
-    <div id="loginSection" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900 bg-[url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80')] bg-cover bg-center">
-        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"></div>
+    <!-- Thay đổi background image sang hình trừu tượng công nghệ/y tế hiện đại hơn -->
+    <div id="loginSection" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1504384308090-c54be3855462?auto=format&fit=crop&q=80')] bg-cover bg-center transition-all duration-700">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
         <div class="relative glass p-10 rounded-2xl w-full max-w-md text-center animate-fade-in mx-4">
             <div class="mb-6">
-                <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/50">
+                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/40">
                     <i class="fas fa-shield-virus text-2xl text-white"></i>
                 </div>
                 <h1 class="text-3xl font-bold text-white mb-2">BHYT Audit Pro</h1>
-                <p class="text-slate-400 text-sm">Hệ thống rà soát hồ sơ tự động</p>
+                <p class="text-slate-200 text-sm opacity-80">Hệ thống rà soát hồ sơ tự động</p>
             </div>
             <div class="space-y-4">
                 <div class="relative">
-                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="password" id="passwordInput" placeholder="Nhập mã bảo mật (1402)" 
-                        class="glass-input w-full py-3 pl-10 pr-4 rounded-xl text-sm placeholder-slate-500">
+                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                    <!-- Placeholder đã ẩn mật khẩu (1402) -->
+                    <input type="password" id="passwordInput" placeholder="Nhập mã bảo mật..." 
+                        class="glass-input w-full py-3 pl-10 pr-4 rounded-xl text-sm border-white/20 text-white placeholder-slate-300 focus:bg-black/40">
                 </div>
                 <button onclick="checkLogin()" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg transform hover:scale-[1.02]">
-                    Đăng Nhập Hệ Thống
+                    Đăng Nhập
                 </button>
-                <p id="loginError" class="text-red-400 text-xs mt-2 hidden"><i class="fas fa-exclamation-circle"></i> Mật khẩu không đúng</p>
+                <p id="loginError" class="text-red-300 text-xs mt-2 hidden bg-red-900/50 py-1 rounded"><i class="fas fa-exclamation-circle"></i> Mật khẩu không đúng</p>
             </div>
         </div>
     </div>
@@ -101,17 +158,26 @@
         <!-- Header -->
         <header class="flex justify-between items-center mb-8 glass p-4 rounded-2xl">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-lg">
-                    <i class="fas fa-stethoscope text-white"></i>
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg text-white">
+                    <i class="fas fa-stethoscope"></i>
                 </div>
                 <div>
-                    <h2 class="font-bold text-xl text-white">BHYT Auditor v2.1</h2>
-                    <p class="text-xs text-slate-400">Cập nhật: Bổ sung logic Tai Mũi Họng & Chi tiết lỗi</p>
+                    <h2 class="font-bold text-xl text-theme-main">BHYT Auditor v2.2</h2>
+                    <p class="text-xs text-theme-muted">Tai Mũi Họng & Dark/Light Mode</p>
                 </div>
             </div>
-            <button onclick="logout()" class="text-slate-400 hover:text-white transition">
-                <i class="fas fa-sign-out-alt text-xl"></i>
-            </button>
+            
+            <div class="flex items-center gap-4">
+                <!-- Nút chuyển theme -->
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full glass flex items-center justify-center text-theme-muted hover:text-blue-500 transition-colors" title="Đổi giao diện Sáng/Tối">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+
+                <button onclick="logout()" class="flex items-center gap-2 text-theme-muted hover:text-red-500 transition px-3 py-2 rounded-lg hover:bg-red-500/10">
+                    <i class="fas fa-sign-out-alt text-xl"></i>
+                    <span class="text-sm font-medium hidden md:inline">Thoát</span>
+                </button>
+            </div>
         </header>
 
         <!-- Main Grid -->
@@ -122,12 +188,12 @@
                 <!-- Bảng 1 -->
                 <div class="glass p-5 rounded-2xl border-l-4 border-blue-500">
                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-blue-400 text-sm">Bảng 1 (Tổng hợp)</h3>
-                        <span id="statusB1" class="text-[10px] px-2 py-1 rounded bg-slate-700 text-slate-400">Chưa tải</span>
+                        <h3 class="font-semibold text-blue-500 text-sm">Bảng 1 (Tổng hợp)</h3>
+                        <span id="statusB1" class="text-[10px] px-2 py-1 rounded bg-slate-600 text-slate-200">Chưa tải</span>
                     </div>
-                    <label class="block w-full text-center p-4 border border-dashed border-slate-600 rounded-lg cursor-pointer hover:bg-slate-800 transition">
-                        <i class="fas fa-file-upload text-xl text-slate-500 mb-1"></i>
-                        <span class="text-xs text-slate-400 block">Chọn file .xlsx/.csv</span>
+                    <label class="block w-full text-center p-4 border border-dashed border-theme rounded-lg cursor-pointer hover:bg-slate-500/10 transition group">
+                        <i class="fas fa-file-upload text-xl text-theme-muted mb-1 group-hover:text-blue-500 transition-colors"></i>
+                        <span class="text-xs text-theme-muted block">Chọn file .xlsx/.csv</span>
                         <input type="file" id="fileB1" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFile(this, 'B1')" />
                     </label>
                 </div>
@@ -135,29 +201,29 @@
                 <!-- Bảng 3 -->
                 <div class="glass p-5 rounded-2xl border-l-4 border-purple-500">
                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-purple-400 text-sm">Bảng 3 (Dịch vụ)</h3>
-                        <span id="statusB3" class="text-[10px] px-2 py-1 rounded bg-slate-700 text-slate-400">Chưa tải</span>
+                        <h3 class="font-semibold text-purple-500 text-sm">Bảng 3 (Dịch vụ)</h3>
+                        <span id="statusB3" class="text-[10px] px-2 py-1 rounded bg-slate-600 text-slate-200">Chưa tải</span>
                     </div>
-                    <label class="block w-full text-center p-4 border border-dashed border-slate-600 rounded-lg cursor-pointer hover:bg-slate-800 transition">
-                        <i class="fas fa-file-upload text-xl text-slate-500 mb-1"></i>
-                        <span class="text-xs text-slate-400 block">Chọn file .xlsx/.csv</span>
+                    <label class="block w-full text-center p-4 border border-dashed border-theme rounded-lg cursor-pointer hover:bg-slate-500/10 transition group">
+                        <i class="fas fa-file-upload text-xl text-theme-muted mb-1 group-hover:text-purple-500 transition-colors"></i>
+                        <span class="text-xs text-theme-muted block">Chọn file .xlsx/.csv</span>
                         <input type="file" id="fileB3" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFile(this, 'B3')" />
                     </label>
                 </div>
 
                 <button onclick="processData()" id="btnProcess" disabled 
-                    class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500 transition-all">
+                    class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500 transition-all transform active:scale-95">
                     TIẾN HÀNH RÀ SOÁT
                 </button>
                 
                 <div id="quickStats" class="hidden grid grid-cols-2 gap-2">
                     <div class="glass p-3 rounded-lg text-center">
-                        <p class="text-slate-400 text-[10px]">Hồ sơ</p>
-                        <p id="totalRecords" class="text-lg font-bold text-white">0</p>
+                        <p class="text-theme-muted text-[10px]">Hồ sơ</p>
+                        <p id="totalRecords" class="text-lg font-bold text-theme-main">0</p>
                     </div>
                     <div class="glass p-3 rounded-lg text-center border border-red-500/30">
-                        <p class="text-red-400 text-[10px]">Lỗi</p>
-                        <p id="totalErrors" class="text-lg font-bold text-red-500">0</p>
+                        <p class="text-red-500 text-[10px]">Lỗi</p>
+                        <p id="totalErrors" class="text-lg font-bold text-red-600">0</p>
                     </div>
                 </div>
             </div>
@@ -165,31 +231,31 @@
             <!-- RIGHT: Result Table -->
             <div class="lg:col-span-9 glass p-6 rounded-2xl flex flex-col h-[85vh]">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-lg"><i class="fas fa-clipboard-check mr-2 text-blue-400"></i>Kết Quả Rà Soát</h3>
+                    <h3 class="font-bold text-lg text-theme-main"><i class="fas fa-clipboard-check mr-2 text-blue-500"></i>Kết Quả Rà Soát</h3>
                     <div class="flex gap-2">
                         <input type="text" id="searchInput" placeholder="Tìm tên bệnh nhân..." onkeyup="filterTable()" 
                             class="glass-input py-1.5 px-3 rounded-lg text-sm w-64">
-                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-sm transition font-medium">
+                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-sm transition font-medium shadow-md">
                             <i class="fas fa-file-export mr-1"></i> Xuất Excel
                         </button>
                     </div>
                 </div>
 
-                <div class="overflow-auto flex-1 rounded-xl border border-slate-700 bg-slate-900/50">
+                <div class="overflow-auto flex-1 rounded-xl border border-theme bg-[var(--table-head-bg)]/20">
                     <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-800 text-xs uppercase text-slate-400 sticky top-0 z-10 shadow-lg">
+                        <thead class="table-head-theme text-xs uppercase sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th class="p-4 w-1/5">Thông tin Bệnh nhân</th>
-                                <th class="p-4 w-1/6">Thời gian khám</th>
-                                <th class="p-4 w-1/2">Chi tiết Lỗi & Hướng xử lý</th>
-                                <th class="p-4 w-1/6 text-center">Tác vụ</th>
+                                <th class="p-4 w-1/5 font-semibold">Thông tin Bệnh nhân</th>
+                                <th class="p-4 w-1/6 font-semibold">Thời gian khám</th>
+                                <th class="p-4 w-1/2 font-semibold">Chi tiết Lỗi & Hướng xử lý</th>
+                                <th class="p-4 w-1/6 text-center font-semibold">Tác vụ</th>
                             </tr>
                         </thead>
-                        <tbody id="resultBody" class="text-sm divide-y divide-slate-700">
+                        <tbody id="resultBody" class="text-sm divide-y divide-[var(--table-border)]">
                             <tr>
-                                <td colspan="4" class="p-12 text-center text-slate-500">
+                                <td colspan="4" class="p-12 text-center text-theme-muted">
                                     <div class="flex flex-col items-center">
-                                        <i class="fas fa-cloud-upload-alt text-4xl mb-3 opacity-50"></i>
+                                        <i class="fas fa-cloud-upload-alt text-4xl mb-3 opacity-30"></i>
                                         <span>Vui lòng tải dữ liệu và nhấn nút Rà Soát</span>
                                     </div>
                                 </td>
@@ -203,16 +269,16 @@
 
     <!-- MODAL CHI TIẾT BỆNH NHÂN -->
     <div id="detailModal" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
         <div class="absolute inset-y-0 right-0 w-full max-w-2xl glass-panel shadow-2xl transform transition-transform duration-300 translate-x-full" id="modalContent">
             
             <!-- Modal Header -->
-            <div class="h-16 flex items-center justify-between px-6 border-b border-slate-700 bg-slate-800/50">
-                <h2 class="text-lg font-bold text-white flex items-center">
-                    <i class="fas fa-id-card mr-3 text-blue-400"></i>
+            <div class="h-16 flex items-center justify-between px-6 border-b border-theme bg-[var(--table-head-bg)]/50">
+                <h2 class="text-lg font-bold text-theme-main flex items-center">
+                    <i class="fas fa-id-card mr-3 text-blue-500"></i>
                     Chi Tiết Hồ Sơ
                 </h2>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-2">
+                <button onclick="closeModal()" class="text-theme-muted hover:text-red-500 p-2 transition">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -221,29 +287,29 @@
             <div class="overflow-y-auto h-[calc(100vh-64px)] p-6 space-y-6">
                 
                 <!-- Thông tin chính -->
-                <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                    <h3 class="text-xs font-bold text-blue-400 uppercase mb-3">Thông tin hành chính (Bảng 1)</h3>
+                <div class="bg-[var(--glass-bg)] rounded-xl p-4 border border-theme">
+                    <h3 class="text-xs font-bold text-blue-500 uppercase mb-3">Thông tin hành chính (Bảng 1)</h3>
                     <div id="modalInfo" class="grid grid-cols-2 gap-4 text-sm">
                         <!-- Filled by JS -->
                     </div>
                 </div>
 
                 <!-- Danh sách dịch vụ -->
-                <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                    <h3 class="text-xs font-bold text-purple-400 uppercase mb-3 flex justify-between">
+                <div class="bg-[var(--glass-bg)] rounded-xl p-4 border border-theme">
+                    <h3 class="text-xs font-bold text-purple-500 uppercase mb-3 flex justify-between">
                         <span>Dịch vụ đã dùng (Bảng 3)</span>
                         <span id="serviceCount" class="bg-purple-900 text-purple-200 px-2 rounded text-[10px]">0</span>
                     </h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs">
-                            <thead class="text-slate-400 border-b border-slate-700">
+                            <thead class="text-theme-muted border-b border-theme">
                                 <tr>
                                     <th class="py-2 text-left">Mã DV</th>
                                     <th class="py-2 text-left">Tên Dịch Vụ</th>
                                     <th class="py-2 text-right">Số lượng</th>
                                 </tr>
                             </thead>
-                            <tbody id="modalServices" class="divide-y divide-slate-700/50 text-slate-300">
+                            <tbody id="modalServices" class="divide-y divide-[var(--table-border)] text-theme-main">
                                 <!-- Filled by JS -->
                             </tbody>
                         </table>
@@ -260,13 +326,31 @@
         let rawDataB1 = [];
         let rawDataB3 = [];
         let processedResults = [];
-        let mapB3 = {}; // Global Map for quick access
+        let mapB3 = {}; 
+        let currentTheme = 'dark';
 
-        // --- 2. AUTH ---
+        // --- 2. THEME HANDLING ---
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            
+            if (currentTheme === 'dark') {
+                currentTheme = 'light';
+                body.setAttribute('data-theme', 'light');
+                icon.className = 'fas fa-sun text-yellow-500';
+            } else {
+                currentTheme = 'dark';
+                body.setAttribute('data-theme', 'dark');
+                icon.className = 'fas fa-moon';
+            }
+        }
+
+        // --- 3. AUTH ---
         const passwordInput = document.getElementById('passwordInput');
         passwordInput.addEventListener("keypress", (e) => { if (e.key === "Enter") checkLogin(); });
 
         function checkLogin() {
+            // Mật khẩu vẫn là 1402
             if (document.getElementById('passwordInput').value === '1402') {
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('appSection').classList.remove('hidden');
@@ -274,12 +358,16 @@
             } else {
                 const err = document.getElementById('loginError');
                 err.classList.remove('hidden');
-                setTimeout(() => err.classList.add('hidden'), 2000);
+                passwordInput.classList.add('border-red-500');
+                setTimeout(() => {
+                    err.classList.add('hidden');
+                    passwordInput.classList.remove('border-red-500');
+                }, 2000);
             }
         }
         function logout() { location.reload(); }
 
-        // --- 3. EXCEL HANDLING ---
+        // --- 4. EXCEL HANDLING ---
         function handleFile(input, type) {
             const file = input.files[0];
             const statusLabel = document.getElementById(`status${type}`);
@@ -308,7 +396,7 @@
             }
         }
 
-        // --- 4. CORE LOGIC ---
+        // --- 5. CORE LOGIC ---
         function processData() {
             const btn = document.getElementById('btnProcess');
             btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...`;
@@ -330,7 +418,6 @@
                     let errors = [];
                     const maLk = String(row['MA_LK'] || "").trim();
                     
-                    // --- Helper để tạo message lỗi chi tiết ---
                     const addError = (msg, current, fix) => {
                         errors.push({ msg, current, fix });
                     };
@@ -378,26 +465,22 @@
                         addError("Thiếu dữ liệu ngày tháng", "Trống", "Kiểm tra NGAY_VAO, NGAY_RA, NGAY_TTOAN");
                     }
 
-                    // E. Logic Tuổi & Dịch vụ (UPDATE MỚI)
+                    // E. Logic Tuổi & Dịch vụ
                     let ageInfo = "N/A";
-                    let dobFormatted = row['NGAY_SINH'];
                     
                     if (row['NGAY_SINH'] && row['NGAY_VAO']) {
                         const dobStr = String(row['NGAY_SINH']);
                         const visitStr = String(row['NGAY_VAO']);
                         
-                        // Parse Date
                         const dobDate = new Date(dobStr.substring(0, 4), parseInt(dobStr.substring(4, 6))-1, dobStr.substring(6, 8));
                         const visitDate = new Date(visitStr.substring(0, 4), parseInt(visitStr.substring(4, 6))-1, visitStr.substring(6, 8));
 
-                        // Calculate Age
                         let age = visitDate.getFullYear() - dobDate.getFullYear();
                         const m = visitDate.getMonth() - dobDate.getMonth();
                         if (m < 0 || (m === 0 && visitDate.getDate() < dobDate.getDate())) age--;
                         
                         ageInfo = age;
 
-                        // Check Services
                         const services = mapB3[maLk] || [];
                         const hasKhamNhi = services.some(s => String(s['TEN_DICH_VU'] || "").toLowerCase().includes('khám nhi'));
                         const hasTaiMuiHong = services.some(s => String(s['TEN_DICH_VU'] || "").toLowerCase().includes('khám tai mũi họng'));
@@ -420,7 +503,7 @@
                     if (errors.length > 0) {
                         errorCount++;
                         processedResults.push({
-                            rawData: row, // Giữ lại row gốc để show modal
+                            rawData: row,
                             maLk: maLk,
                             hoTen: row['HO_TEN'],
                             ngayVao: row['NGAY_VAO'],
@@ -434,7 +517,6 @@
 
                 renderResults(processedResults);
                 
-                // Update stats
                 document.getElementById('quickStats').classList.remove('hidden');
                 document.getElementById('totalRecords').innerText = rawDataB1.length;
                 document.getElementById('totalErrors').innerText = errorCount;
@@ -444,52 +526,52 @@
             }, 100);
         }
 
-        // --- 5. RENDER UI ---
+        // --- 6. RENDER UI ---
         function renderResults(data) {
             const tbody = document.getElementById('resultBody');
             tbody.innerHTML = "";
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-emerald-400 font-bold"><i class="fas fa-check-circle text-4xl mb-3 block"></i>Tuyệt vời! Không phát hiện lỗi nào.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-emerald-500 font-bold"><i class="fas fa-check-circle text-4xl mb-3 block"></i>Tuyệt vời! Không phát hiện lỗi nào.</td></tr>`;
                 return;
             }
 
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/50 transition-colors border-b border-slate-700/50";
+                tr.className = "table-row-hover transition-colors border-b border-[var(--table-border)] group";
                 
                 // Build Error HTML
                 const errorHtml = item.errors.map(e => `
-                    <div class="mb-2 pb-2 border-b border-white/5 last:border-0 last:pb-0">
-                        <div class="text-red-400 font-semibold text-xs flex items-center">
+                    <div class="mb-2 pb-2 border-b border-[var(--table-border)] last:border-0 last:pb-0">
+                        <div class="text-red-500 font-semibold text-xs flex items-center">
                             <i class="fas fa-exclamation-triangle mr-1.5"></i> ${e.msg}
                         </div>
                         <div class="grid grid-cols-2 gap-2 mt-1 text-[11px]">
-                            <span class="text-slate-400">Hiện tại: <span class="text-slate-200">${e.current}</span></span>
-                            <span class="text-emerald-400">Cần sửa: ${e.fix}</span>
+                            <span class="text-theme-muted">Hiện tại: <span class="text-theme-main">${e.current}</span></span>
+                            <span class="text-emerald-500 font-medium">Cần sửa: ${e.fix}</span>
                         </div>
                     </div>
                 `).join('');
 
                 tr.innerHTML = `
                     <td class="p-4 align-top">
-                        <div class="font-bold text-white text-base">${item.hoTen}</div>
-                        <div class="text-xs text-slate-400 mt-1">
-                            <span class="bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 mr-2">${item.gioiTinh}</span>
+                        <div class="font-bold text-theme-main text-base">${item.hoTen}</div>
+                        <div class="text-xs text-theme-muted mt-1">
+                            <span class="bg-slate-500/20 px-1.5 py-0.5 rounded text-theme-main mr-2 border border-slate-500/30">${item.gioiTinh}</span>
                             <span>${item.tuoi} tuổi</span>
                         </div>
-                        <div class="text-[10px] text-slate-500 mt-1 font-mono">NS: ${item.ngaySinh}</div>
+                        <div class="text-[10px] text-theme-muted mt-1 font-mono">NS: ${item.ngaySinh}</div>
                     </td>
                     <td class="p-4 align-top">
-                        <div class="text-sm text-slate-300"><i class="far fa-clock mr-1"></i>Vào: ${item.ngayVao}</div>
+                        <div class="text-sm text-theme-muted"><i class="far fa-clock mr-1"></i>Vào: ${item.ngayVao}</div>
                     </td>
                     <td class="p-4 align-top">
-                        <div class="bg-red-500/5 border border-red-500/10 rounded-lg p-3">
+                        <div class="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
                             ${errorHtml}
                         </div>
                     </td>
                     <td class="p-4 align-top text-center">
-                        <button onclick="showDetail(${index})" class="bg-blue-600/20 hover:bg-blue-600 hover:text-white text-blue-400 border border-blue-500/30 rounded-lg px-3 py-2 text-xs transition-all flex items-center justify-center mx-auto gap-2">
+                        <button onclick="showDetail(${index})" class="bg-blue-500/10 hover:bg-blue-600 hover:text-white text-blue-500 border border-blue-500/30 rounded-lg px-3 py-2 text-xs transition-all flex items-center justify-center mx-auto gap-2">
                             <i class="fas fa-eye"></i> Xem chi tiết
                         </button>
                     </td>
@@ -498,7 +580,7 @@
             });
         }
 
-        // --- 6. MODAL DETAIL ---
+        // --- 7. MODAL DETAIL ---
         function showDetail(index) {
             const item = processedResults[index];
             const maLk = item.maLk;
@@ -509,9 +591,9 @@
             // 1. Fill Info Bảng 1
             const infoContainer = document.getElementById('modalInfo');
             infoContainer.innerHTML = Object.entries(item.rawData).map(([key, val]) => `
-                <div class="flex flex-col border-b border-slate-700/50 pb-1">
-                    <span class="text-[10px] text-slate-500 uppercase">${key}</span>
-                    <span class="text-white font-mono truncate" title="${val}">${val}</span>
+                <div class="flex flex-col border-b border-[var(--table-border)] pb-1">
+                    <span class="text-[10px] text-theme-muted uppercase">${key}</span>
+                    <span class="text-theme-main font-mono truncate" title="${val}">${val}</span>
                 </div>
             `).join('');
 
@@ -519,18 +601,17 @@
             document.getElementById('serviceCount').innerText = services.length;
             const serviceBody = document.getElementById('modalServices');
             if (services.length === 0) {
-                serviceBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-slate-500">Không tìm thấy dịch vụ trong Bảng 3</td></tr>`;
+                serviceBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-theme-muted">Không tìm thấy dịch vụ trong Bảng 3</td></tr>`;
             } else {
                 serviceBody.innerHTML = services.map(s => `
                     <tr>
-                        <td class="py-2 text-slate-400 font-mono">${s['MA_DICH_VU']}</td>
-                        <td class="py-2 text-white">${s['TEN_DICH_VU']}</td>
-                        <td class="py-2 text-right font-mono text-emerald-400">${s['SO_LUONG']}</td>
+                        <td class="py-2 text-theme-muted font-mono">${s['MA_DICH_VU']}</td>
+                        <td class="py-2 text-theme-main">${s['TEN_DICH_VU']}</td>
+                        <td class="py-2 text-right font-mono text-emerald-500 font-bold">${s['SO_LUONG']}</td>
                     </tr>
                 `).join('');
             }
 
-            // 3. Show Modal
             modal.classList.remove('hidden');
             setTimeout(() => {
                 content.classList.remove('translate-x-full');
@@ -547,7 +628,7 @@
             }, 300);
         }
 
-        // --- 7. UTILS ---
+        // --- 8. UTILS ---
         function filterTable() {
             const term = document.getElementById('searchInput').value.toLowerCase();
             const filtered = processedResults.filter(item => item.hoTen.toLowerCase().includes(term));
