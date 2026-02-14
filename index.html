@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Y ĐỨC SÀI GÒN - Hệ thống dữ liệu nội bộ V3.2</title>
+    <title>Y ĐỨC SÀI GÒN - Hệ thống dữ liệu nội bộ V3.3</title>
     
     <!-- Core Libraries -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -25,19 +25,24 @@
             font-family: 'Plus Jakarta Sans', sans-serif; 
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
-            transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #0B1120; /* Default fallback */
+            /* Force GPU Acceleration for the whole body to prevent painting issues */
+            transform: translateZ(0); 
+            backface-visibility: hidden;
         }
 
         .theme-dark { background-color: #0B1120; color: #F1F5F9; }
         .theme-light { background-color: #F0F4F8; color: #1E293B; }
 
-        /* Glassmorphism Advanced */
+        /* Glassmorphism Advanced - Optimized */
         .glass-panel {
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            /* Reduced blur radius slightly for performance on lower-end GPUs */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease, border-color 0.3s ease;
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+            will-change: transform, backdrop-filter;
         }
 
         .theme-light .glass-panel {
@@ -56,23 +61,24 @@
             backdrop-filter: blur(5px);
         }
 
-        /* Scanline Animation */
+        /* Scanline Animation - Optimized using transform */
         .scan-line {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(to bottom, transparent, rgba(14, 165, 233, 0.1), transparent);
+            background: linear-gradient(to bottom, transparent, rgba(14, 165, 233, 0.05), transparent);
             opacity: 0.1;
             pointer-events: none;
             z-index: 1;
             animation: scan 8s linear infinite;
+            will-change: transform;
         }
 
         @keyframes scan {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
+            0% { transform: translate3d(0, -100%, 0); }
+            100% { transform: translate3d(0, 100%, 0); }
         }
 
         /* Logo Spin */
@@ -82,6 +88,7 @@
         }
         .logo-spin {
             animation: spin-slow 25s linear infinite;
+            will-change: transform;
         }
 
         /* Pixel Art Rendering */
@@ -89,6 +96,7 @@
             image-rendering: pixelated;
             image-rendering: -moz-crisp-edges;
             image-rendering: crisp-edges;
+            will-change: transform;
         }
 
         /* Custom Scrollbar */
@@ -99,10 +107,10 @@
         
         /* Wallpaper Animation */
         .wallpaper-fade-in {
-            animation: fadeIn 1.5s ease-out forwards;
+            animation: fadeIn 1.2s ease-out forwards;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(1.05); }
+            from { opacity: 0; transform: scale(1.02); }
             to { opacity: 1; transform: scale(1); }
         }
 
@@ -114,7 +122,14 @@
         }
         .music-active {
             animation: pulse-music 2s infinite ease-in-out;
-            color: #10B981; /* Emerald 500 */
+            color: #10B981;
+        }
+
+        /* Performance Utility */
+        .gpu-accelerate {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            perspective: 1000px;
         }
     </style>
 </head>
@@ -122,11 +137,11 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+        const { useState, useEffect, useMemo, useRef, memo } = React;
         const { motion, AnimatePresence, useMotionValue, useTransform, useSpring } = window.Motion;
 
-        // --- ICONS ---
-        const Icon = ({ name, size = 24, className = "" }) => {
+        // --- ICONS (Memoized for Performance) ---
+        const Icon = memo(({ name, size = 24, className = "" }) => {
             const icons = {
                 Sun: <path d="M12 3V4M12 20V21M4.22 4.22l.71.71M18.36 18.36l.71.71M1 12H2M22 12H23M4.22 19.78l.71-.71M18.36 5.64l.71-.71M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />,
                 Moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />,
@@ -153,12 +168,11 @@
                     {icons[name] || <circle cx="12" cy="12" r="10" />}
                 </svg>
             );
-        };
+        });
 
         // --- COMPONENTS ---
 
-        // Toggle Switch Component
-        const Toggle = ({ label, checked, onChange, theme }) => (
+        const Toggle = memo(({ label, checked, onChange, theme }) => (
             <div className="flex items-center justify-between py-3 border-b border-gray-100/10">
                 <span className={`font-medium ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>{label}</span>
                 <button 
@@ -173,10 +187,9 @@
                     />
                 </button>
             </div>
-        );
+        ));
 
-        // Digital Clock Component
-        const DigitalClock = ({ theme }) => {
+        const DigitalClock = memo(({ theme }) => {
             const [time, setTime] = useState(new Date());
 
             useEffect(() => {
@@ -192,25 +205,17 @@
                     </span>
                 </div>
             );
-        };
+        });
 
-        // Music Player Component (Hidden)
-        const MusicPlayer = ({ isPlaying, volume = 0.5 }) => {
+        const MusicPlayer = memo(({ isPlaying, volume = 0.5 }) => {
             const audioRef = useRef(null);
-
-            // Chill Lofi Track (Royalty Free from Pixabay)
             const AUDIO_SRC = "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3"; 
 
             useEffect(() => {
                 if (audioRef.current) {
                     audioRef.current.volume = volume;
                     if (isPlaying) {
-                        const playPromise = audioRef.current.play();
-                        if (playPromise !== undefined) {
-                            playPromise.catch(error => {
-                                console.log("Auto-play was prevented by browser. User interaction needed.");
-                            });
-                        }
+                        audioRef.current.play().catch(() => {});
                     } else {
                         audioRef.current.pause();
                     }
@@ -222,27 +227,25 @@
                     <source src={AUDIO_SRC} type="audio/mpeg" />
                 </audio>
             );
-        };
+        });
 
-        // 0. Wallpaper Layer (New Feature)
-        const WallpaperLayer = ({ enabled, theme }) => {
+        const WallpaperLayer = memo(({ enabled, theme }) => {
             const [wallpaperUrl, setWallpaperUrl] = useState('');
             
             useEffect(() => {
                 if (enabled) {
-                    // Danh sách ảnh 4K Chất lượng cao (Unsplash High Res)
                     const wallpapers = [
-                        "https://images.unsplash.com/photo-1477346611705-65d1883cee1e?q=80&w=3870&auto=format&fit=crop", // Dark Mountains
-                        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=3872&auto=format&fit=crop", // Space
-                        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=3870&auto=format&fit=crop", // Landscape River
-                        "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=3870&auto=format&fit=crop", // Cyberpunk City
-                        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=3764&auto=format&fit=crop", // Abstract Liquid
-                        "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=3870&auto=format&fit=crop", // Alpine Lake
-                        "https://images.unsplash.com/photo-1519681393798-3828fb4090bb?q=80&w=3870&auto=format&fit=crop", // Night Sky
-                        "https://images.unsplash.com/photo-1518818419601-72c8673f5852?q=80&w=3870&auto=format&fit=crop"  // Neon Tech
+                        "https://images.unsplash.com/photo-1477346611705-65d1883cee1e", // Dark Mountains
+                        "https://images.unsplash.com/photo-1451187580459-43490279c0fa", // Space
+                        "https://images.unsplash.com/photo-1506744038136-46273834b3fb", // Landscape River
+                        "https://images.unsplash.com/photo-1550684848-fac1c5b4e853", // Cyberpunk City
+                        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe", // Abstract Liquid
+                        "https://images.unsplash.com/photo-1493246507139-91e8fad9978e", // Alpine Lake
+                        "https://images.unsplash.com/photo-1519681393798-3828fb4090bb", // Night Sky
+                        "https://images.unsplash.com/photo-1518818419601-72c8673f5852"  // Neon Tech
                     ];
-                    // Chọn ngẫu nhiên mỗi lần reload
-                    const random = wallpapers[Math.floor(Math.random() * wallpapers.length)];
+                    // Optimized Size Params: w=2560 (2K+) q=80 (High Quality) auto=format (WebP if supported)
+                    const random = wallpapers[Math.floor(Math.random() * wallpapers.length)] + "?q=80&w=2560&auto=format&fit=crop";
                     setWallpaperUrl(random);
                 }
             }, [enabled]);
@@ -250,22 +253,27 @@
             if (!enabled || !wallpaperUrl) return null;
 
             return (
-                <div className="fixed inset-0 z-[-1] overflow-hidden">
+                <div className="fixed inset-0 z-[-1] overflow-hidden gpu-accelerate">
                     <img 
                         src={wallpaperUrl} 
                         alt="Background" 
-                        className="absolute inset-0 w-full h-full object-cover wallpaper-fade-in"
+                        decoding="async"
+                        loading="eager"
+                        className="absolute inset-0 w-full h-full object-cover wallpaper-fade-in will-change-transform"
                     />
-                    {/* Overlay để đảm bảo nội dung luôn đọc được */}
                     <div className={`absolute inset-0 transition-colors duration-500 ${theme === 'dark' ? 'bg-slate-900/80' : 'bg-white/60'} backdrop-blur-[2px]`} />
                 </div>
             );
-        };
+        });
 
-        // 1. Interactive Background (Particles)
-        const InteractiveBackground = ({ enabled }) => {
+        // Optimized Interactive Background using useSpring instead of raw MotionValue
+        const InteractiveBackground = memo(({ enabled }) => {
             const mouseX = useMotionValue(0);
             const mouseY = useMotionValue(0);
+
+            // Smooth spring animation to reduce jitter and calculation
+            const smoothX = useSpring(mouseX, { stiffness: 50, damping: 20 });
+            const smoothY = useSpring(mouseY, { stiffness: 50, damping: 20 });
 
             useEffect(() => {
                 if (!enabled) return;
@@ -277,17 +285,15 @@
                 return () => window.removeEventListener("mousemove", handleMouseMove);
             }, [enabled]);
 
-            // Parallax movement
-            const x1 = useTransform(mouseX, [0, window.innerWidth], [-50, 50]);
-            const y1 = useTransform(mouseY, [0, window.innerHeight], [-50, 50]);
-            const x2 = useTransform(mouseX, [0, window.innerWidth], [50, -50]);
-            const y2 = useTransform(mouseY, [0, window.innerHeight], [50, -50]);
+            const x1 = useTransform(smoothX, [0, window.innerWidth], [-30, 30]); // Reduced range for performance
+            const y1 = useTransform(smoothY, [0, window.innerHeight], [-30, 30]);
+            const x2 = useTransform(smoothX, [0, window.innerWidth], [30, -30]);
+            const y2 = useTransform(smoothY, [0, window.innerHeight], [30, -30]);
 
-            // Nếu không bật particles, trả về null (để Wallpaper hiển thị bên dưới)
             if (!enabled) return null;
 
             return (
-                <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none gpu-accelerate">
                     <div className="absolute inset-0 opacity-[0.03]" 
                         style={{ 
                             backgroundImage: `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`,
@@ -296,27 +302,26 @@
                     ></div>
                     <motion.div 
                         style={{ x: x1, y: y1 }}
-                        className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/20 rounded-full blur-[120px]" 
-                        animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.3, 0.2] }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/20 rounded-full blur-[80px] will-change-transform" 
+                        animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.25, 0.2] }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                     />
                     <motion.div 
                         style={{ x: x2, y: y2 }}
-                        className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-emerald-500/10 rounded-full blur-[120px]" 
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
-                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                        className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-emerald-500/10 rounded-full blur-[80px] will-change-transform" 
+                        animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.15, 0.1] }}
+                        transition={{ duration: 12, repeat: Infinity, ease: "linear", delay: 1 }}
                     />
                     <div className="scan-line"></div>
                 </div>
             );
-        };
+        });
 
-        // 2. Pokemon Layer
-        const PokemonLayer = ({ enabled }) => {
+        const PokemonLayer = memo(({ enabled }) => {
             if (!enabled) return null;
             return (
-                <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden">
-                    <motion.div className="absolute bottom-0 left-0 w-full h-16">
+                <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden gpu-accelerate">
+                    <motion.div className="absolute bottom-0 left-0 w-full h-16 will-change-transform">
                          <motion.img 
                             src="https://img.pokemondb.net/sprites/black-white/anim/normal/pikachu.gif"
                             alt="Pikachu"
@@ -327,7 +332,7 @@
                                 scaleX: [1, 1, -1, -1, 1]
                             }}
                             transition={{ 
-                                duration: 25, 
+                                duration: 30, // Slower for less painting
                                 ease: "linear", 
                                 repeat: Infinity,
                                 times: [0, 0.45, 0.5, 0.95, 1]
@@ -340,15 +345,15 @@
                     <motion.img 
                         src="https://img.pokemondb.net/sprites/black-white/anim/normal/mew.gif"
                         alt="Mew"
-                        className="absolute top-20 w-10 h-10 md:w-14 md:h-14 object-contain opacity-60 hover:opacity-100 transition-opacity pixelated pointer-events-auto cursor-pointer"
+                        className="absolute top-20 w-10 h-10 md:w-14 md:h-14 object-contain opacity-60 hover:opacity-100 transition-opacity pixelated pointer-events-auto cursor-pointer will-change-transform"
                         animate={{ 
                             x: ["5vw", "85vw", "40vw", "90vw", "5vw"],
                             y: ["15vh", "25vh", "10vh", "35vh", "15vh"],
                             rotate: [0, 10, -10, 5, 0]
                         }}
                         transition={{ 
-                            duration: 40, 
-                            ease: "easeInOut", 
+                            duration: 45, 
+                            ease: "linear", 
                             repeat: Infinity,
                         }}
                         whileHover={{ scale: 1.3, rotate: 360, transition: { duration: 0.5 } }}
@@ -357,24 +362,23 @@
                     <motion.img 
                         src="https://img.pokemondb.net/sprites/black-white/anim/normal/eevee.gif"
                         alt="Eevee"
-                        className="absolute bottom-2 right-10 w-10 h-10 md:w-14 md:h-14 object-contain pixelated pointer-events-auto cursor-pointer"
+                        className="absolute bottom-2 right-10 w-10 h-10 md:w-14 md:h-14 object-contain pixelated pointer-events-auto cursor-pointer will-change-transform"
                         animate={{ y: [0, -3, 0] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                         whileHover={{ scale: 1.2, rotate: [0, -10, 10, 0] }}
                     />
                 </div>
             )
-        }
+        });
 
-        // 3. Status Ticker
-        const SystemTicker = ({ theme }) => {
+        const SystemTicker = memo(({ theme }) => {
             return (
                 <div className={`w-full overflow-hidden border-b py-1.5 backdrop-blur-md ${theme === 'dark' ? 'bg-slate-900/80 border-white/5 text-blue-400' : 'bg-white/80 border-slate-200 text-blue-600'}`}>
                     <div className="flex whitespace-nowrap">
                         <motion.div 
                             animate={{ x: [0, -1000] }} 
-                            transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-                            className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-widest"
+                            transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+                            className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-widest will-change-transform"
                         >
                             {[1,2,3,4].map(i => (
                                 <React.Fragment key={i}>
@@ -387,7 +391,7 @@
                                     <span className="opacity-30">|</span>
                                     <span>Bảo mật: Encypted AES-256</span>
                                     <span className="opacity-30">|</span>
-                                    <span>Phiên bản: 3.2 (Chill Music)</span>
+                                    <span>Phiên bản: 3.3 (Optimized)</span>
                                     <span className="opacity-30">|</span>
                                 </React.Fragment>
                             ))}
@@ -395,15 +399,15 @@
                     </div>
                 </div>
             );
-        };
+        });
 
-        // 4. Tilt Card
-        const TiltCard = ({ children, className, href, enabled }) => {
+        const TiltCard = memo(({ children, className, href, enabled }) => {
             const x = useMotionValue(0);
             const y = useMotionValue(0);
             
-            const rotateX = useTransform(y, [-100, 100], [5, -5]);
-            const rotateY = useTransform(x, [-100, 100], [-5, 5]);
+            // Reduced tilt range slightly for smoother performance
+            const rotateX = useTransform(y, [-100, 100], [3, -3]);
+            const rotateY = useTransform(x, [-100, 100], [-3, 3]);
 
             if (!enabled) {
                 return (
@@ -419,22 +423,20 @@
                     style={{ rotateX, rotateY, perspective: 1000 }}
                     onMouseMove={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-                        x.set(e.clientX - centerX);
-                        y.set(e.clientY - centerY);
+                        // Simple calculations, no heavy logic
+                        x.set(e.clientX - (rect.left + rect.width / 2));
+                        y.set(e.clientY - (rect.top + rect.height / 2));
                     }}
                     onMouseLeave={() => { x.set(0); y.set(0); }}
-                    whileHover={{ scale: 1.02, z: 50 }}
+                    whileHover={{ scale: 1.01, z: 20 }}
                     whileTap={{ scale: 0.98 }}
-                    className={className}
+                    className={`${className} will-change-transform`}
                 >
                     {children}
                 </motion.a>
             );
-        };
+        });
 
-        // 5. Settings Modal
         const SettingsModal = ({ isOpen, onClose, settings, updateSettings, theme }) => {
             if (!isOpen) return null;
 
@@ -511,14 +513,14 @@
             
             // Default Settings (Updated with showWallpaper)
             const [settings, setSettings] = useState(() => {
-                const saved = localStorage.getItem('yduc-settings-v3.2'); // Version bump
+                const saved = localStorage.getItem('yduc-settings-v3.3'); // Version bump for fresh settings
                 return saved ? JSON.parse(saved) : {
                     showWallpaper: true,
                     showPokemon: true,
                     showTime: true,
                     showParticles: true,
                     enableTilt: true,
-                    autoPlayMusic: false // Default off to prevent sudden noise
+                    autoPlayMusic: false 
                 };
             });
 
@@ -530,7 +532,7 @@
                 if (settings.autoPlayMusic) {
                     setIsMusicPlaying(true);
                 }
-            }, []); // Run once on mount if autoplay is on
+            }, []); 
 
             const COPYRIGHT = "© 2026 Phòng Khám Đa Khoa Y Đức Sài Gòn - Powered by Trần Khánh Duy";
             const LOGO_URL = "logo.jpg";
@@ -545,12 +547,11 @@
             }, [activeDept]);
 
             useEffect(() => {
-                localStorage.setItem('yduc-settings-v3.2', JSON.stringify(settings));
+                localStorage.setItem('yduc-settings-v3.3', JSON.stringify(settings));
             }, [settings]);
 
             const updateSettings = (key, value) => {
                 setSettings(prev => ({ ...prev, [key]: value }));
-                // Special handling for music toggle in settings
                 if (key === 'autoPlayMusic' && value === true) {
                     setIsMusicPlaying(true);
                 }
@@ -568,7 +569,7 @@
                 { id: 'media', name: 'Truyền thông' }
             ];
 
-            const apps = [
+            const apps = useMemo(() => [
                 { id: 1, dept: 'cskh', name: "Đối Soát CSKH", description: "Phân tích hồ sơ bệnh án, lọc BHYT & Dịch vụ chuyên dụng.", icon: "Notebook", link: "./cskh/index.html", color: "from-blue-500 to-blue-700", tag: "V10" },
                 { id: 2, dept: 'bhyt', name: "Dò số lượng bảng kê cổng", description: "Dò số lượng bệnh BHYT từ VNPT HIS so với cổng giám định.", icon: "FileSearch", link: "./bhyt/app1/index.html", color: "from-indigo-500 to-indigo-700", tag: "App 1" },
                 { id: 3, dept: 'bhyt', name: "Dò điện châm", description: "Hệ thống đối soát chỉ định điện châm YHCT, thiếu mã máy, người thực hiện.", icon: "Shield", link: "./bhyt/app2/index.html", color: "from-cyan-500 to-blue-700", tag: "App 2" },
@@ -586,7 +587,7 @@
                 { id: 200, dept: 'media', name: "Website Chính", description: "Quản lý tài nguyên & phản hồi MXH.", icon: "Radio", link: "https://phongkhamyducsaigon.com/", color: "from-rose-500 to-red-700", tag: "Web" },
                 { id: 300, dept: 'cskh', name: "Chỉ Số Hài Lòng", description: "Báo cáo mức độ hài lòng người bệnh.", icon: "Users", link: "#", color: "from-amber-500 to-orange-600", tag: "Survey" },
                 { id: 301, dept: 'media', name: "Tin Tức Y Đức", description: "Bảng tin nội bộ & thông báo điều hành.", icon: "Notebook", link: "https://phongkhamyducsaigon.com/", color: "from-slate-500 to-gray-700", tag: "News" }
-            ];
+            ], []);
 
             const filteredApps = useMemo(() => {
                 return activeDept === 'all' ? apps : apps.filter(a => a.dept === activeDept);
@@ -594,17 +595,14 @@
 
             return (
                 <div className="min-h-screen flex flex-col relative overflow-hidden text-sm md:text-base transition-colors duration-500">
-                    {/* Hidden Music Player */}
                     <MusicPlayer isPlaying={isMusicPlaying} />
 
-                    {/* Background Layers */}
                     <WallpaperLayer enabled={settings.showWallpaper} theme={theme} />
                     <InteractiveBackground enabled={settings.showParticles} />
                     <PokemonLayer enabled={settings.showPokemon} />
                     
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={settings} updateSettings={updateSettings} theme={theme} />
 
-                    {/* Header */}
                     <header className={`sticky top-0 z-50 transition-all duration-500 ${theme === 'dark' ? 'bg-slate-900/80 border-b border-white/10' : 'bg-white/80 border-b border-white/40'} backdrop-blur-xl`}>
                         <SystemTicker theme={theme} />
                         
@@ -636,7 +634,6 @@
                                 <div className="flex items-center gap-3 md:gap-4">
                                     {settings.showTime && <div className="hidden lg:block"><DigitalClock theme={theme} /></div>}
                                     
-                                    {/* Music Toggle Button */}
                                     <button 
                                         onClick={toggleMusic}
                                         className={`p-2.5 rounded-full border transition-all duration-300 hover:scale-110 ${
@@ -679,7 +676,7 @@
                                 className="space-y-4 relative"
                             >
                                 <span className={`relative inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border backdrop-blur-md shadow-sm ${theme === 'dark' ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' : 'border-blue-200 bg-white/50 text-blue-600'} mb-2`}>
-                                    Internal Data Center V3.2
+                                    Internal Data Center V3.3
                                 </span>
                                 <h2 className={`relative text-4xl md:text-6xl font-black uppercase tracking-tight drop-shadow-sm ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                                     Trung tâm <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400">Điều Hành</span>
@@ -722,7 +719,6 @@
                                         enabled={settings.enableTilt}
                                         className={`glass-panel p-6 rounded-[24px] flex flex-col group relative overflow-hidden min-h-[220px] transition-colors duration-300 hover:border-blue-500/30`}
                                     >
-                                        {/* Background Gradient Blob */}
                                         <div className={`absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br ${app.color} opacity-10 rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-20 transition-all duration-700`}></div>
 
                                         <div className="flex justify-between items-start mb-6 relative z-10">
