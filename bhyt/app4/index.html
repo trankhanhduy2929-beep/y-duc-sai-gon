@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ứng Dụng Rà Soát BHYT Thông Minh</title>
+    <title>Ứng Dụng Rà Soát BHYT Thông Minh v2</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -50,17 +50,20 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .log-console {
+            font-family: 'Courier New', Courier, monospace;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 dark:bg-darkBg dark:text-gray-100 min-h-screen">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
         // --- Helper Functions ---
         
-        // Parse date string like YYYYMMDD or YYYYMMDDHHMM
         const parseDateStr = (str) => {
             if (!str) return null;
             const s = str.toString();
@@ -71,7 +74,6 @@
             return new Date(y, m, d);
         };
 
-        // Extract pure date string (YYYYMMDD) ignoring time
         const getDatePart = (str) => {
             if (!str) return "";
             return str.toString().substring(0, 8);
@@ -106,9 +108,14 @@
             // Processing States
             const [errors, setErrors] = useState([]);
             const [isProcessing, setIsProcessing] = useState(false);
-            const [selectedPatient, setSelectedPatient] = useState(null); // For Modal
+            const [selectedPatient, setSelectedPatient] = useState(null);
+            
+            // New States for Progress & Logs
+            const [progress, setProgress] = useState(0);
+            const [logs, setLogs] = useState([]);
+            const logEndRef = useRef(null);
 
-            // --- Dark Mode Logic ---
+            // --- Effects ---
             useEffect(() => {
                 if (darkMode) {
                     document.documentElement.classList.add('dark');
@@ -117,7 +124,15 @@
                 }
             }, [darkMode]);
 
-            // --- Login Logic ---
+            // Auto scroll logs
+            useEffect(() => {
+                if (logEndRef.current) {
+                    logEndRef.current.scrollIntoView({ behavior: "smooth" });
+                }
+            }, [logs]);
+
+            // --- Logic Handlers ---
+
             const handleLogin = (e) => {
                 e.preventDefault();
                 if (password === "1402") {
@@ -127,11 +142,11 @@
                 }
             };
 
-            // --- File Upload Logic ---
-            const handleFileUpload = (e, setData, setFileName) => {
+            const handleFileUpload = (e, setData, setFileName, label) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 setFileName(file.name);
+                setLogs(prev => [...prev, `[INFO] Đã chọn file ${label}: ${file.name}`]);
                 
                 const reader = new FileReader();
                 reader.onload = (evt) => {
@@ -141,11 +156,16 @@
                     const ws = wb.Sheets[wsname];
                     const data = XLSX.utils.sheet_to_json(ws);
                     setData(data);
+                    setLogs(prev => [...prev, `[SUCCESS] Tải xong ${label}: ${data.length} dòng.`]);
                 };
                 reader.readAsBinaryString(file);
             };
 
-            // --- Validation Core Logic ---
+            const addLog = (msg) => {
+                setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+            };
+
+            // --- OPTIMIZED VALIDATION LOGIC (CHUNKING) ---
             const runValidation = () => {
                 if (file1Data.length === 0) {
                     alert("Vui lòng tải Bảng 1 trước.");
@@ -153,119 +173,172 @@
                 }
                 
                 setIsProcessing(true);
-                const newErrors = [];
+                setErrors([]);
+                setLogs([]);
+                setProgress(0);
+                addLog("KHỞI ĐỘNG QUÁ TRÌNH DÒ LỖI...");
 
-                // Create Map for Table 3 for faster lookup by MA_LK
-                // Value is array of services for that MA_LK
+                // Use setTimeout to allow UI to update before heavy lifting
+                setTimeout(() => {
+                    processValidationAsync();
+                }, 100);
+            };
+
+            const processValidationAsync = async () => {
+                // 1. Indexing Table 3 (Heavy Operation)
+                addLog(`Đang đánh chỉ mục bảng 3 (${file3Data.length} bản ghi)...`);
+                
+                // Allow UI update
+                await new Promise(r => setTimeout(r, 0));
+
                 const table3Map = new Map();
-                file3Data.forEach(row => {
+                for (let i = 0; i < file3Data.length; i++) {
+                    const row = file3Data[i];
                     const maLk = row.MA_LK;
                     if (!table3Map.has(maLk)) {
                         table3Map.set(maLk, []);
                     }
                     table3Map.get(maLk).push(row);
-                });
+                }
+                
+                addLog("Đánh chỉ mục hoàn tất. Bắt đầu quét Bảng 1...");
 
-                file1Data.forEach((patient, index) => {
-                    const patientErrors = [];
-                    const maLk = patient.MA_LK;
+                // 2. Process Table 1 in Chunks
+                const chunkSize = 1000; // Process 1000 records per tick
+                let currentIndex = 0;
+                let foundErrors = [];
+                const totalRecords = file1Data.length;
+
+                const processChunk = () => {
+                    const endIndex = Math.min(currentIndex + chunkSize, totalRecords);
                     
-                    // 1. Check Required Fields (Empty or Null)
-                    const requiredFields = [
-                        'HO_TEN', 'MA_BN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 
-                        'MA_THE_BHYT', 'MA_DKBD', 'GT_THE_TU', 'GT_THE_DEN', 
-                        'LY_DO_VV', 'CHAN_DOAN_VAO', 'CHAN_DOAN_RV', 
-                        'MA_BENH_CHINH', 'MA_DOITUONG_KCB', 'CAN_NANG'
-                    ];
-
-                    requiredFields.forEach(field => {
-                        if (patient[field] === undefined || patient[field] === null || String(patient[field]).trim() === '') {
-                            patientErrors.push({
-                                code: 'MISSING_FIELD',
-                                message: `Thiếu thông tin bắt buộc: ${field}`,
-                                current: 'Trống',
-                                fix: `Bổ sung thông tin cột ${field}`
-                            });
-                        }
-                    });
-
-                    // 2. Check LY_DO_VV (Must contain letters)
-                    if (patient.LY_DO_VV) {
-                        const hasLetters = /[a-zA-Z\u00C0-\u1EF9]/.test(String(patient.LY_DO_VV));
-                        if (!hasLetters) {
-                            patientErrors.push({
-                                code: 'INVALID_REASON',
-                                message: 'Lý do vào viện không hợp lệ',
-                                current: patient.LY_DO_VV,
-                                fix: 'Lý do vào viện phải chứa chữ cái, không được chỉ có số hoặc ký tự đặc biệt.'
+                    // Validation Loop for this Chunk
+                    for (let i = currentIndex; i < endIndex; i++) {
+                        const patient = file1Data[i];
+                        const patientErrors = checkPatient(patient, table3Map);
+                        
+                        if (patientErrors.length > 0) {
+                            foundErrors.push({
+                                patientInfo: patient,
+                                detailErrors: patientErrors
                             });
                         }
                     }
 
-                    // 3. Check Date Consistency (Vào = Ra = TToan) - Only checking dates, ignoring time
-                    const dVao = getDatePart(patient.NGAY_VAO);
-                    const dRa = getDatePart(patient.NGAY_RA);
-                    const dTToan = getDatePart(patient.NGAY_TTOAN);
+                    // Update UI State
+                    const currentProgress = Math.round((endIndex / totalRecords) * 100);
+                    setProgress(currentProgress);
+                    
+                    currentIndex += chunkSize;
 
-                    if (dVao && dRa && dTToan) {
-                         if (dVao !== dRa || dRa !== dTToan) {
-                            patientErrors.push({
-                                code: 'DATE_MISMATCH',
-                                message: 'Ngày Vào, Ra, Thanh toán không trùng khớp',
-                                current: `Vào: ${dVao}, Ra: ${dRa}, TT: ${dTToan}`,
-                                fix: 'Chỉnh sửa NGAY_VAO, NGAY_RA, NGAY_TTOAN về cùng một ngày.'
-                            });
-                         }
+                    if (currentIndex < totalRecords) {
+                        // Continue next chunk
+                        if (currentIndex % 5000 === 0) {
+                             addLog(`Đã quét ${currentIndex}/${totalRecords} hồ sơ...`);
+                        }
+                        // Use setTimeout to yield back to main thread (UI renders)
+                        setTimeout(processChunk, 0); 
                     } else {
-                         // Missing date implies handled by required field check, but adding specific note if needed
+                        // FINISHED
+                        finishValidation(foundErrors);
                     }
+                };
 
-                    // 4. Cross Check with Table 3
-                    const services = table3Map.get(maLk) || [];
-                    const age = calculateAge(patient.NGAY_SINH, patient.NGAY_VAO);
+                // Start the chunk loop
+                setTimeout(processChunk, 0);
+            };
 
-                    services.forEach(svc => {
-                        const tenDV = String(svc.TEN_DICH_VU || "").toLowerCase();
-                        
-                        // Rule: < 16 tuổi -> Không được có "Khám Nội"
-                        if (age < 16) {
-                            if (tenDV.includes("khám nội")) {
-                                patientErrors.push({
-                                    code: 'AGE_SERVICE_CONFLICT',
-                                    message: 'Bệnh nhân dưới 16 tuổi có dịch vụ sai quy định',
-                                    current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
-                                    fix: 'Xóa dịch vụ "Khám Nội" hoặc chuyển sang chuyên khoa Nhi.'
-                                });
-                            }
-                        }
-                        
-                        // Rule: >= 16 tuổi -> Không được có "Khám Nhi"
-                        if (age >= 16) {
-                            if (tenDV.includes("khám nhi")) {
-                                patientErrors.push({
-                                    code: 'AGE_SERVICE_CONFLICT',
-                                    message: 'Bệnh nhân trên 16 tuổi có dịch vụ sai quy định',
-                                    current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
-                                    fix: 'Xóa dịch vụ "Khám Nhi".'
-                                });
-                            }
-                        }
-                    });
+            const checkPatient = (patient, table3Map) => {
+                const patientErrors = [];
+                const maLk = patient.MA_LK;
+                
+                // 1. Check Required Fields
+                const requiredFields = [
+                    'HO_TEN', 'MA_BN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 
+                    'MA_THE_BHYT', 'MA_DKBD', 'GT_THE_TU', 'GT_THE_DEN', 
+                    'LY_DO_VV', 'CHAN_DOAN_VAO', 'CHAN_DOAN_RV', 
+                    'MA_BENH_CHINH', 'MA_DOITUONG_KCB', 'CAN_NANG'
+                ];
 
-                    // If errors exist, add to main list
-                    if (patientErrors.length > 0) {
-                        newErrors.push({
-                            patientInfo: patient,
-                            detailErrors: patientErrors
+                requiredFields.forEach(field => {
+                    if (patient[field] === undefined || patient[field] === null || String(patient[field]).trim() === '') {
+                        patientErrors.push({
+                            code: 'MISSING_FIELD',
+                            message: `Thiếu thông tin bắt buộc: ${field}`,
+                            current: 'Trống',
+                            fix: `Bổ sung thông tin cột ${field}`
                         });
                     }
                 });
 
-                setErrors(newErrors);
-                setIsProcessing(false);
+                // 2. Check LY_DO_VV
+                if (patient.LY_DO_VV) {
+                    const hasLetters = /[a-zA-Z\u00C0-\u1EF9]/.test(String(patient.LY_DO_VV));
+                    if (!hasLetters) {
+                        patientErrors.push({
+                            code: 'INVALID_REASON',
+                            message: 'Lý do vào viện không hợp lệ',
+                            current: patient.LY_DO_VV,
+                            fix: 'Phải chứa chữ cái (không được chỉ có số/ký tự đặc biệt).'
+                        });
+                    }
+                }
+
+                // 3. Check Date Consistency
+                const dVao = getDatePart(patient.NGAY_VAO);
+                const dRa = getDatePart(patient.NGAY_RA);
+                const dTToan = getDatePart(patient.NGAY_TTOAN);
+
+                if (dVao && dRa && dTToan) {
+                     if (dVao !== dRa || dRa !== dTToan) {
+                        patientErrors.push({
+                            code: 'DATE_MISMATCH',
+                            message: 'Ngày Vào, Ra, Thanh toán không trùng khớp',
+                            current: `Vào: ${dVao}, Ra: ${dRa}, TT: ${dTToan}`,
+                            fix: 'Chỉnh sửa NGAY_VAO, NGAY_RA, NGAY_TTOAN về cùng một ngày.'
+                        });
+                     }
+                }
+
+                // 4. Cross Check with Table 3
+                const services = table3Map.get(maLk) || [];
+                const age = calculateAge(patient.NGAY_SINH, patient.NGAY_VAO);
+
+                services.forEach(svc => {
+                    const tenDV = String(svc.TEN_DICH_VU || "").toLowerCase();
+                    
+                    if (age < 16 && tenDV.includes("khám nội")) {
+                        patientErrors.push({
+                            code: 'AGE_SERVICE_CONFLICT',
+                            message: 'Dưới 16 tuổi sai dịch vụ',
+                            current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
+                            fix: 'Xóa dịch vụ "Khám Nội" hoặc chuyển sang chuyên khoa Nhi.'
+                        });
+                    }
+                    
+                    if (age >= 16 && tenDV.includes("khám nhi")) {
+                        patientErrors.push({
+                            code: 'AGE_SERVICE_CONFLICT',
+                            message: 'Trên 16 tuổi sai dịch vụ',
+                            current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
+                            fix: 'Xóa dịch vụ "Khám Nhi".'
+                        });
+                    }
+                });
+
+                return patientErrors;
             };
 
-            // --- Render: Login Screen ---
+            const finishValidation = (foundErrors) => {
+                setErrors(foundErrors);
+                setIsProcessing(false);
+                addLog(`HOÀN TẤT! Tổng thời gian xử lý xong.`);
+                addLog(`Kết quả: Tìm thấy ${foundErrors.length} hồ sơ lỗi.`);
+            };
+
+
+            // --- Render Functions ---
+
             if (!isLoggedIn) {
                 return (
                     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
@@ -297,7 +370,6 @@
                 );
             }
 
-            // --- Render: Main App ---
             return (
                 <div className="container mx-auto p-4 md:p-8 max-w-7xl">
                     {/* Header */}
@@ -307,7 +379,7 @@
                                 <i className="fa-solid fa-stethoscope mr-2 text-blue-500"></i>
                                 BHYT Inspector Pro
                             </h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Công cụ rà soát hồ sơ khám chữa bệnh tự động</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Phiên bản tối ưu hiệu suất v2.0</p>
                         </div>
                         <div className="flex gap-3">
                             <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:opacity-80 transition-all w-10 h-10 flex items-center justify-center">
@@ -327,7 +399,7 @@
                                 <i className="fa-solid fa-file-csv mr-2 text-green-500"></i>Bảng 1 (Thông tin BN)
                             </label>
                             <div className="relative">
-                                <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => handleFileUpload(e, setFile1Data, setFileName1)} className="hidden" id="file1" />
+                                <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => handleFileUpload(e, setFile1Data, setFileName1, "Bảng 1")} className="hidden" id="file1" />
                                 <label htmlFor="file1" className="cursor-pointer flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-800 transition-all text-sm truncate">
                                     {fileName1 || "Chọn file..."}
                                 </label>
@@ -341,7 +413,7 @@
                                 <i className="fa-solid fa-file-csv mr-2 text-orange-500"></i>Bảng 3 (Dịch vụ)
                             </label>
                             <div className="relative">
-                                <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => handleFileUpload(e, setFile3Data, setFileName3)} className="hidden" id="file3" />
+                                <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => handleFileUpload(e, setFile3Data, setFileName3, "Bảng 3")} className="hidden" id="file3" />
                                 <label htmlFor="file3" className="cursor-pointer flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-800 transition-all text-sm truncate">
                                     {fileName3 || "Chọn file..."}
                                 </label>
@@ -349,23 +421,51 @@
                             <div className="mt-2 text-xs text-right text-gray-400">{file3Data.length} dòng đã tải</div>
                         </div>
 
-                        {/* Action Button */}
-                        <div className="flex items-center">
+                        {/* Action Button & Logs */}
+                        <div className="flex flex-col gap-3">
                             <button 
                                 onClick={runValidation} 
                                 disabled={isProcessing}
-                                className={`w-full h-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center gap-2
+                                className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2
                                     ${isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-500/30'}
                                 `}
                             >
                                 {isProcessing ? (
-                                    <><i className="fa-solid fa-circle-notch fa-spin"></i> Đang xử lý...</>
+                                    <><i className="fa-solid fa-gears fa-spin"></i> Dừng thao tác...</>
                                 ) : (
                                     <><i className="fa-solid fa-magnifying-glass-chart text-2xl"></i> BẮT ĐẦU DÒ LỖI</>
                                 )}
                             </button>
+                            
+                            {/* PROGRESS BAR */}
+                            {isProcessing && (
+                                <div className="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 overflow-hidden">
+                                    <div 
+                                        className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out flex items-center justify-center text-[8px] text-white font-bold" 
+                                        style={{ width: `${progress}%` }}
+                                    >
+                                        {progress}%
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {/* LOG CONSOLE AREA */}
+                    {(isProcessing || logs.length > 0) && (
+                        <div className="mb-8 bg-gray-900 text-green-400 p-4 rounded-xl font-mono text-sm shadow-inner h-48 overflow-y-auto log-console border border-gray-700">
+                            <div className="flex justify-between items-center mb-2 border-b border-gray-700 pb-2 sticky top-0 bg-gray-900/90 backdrop-blur-sm">
+                                <span className="font-bold"><i className="fa-solid fa-terminal mr-2"></i>NHẬT KÝ HỆ THỐNG</span>
+                                <button onClick={() => setLogs([])} className="text-xs text-gray-500 hover:text-white">Xóa log</button>
+                            </div>
+                            <div className="space-y-1">
+                                {logs.map((log, idx) => (
+                                    <div key={idx} className="break-words">{log}</div>
+                                ))}
+                                <div ref={logEndRef} />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Results Area */}
                     {errors.length > 0 ? (
@@ -434,13 +534,15 @@
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-20 bg-white dark:bg-darkCard rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
-                            <div className="text-gray-300 dark:text-gray-600 text-6xl mb-4">
-                                <i className="fa-regular fa-clipboard"></i>
+                        !isProcessing && (
+                            <div className="text-center py-20 bg-white dark:bg-darkCard rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                                <div className="text-gray-300 dark:text-gray-600 text-6xl mb-4">
+                                    <i className="fa-regular fa-clipboard"></i>
+                                </div>
+                                <h3 className="text-xl font-medium text-gray-500 dark:text-gray-400">Chưa có kết quả phân tích</h3>
+                                <p className="text-gray-400 text-sm mt-2">Vui lòng tải file và nhấn nút "Bắt đầu dò lỗi"</p>
                             </div>
-                            <h3 className="text-xl font-medium text-gray-500 dark:text-gray-400">Chưa có kết quả phân tích</h3>
-                            <p className="text-gray-400 text-sm mt-2">Vui lòng tải file và nhấn nút "Bắt đầu dò lỗi"</p>
-                        </div>
+                        )
                     )}
 
                     {/* Modal for Patient Details */}
