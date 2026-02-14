@@ -18,6 +18,7 @@
             --key-bg: #e0e5ec;
             --accent-color: #ff9f43; /* Cam Hermes */
             --operator-color: #54a0ff;
+            --modal-bg: rgba(224, 229, 236, 0.95);
         }
 
         .dark-mode {
@@ -29,6 +30,7 @@
             --key-bg: #2d3436;
             --accent-color: #fab1a0;
             --operator-color: #74b9ff;
+            --modal-bg: rgba(45, 52, 54, 0.95);
         }
 
         body {
@@ -96,7 +98,7 @@
                        -5px -5px 10px var(--shadow-light);
         }
         
-        .btn-calc.equal:active {
+        .btn-calc.equal:active, .btn-calc.equal.pressed {
             background: var(--operator-color);
             box-shadow: inset 4px 4px 8px rgba(0,0,0,0.3);
         }
@@ -105,11 +107,11 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* History Scrollbar */
-        .history-scroll::-webkit-scrollbar {
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
             width: 4px;
         }
-        .history-scroll::-webkit-scrollbar-thumb {
+        .custom-scroll::-webkit-scrollbar-thumb {
             background-color: var(--text-secondary);
             border-radius: 4px;
         }
@@ -129,6 +131,20 @@
                 opacity: 0;
             }
         }
+
+        /* Modal History */
+        .modal {
+            background: var(--modal-bg);
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
     </style>
 </head>
 <body>
@@ -136,18 +152,21 @@
     <!-- Main Container -->
     <div class="neumorph p-6 w-full max-w-md flex flex-col gap-6 relative" style="max-height: 95vh;">
         
-        <!-- Header: Toggle DarkMode & Title -->
+        <!-- Header: Icons & Title -->
         <div class="flex justify-between items-center px-2">
+            <button id="historyBtn" class="btn-calc !h-8 !w-8 !rounded-full !text-xs" title="Lịch sử">
+                <i class="fas fa-history"></i>
+            </button>
             <div class="text-xs font-bold tracking-widest uppercase" style="color: var(--text-secondary);">CASIO PRO</div>
-            <button id="themeToggle" class="btn-calc !h-8 !w-8 !rounded-full !text-xs">
+            <button id="themeToggle" class="btn-calc !h-8 !w-8 !rounded-full !text-xs" title="Giao diện">
                 <i class="fas fa-moon"></i>
             </button>
         </div>
 
         <!-- Screen Area -->
         <div class="neumorph-inset p-4 rounded-xl flex flex-col justify-end h-40 relative overflow-hidden">
-            <!-- History (Previous calc) -->
-            <div id="historyDisplay" class="text-right text-sm mb-1 h-16 overflow-y-auto history-scroll whitespace-pre-line" style="color: var(--text-secondary);">
+            <!-- Mini History (Previous calc) -->
+            <div id="miniHistoryDisplay" class="text-right text-sm mb-1 h-6 truncate" style="color: var(--text-secondary); opacity: 0.6;">
                 
             </div>
             <!-- Current Expression (Small) -->
@@ -161,7 +180,7 @@
                 value="0">
         </div>
 
-        <!-- Advanced Functions Toggle (Mobile Friendly) -->
+        <!-- Advanced Functions Toggle -->
         <div class="grid grid-cols-5 gap-3 mb-2">
             <button class="btn-calc text-xs" onclick="handleSci('sin')">sin</button>
             <button class="btn-calc text-xs" onclick="handleSci('cos')">cos</button>
@@ -173,38 +192,53 @@
         <!-- Keypad Grid -->
         <div class="grid grid-cols-4 gap-4">
             <!-- Row 1 -->
-            <button class="btn-calc accent text-sm" onclick="clearAll()">AC</button>
-            <button class="btn-calc accent text-sm" onclick="deleteChar()">DEL</button>
-            <button class="btn-calc operator" onclick="appendOper('%')">%</button>
-            <button class="btn-calc operator" onclick="appendOper('/')">÷</button>
+            <button class="btn-calc accent text-sm" data-key="Escape" onclick="clearAll()">AC</button>
+            <button class="btn-calc accent text-sm" data-key="Backspace" onclick="deleteChar()">DEL</button>
+            <button class="btn-calc operator" data-key="%" onclick="appendOper('%')">%</button>
+            <button class="btn-calc operator" data-key="/" onclick="appendOper('/')">÷</button>
 
             <!-- Row 2 -->
-            <button class="btn-calc" onclick="appendNum('7')">7</button>
-            <button class="btn-calc" onclick="appendNum('8')">8</button>
-            <button class="btn-calc" onclick="appendNum('9')">9</button>
-            <button class="btn-calc operator" onclick="appendOper('*')">×</button>
+            <button class="btn-calc" data-key="7" onclick="appendNum('7')">7</button>
+            <button class="btn-calc" data-key="8" onclick="appendNum('8')">8</button>
+            <button class="btn-calc" data-key="9" onclick="appendNum('9')">9</button>
+            <button class="btn-calc operator" data-key="*" onclick="appendOper('*')">×</button>
 
             <!-- Row 3 -->
-            <button class="btn-calc" onclick="appendNum('4')">4</button>
-            <button class="btn-calc" onclick="appendNum('5')">5</button>
-            <button class="btn-calc" onclick="appendNum('6')">6</button>
-            <button class="btn-calc operator" onclick="appendOper('-')">-</button>
+            <button class="btn-calc" data-key="4" onclick="appendNum('4')">4</button>
+            <button class="btn-calc" data-key="5" onclick="appendNum('5')">5</button>
+            <button class="btn-calc" data-key="6" onclick="appendNum('6')">6</button>
+            <button class="btn-calc operator" data-key="-" onclick="appendOper('-')">-</button>
 
             <!-- Row 4 -->
-            <button class="btn-calc" onclick="appendNum('1')">1</button>
-            <button class="btn-calc" onclick="appendNum('2')">2</button>
-            <button class="btn-calc" onclick="appendNum('3')">3</button>
-            <button class="btn-calc operator" onclick="appendOper('+')">+</button>
+            <button class="btn-calc" data-key="1" onclick="appendNum('1')">1</button>
+            <button class="btn-calc" data-key="2" onclick="appendNum('2')">2</button>
+            <button class="btn-calc" data-key="3" onclick="appendNum('3')">3</button>
+            <button class="btn-calc operator" data-key="+" onclick="appendOper('+')">+</button>
 
             <!-- Row 5 -->
-            <button class="btn-calc" onclick="appendNum('0')">0</button>
-            <button class="btn-calc" onclick="appendNum('00')">00</button>
-            <button class="btn-calc" onclick="appendNum('.')">.</button>
-            <button class="btn-calc equal" onclick="calculate()">=</button>
+            <button class="btn-calc" data-key="0" onclick="appendNum('0')">0</button>
+            <button class="btn-calc" data-key="00" onclick="appendNum('00')">00</button>
+            <button class="btn-calc" data-key="." onclick="appendNum('.')">.</button>
+            <button class="btn-calc equal" data-key="Enter" onclick="calculate()">=</button>
         </div>
 
-        <div class="text-center text-[10px] mt-2 opacity-50" style="color: var(--text-secondary)">
-            Office Edition &bull; Auto-Save History
+        <!-- History Modal Overlay -->
+        <div id="historyModal" class="modal absolute inset-0 rounded-2xl p-6 flex flex-col">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-400/20">
+                <h3 class="font-bold text-lg" style="color: var(--text-main)">Lịch Sử Tính Toán</h3>
+                <button id="closeHistory" class="text-xl hover:opacity-70 transition" style="color: var(--text-main)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- History List -->
+            <div id="fullHistoryList" class="flex-1 overflow-y-auto custom-scroll space-y-3" style="color: var(--text-main)">
+                <div class="text-center text-sm opacity-50 mt-10">Chưa có phép tính nào</div>
+            </div>
+
+            <button onclick="clearHistory()" class="btn-calc accent w-full mt-4 !h-12 text-sm">
+                <i class="fas fa-trash-alt mr-2"></i> Xóa Tất Cả
+            </button>
         </div>
 
     </div>
@@ -212,15 +246,15 @@
     <script>
         // State
         let currentInput = '0';
-        let previousInput = '';
-        let operator = null;
-        let history = [];
+        let historyData = [];
         let justCalculated = false;
 
         // Elements
         const mainDisplay = document.getElementById('mainDisplay');
         const subDisplay = document.getElementById('subDisplay');
-        const historyDisplay = document.getElementById('historyDisplay');
+        const miniHistoryDisplay = document.getElementById('miniHistoryDisplay');
+        const fullHistoryList = document.getElementById('fullHistoryList');
+        const historyModal = document.getElementById('historyModal');
         const themeBtn = document.getElementById('themeToggle');
 
         // Initial update
@@ -248,9 +282,10 @@
                 justCalculated = false;
             }
             
-            // Check if last char is an operator, replace it if so
+            // Logic to prevent double operators or replace last operator
             const lastChar = currentInput.slice(-1);
             if (['+', '-', '*', '/', '%'].includes(lastChar)) {
+                // If input is just an operator (rare), or we are chaining
                 currentInput = currentInput.slice(0, -1) + op;
             } else {
                 currentInput += op;
@@ -291,24 +326,24 @@
                 case 'log': result = Math.log10(val); break;
             }
             
-            // Format scientific result
-            result = parseFloat(result.toFixed(8)).toString();
-            addToHistory(`${func}(${val})`, result);
-            currentInput = result;
+            let formattedRes = parseFloat(result.toFixed(8)).toString();
+            saveHistory(`${func}(${val})`, formattedRes);
+            
+            currentInput = formattedRes;
             justCalculated = true;
             updateScreen();
         }
 
         function calculate() {
             try {
-                // Replace visual symbols for eval
+                // Prevent empty calculation
+                if (!currentInput || currentInput === 'Error') return;
+
                 let expression = currentInput
                     .replace(/×/g, '*')
                     .replace(/÷/g, '/');
 
-                // Handle percentage (simple logic: number% -> number/100)
-                // Note: Complex accounting logic like 100 + 10% is tricky in simple eval. 
-                // We will treat % as /100 for standard scientific behavior.
+                // Handle percentage
                 expression = expression.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
 
                 const result = evalSafe(expression);
@@ -316,9 +351,8 @@
                 if (result === Infinity || isNaN(result)) {
                     currentInput = "Error";
                 } else {
-                    // Format result: Remove trailing zeros, limit decimals
                     let formattedResult = parseFloat(result.toFixed(10)).toString();
-                    addToHistory(currentInput, formattedResult);
+                    saveHistory(currentInput, formattedResult);
                     currentInput = formattedResult;
                 }
                 justCalculated = true;
@@ -328,37 +362,84 @@
             updateScreen();
         }
 
-        // Safer Eval function
         function evalSafe(fn) {
             return new Function('return ' + fn)();
         }
 
         function updateScreen() {
-            // Add thousand separators for readability
-            // We split by operators to format only the numbers
-            const formatted = currentInput.replace(/([0-9]+(\.[0-9]+)?)/g, (match) => {
-                // Only format if it's purely a number (not inside a scientific notation if we had one)
-                if (match.includes('.')) return match; // Simplification: don't comma decimals yet while typing
-                return match; 
-                // Note: Real-time formatting while typing is complex. 
-                // For this display, we just show raw input mostly, but formatted result.
-            });
-
+            // Display formatted number
             mainDisplay.value = currentInput;
+            // Simple visual indicator for operator
+            const lastChar = currentInput.slice(-1);
+            if (['+', '-', '*', '/'].includes(lastChar)) {
+                 subDisplay.innerText = currentInput;
+            } else {
+                 subDisplay.innerText = '';
+            }
+        }
+
+        // --- History Logic ---
+        function saveHistory(expr, res) {
+            // Clean up visual expression
+            let displayExpr = expr.replace(/\*/g, '×').replace(/\//g, '÷');
             
-            // Auto scroll main display to right
-            // mainDisplay.scrollLeft = mainDisplay.scrollWidth;
+            // Add to data array
+            historyData.unshift({ expr: displayExpr, res: res });
+            
+            // Limit to 20 items
+            if (historyData.length > 20) historyData.pop();
+
+            // Update Mini Display (Latest only)
+            miniHistoryDisplay.innerText = `${displayExpr} = ${res}`;
+
+            renderHistoryModal();
         }
 
-        function addToHistory(expr, res) {
-            const item = `<div class="mb-1 border-b border-gray-200/10 pb-1">
-                            <span class="text-xs opacity-70">${expr} =</span> 
-                            <span class="font-bold">${res}</span>
-                          </div>`;
-            historyDisplay.innerHTML = item + historyDisplay.innerHTML;
+        function renderHistoryModal() {
+            if (historyData.length === 0) {
+                fullHistoryList.innerHTML = '<div class="text-center text-sm opacity-50 mt-10">Chưa có phép tính nào</div>';
+                return;
+            }
+
+            fullHistoryList.innerHTML = historyData.map((item, index) => `
+                <div class="neumorph-inset p-3 rounded-lg mb-2 flex justify-between items-center">
+                    <div class="text-xs opacity-70 w-1/2 break-words">${item.expr}</div>
+                    <div class="font-bold text-lg" onclick="recallHistory('${item.res}')" style="cursor:pointer; color: var(--accent-color)">${item.res}</div>
+                </div>
+            `).join('');
         }
 
-        // --- Dark Mode Logic ---
+        function recallHistory(val) {
+            if (['+', '-', '*', '/'].includes(currentInput.slice(-1))) {
+                 currentInput += val;
+            } else {
+                 currentInput = val;
+                justCalculated = true; // treat as a result
+            }
+            historyModal.classList.remove('active'); // Close modal on selection
+            updateScreen();
+        }
+
+        function clearHistory() {
+            historyData = [];
+            miniHistoryDisplay.innerText = '';
+            renderHistoryModal();
+        }
+
+        // --- Modal Control ---
+        const historyBtn = document.getElementById('historyBtn');
+        const closeHistoryBtn = document.getElementById('closeHistory');
+
+        historyBtn.addEventListener('click', () => {
+            renderHistoryModal();
+            historyModal.classList.add('active');
+        });
+
+        closeHistoryBtn.addEventListener('click', () => {
+            historyModal.classList.remove('active');
+        });
+
+        // --- Dark Mode ---
         let isDarkMode = false;
         themeBtn.addEventListener('click', () => {
             isDarkMode = !isDarkMode;
@@ -371,37 +452,46 @@
             }
         });
 
-        // --- Keyboard Support ---
+        // --- Enhanced Keyboard Support ---
         document.addEventListener('keydown', (e) => {
             const key = e.key;
-            
-            // Numbers
-            if (/[0-9]/.test(key)) {
+
+            // Map keyboard keys to calculator functions
+            if (key >= '0' && key <= '9') {
                 appendNum(key);
                 animateButton(key);
-            }
-            // Operators
-            else if (['+', '-', '*', '/'].test(key)) {
-                appendOper(key);
-                animateButton(key);
-            }
-            // Special Keys
-            else if (key === 'Enter' || key === '=') {
-                e.preventDefault();
-                calculate();
-                animateButton('=');
-            }
-            else if (key === 'Backspace') {
-                deleteChar();
-                animateButton('DEL');
-            }
-            else if (key === 'Escape') {
-                clearAll();
-                animateButton('AC');
-            }
+            } 
             else if (key === '.') {
                 appendNum('.');
                 animateButton('.');
+            }
+            else if (key === '+' || key === '-') {
+                e.preventDefault(); // Prevent scrolling if applicable
+                appendOper(key);
+                animateButton(key);
+            }
+            else if (key === '*' || key.toLowerCase() === 'x') {
+                e.preventDefault();
+                appendOper('*');
+                animateButton('*');
+            }
+            else if (key === '/') {
+                e.preventDefault(); // Prevent Firefox quick search
+                appendOper('/');
+                animateButton('/');
+            }
+            else if (key === 'Enter' || key === '=') {
+                e.preventDefault(); // Prevent form submit
+                calculate();
+                animateButton('Enter');
+            }
+            else if (key === 'Backspace') {
+                deleteChar();
+                animateButton('Backspace');
+            }
+            else if (key === 'Escape' || key.toLowerCase() === 'c') {
+                clearAll();
+                animateButton('Escape');
             }
             else if (key === '%') {
                 appendOper('%');
@@ -409,31 +499,29 @@
             }
         });
 
-        // Visual feedback helper for keyboard press
+        // Visual feedback
         function animateButton(keyVal) {
-            // Find button with specific text and add 'pressed' class temporarily
-            const buttons = document.querySelectorAll('button');
-            buttons.forEach(btn => {
-                const text = btn.innerText;
-                // Mapping some symbols
-                if (text === keyVal || 
-                   (keyVal === '*' && text === '×') || 
-                   (keyVal === '/' && text === '÷') ||
-                   (keyVal === 'Enter' && text === '=') ||
-                   (keyVal === 'Backspace' && text === 'DEL') ||
-                   (keyVal === 'Escape' && text === 'AC')) {
-                    
-                    btn.classList.add('pressed');
-                    setTimeout(() => btn.classList.remove('pressed'), 150);
-                }
-            });
+            let selector = `button[data-key="${keyVal}"]`;
+            
+            // Handle mappings for visual matching
+            if (keyVal === 'Enter') selector = `button[data-key="Enter"]`;
+            if (keyVal === '*') selector = `button[data-key="*"]`;
+            if (keyVal === '/') selector = `button[data-key="/"]`;
+
+            const btn = document.querySelector(selector);
+            if (btn) {
+                btn.classList.add('pressed');
+                setTimeout(() => btn.classList.remove('pressed'), 150);
+            }
         }
 
-        // Click Ripple Effect
+        // Ripple Effect
         document.querySelectorAll('.btn-calc').forEach(btn => {
             btn.addEventListener('click', function(e) {
-                let x = e.clientX - e.target.offsetLeft;
-                let y = e.clientY - e.target.offsetTop;
+                let rect = this.getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                let y = e.clientY - rect.top;
+                
                 let ripples = document.createElement('span');
                 ripples.classList.add('ripple');
                 ripples.style.left = x + 'px';
