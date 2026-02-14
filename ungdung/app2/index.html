@@ -3,810 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Bảng Kê & Đối Chiếu</title>
-    
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
+    <title>Office Calculator Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- SheetJS for Excel Export/Import -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
-        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
+
+        :root {
+            --bg-color: #e0e5ec;
+            --text-main: #4a5568;
+            --text-secondary: #a0aec0;
+            --shadow-light: #ffffff;
+            --shadow-dark: #a3b1c6;
+            --key-bg: #e0e5ec;
+            --accent-color: #ff9f43; /* Cam Hermes */
+            --operator-color: #54a0ff;
+        }
+
+        .dark-mode {
+            --bg-color: #2d3436;
+            --text-main: #dfe6e9;
+            --text-secondary: #636e72;
+            --shadow-light: #3d4649;
+            --shadow-dark: #1e2324;
+            --key-bg: #2d3436;
+            --accent-color: #fab1a0;
+            --operator-color: #74b9ff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Neomorphism Effect */
+        .neumorph {
+            background: var(--bg-color);
+            box-shadow: 9px 9px 16px var(--shadow-dark), 
+                       -9px -9px 16px var(--shadow-light);
+            border-radius: 20px;
+        }
+
+        .neumorph-inset {
+            box-shadow: inset 6px 6px 10px var(--shadow-dark), 
+                        inset -6px -6px 10px var(--shadow-light);
+        }
+
+        .btn-calc {
+            height: 60px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            user-select: none;
+            background: var(--key-bg);
+            box-shadow: 5px 5px 10px var(--shadow-dark), 
+                       -5px -5px 10px var(--shadow-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-calc:active, .btn-calc.pressed {
+            box-shadow: inset 4px 4px 8px var(--shadow-dark), 
+                        inset -4px -4px 8px var(--shadow-light);
+            transform: scale(0.98);
+        }
+
+        .btn-calc.accent {
+            color: var(--accent-color);
+        }
+
+        .btn-calc.operator {
+            color: var(--operator-color);
+            font-size: 1.3rem;
+        }
+
+        .btn-calc.equal {
+            background: var(--operator-color);
+            color: white;
+            box-shadow: 5px 5px 10px var(--shadow-dark), 
+                       -5px -5px 10px var(--shadow-light);
+        }
+        
+        .btn-calc.equal:active {
+            background: var(--operator-color);
+            box-shadow: inset 4px 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .screen-text {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* History Scrollbar */
+        .history-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .history-scroll::-webkit-scrollbar-thumb {
+            background-color: var(--text-secondary);
+            border-radius: 4px;
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        // --- COMPONENTS ---
+    <!-- Main Container -->
+    <div class="neumorph p-6 w-full max-w-md flex flex-col gap-6 relative" style="max-height: 95vh;">
+        
+        <!-- Header: Toggle DarkMode & Title -->
+        <div class="flex justify-between items-center px-2">
+            <div class="text-xs font-bold tracking-widest uppercase" style="color: var(--text-secondary);">CASIO PRO</div>
+            <button id="themeToggle" class="btn-calc !h-8 !w-8 !rounded-full !text-xs">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
 
-        const Spinner = () => (
-            <div className="flex justify-center items-center p-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <!-- Screen Area -->
+        <div class="neumorph-inset p-4 rounded-xl flex flex-col justify-end h-40 relative overflow-hidden">
+            <!-- History (Previous calc) -->
+            <div id="historyDisplay" class="text-right text-sm mb-1 h-16 overflow-y-auto history-scroll whitespace-pre-line" style="color: var(--text-secondary);">
+                
             </div>
-        );
-
-        const StatCard = ({ title, value, icon, color }) => (
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4 transition hover:shadow-md">
-                <div className={`p-3 rounded-full ${color} text-white shadow-sm`}>
-                    {icon}
-                </div>
-                <div>
-                    <p className="text-sm text-gray-500 font-medium">{title}</p>
-                    <p className="text-2xl font-bold text-gray-800">{value}</p>
-                </div>
+            <!-- Current Expression (Small) -->
+            <div id="subDisplay" class="text-right text-sm h-6 overflow-hidden truncate" style="color: var(--text-secondary); opacity: 0.8;">
+                
             </div>
-        );
+            <!-- Main Result -->
+            <input type="text" id="mainDisplay" readonly 
+                class="screen-text w-full bg-transparent text-right text-3xl font-bold outline-none border-none cursor-text" 
+                style="color: var(--text-main);"
+                value="0">
+        </div>
 
-        // --- ERROR HELP SCREEN ---
-        const ErrorHelpScreen = ({ errorType, projectId, onReset }) => {
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full fade-in">
-                        <div className="text-center mb-6">
-                            <div className="bg-red-100 p-3 rounded-full inline-block mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-800">
-                                {errorType === 'api_not_enabled' ? 'Chưa bật Database' : 'Lỗi Quyền/Kết nối'}
-                            </h2>
-                            <p className="text-gray-600 mt-2">
-                                Dự án <b>{projectId}</b> đang gặp vấn đề.
-                            </p>
-                        </div>
+        <!-- Advanced Functions Toggle (Mobile Friendly) -->
+        <div class="grid grid-cols-5 gap-3 mb-2">
+            <button class="btn-calc text-xs" onclick="handleSci('sin')">sin</button>
+            <button class="btn-calc text-xs" onclick="handleSci('cos')">cos</button>
+            <button class="btn-calc text-xs" onclick="handleSci('tan')">tan</button>
+            <button class="btn-calc text-xs" onclick="handleSci('log')">log</button>
+            <button class="btn-calc text-xs" onclick="handleSci('sqrt')">√</button>
+        </div>
 
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 text-sm text-gray-700 space-y-3">
-                            <p className="font-bold text-blue-800 text-lg">Cách khắc phục (chỉ làm 1 lần):</p>
-                            <ol className="list-decimal list-inside space-y-2 ml-2">
-                                <li>Truy cập <a href={`https://console.firebase.google.com/project/${projectId}/firestore`} target="_blank" className="text-blue-600 underline font-bold hover:text-blue-800">Firebase Console &gt; Firestore Database</a>.</li>
-                                
-                                {errorType === 'api_not_enabled' ? (
-                                    <>
-                                        <li>Nhấn nút <b className="text-black">Create Database</b> (Tạo cơ sở dữ liệu).</li>
-                                        <li>Chọn vị trí máy chủ (mặc định) rồi nhấn <b>Next</b>.</li>
-                                        <li>Chọn <b className="text-red-600">Start in Test Mode</b> (Chế độ kiểm thử) để không bị chặn quyền.</li>
-                                        <li>Nhấn <b>Enable</b> và đợi khoảng 1 phút.</li>
-                                    </>
-                                ) : (
-                                    <>
-                                        <li>Chuyển sang tab <b className="text-black">Rules</b> (Quy tắc).</li>
-                                        <li>Sửa đoạn mã thành: <code>allow read, write: if true;</code></li>
-                                        <li>Nhấn nút <b>Publish</b>.</li>
-                                    </>
-                                )}
-                            </ol>
-                        </div>
+        <!-- Keypad Grid -->
+        <div class="grid grid-cols-4 gap-4">
+            <!-- Row 1 -->
+            <button class="btn-calc accent text-sm" onclick="clearAll()">AC</button>
+            <button class="btn-calc accent text-sm" onclick="deleteChar()">DEL</button>
+            <button class="btn-calc operator" onclick="appendOper('%')">%</button>
+            <button class="btn-calc operator" onclick="appendOper('/')">÷</button>
 
-                        <div className="mt-8 text-center flex flex-col md:flex-row gap-3 justify-center">
-                            <button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition transform hover:-translate-y-0.5">
-                                Đã làm xong, Tải lại trang (F5)
-                            </button>
-                            <button onClick={onReset} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition">
-                                Đổi cấu hình khác
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
+            <!-- Row 2 -->
+            <button class="btn-calc" onclick="appendNum('7')">7</button>
+            <button class="btn-calc" onclick="appendNum('8')">8</button>
+            <button class="btn-calc" onclick="appendNum('9')">9</button>
+            <button class="btn-calc operator" onclick="appendOper('*')">×</button>
 
-        // --- LOCK SCREEN COMPONENT ---
-        const LockScreen = ({ onUnlock }) => {
-            const [pass, setPass] = React.useState('');
-            const [error, setError] = React.useState('');
+            <!-- Row 3 -->
+            <button class="btn-calc" onclick="appendNum('4')">4</button>
+            <button class="btn-calc" onclick="appendNum('5')">5</button>
+            <button class="btn-calc" onclick="appendNum('6')">6</button>
+            <button class="btn-calc operator" onclick="appendOper('-')">-</button>
 
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                // MẬT KHẨU MẶC ĐỊNH: 1402
-                if (pass === '1402') {
-                    onUnlock();
+            <!-- Row 4 -->
+            <button class="btn-calc" onclick="appendNum('1')">1</button>
+            <button class="btn-calc" onclick="appendNum('2')">2</button>
+            <button class="btn-calc" onclick="appendNum('3')">3</button>
+            <button class="btn-calc operator" onclick="appendOper('+')">+</button>
+
+            <!-- Row 5 -->
+            <button class="btn-calc" onclick="appendNum('0')">0</button>
+            <button class="btn-calc" onclick="appendNum('00')">00</button>
+            <button class="btn-calc" onclick="appendNum('.')">.</button>
+            <button class="btn-calc equal" onclick="calculate()">=</button>
+        </div>
+
+        <div class="text-center text-[10px] mt-2 opacity-50" style="color: var(--text-secondary)">
+            Office Edition &bull; Auto-Save History
+        </div>
+
+    </div>
+
+    <script>
+        // State
+        let currentInput = '0';
+        let previousInput = '';
+        let operator = null;
+        let history = [];
+        let justCalculated = false;
+
+        // Elements
+        const mainDisplay = document.getElementById('mainDisplay');
+        const subDisplay = document.getElementById('subDisplay');
+        const historyDisplay = document.getElementById('historyDisplay');
+        const themeBtn = document.getElementById('themeToggle');
+
+        // Initial update
+        updateScreen();
+
+        // --- Core Logic ---
+
+        function appendNum(num) {
+            if (justCalculated) {
+                currentInput = num;
+                justCalculated = false;
+            } else {
+                if (currentInput === '0' && num !== '.') {
+                    currentInput = num;
                 } else {
-                    setError('Mật khẩu không đúng');
-                    setPass('');
-                    const input = document.getElementById('pass-input');
-                    if(input) {
-                        input.classList.add('ring-2', 'ring-red-500');
-                        setTimeout(() => input.classList.remove('ring-2', 'ring-red-500'), 500);
-                    }
+                    if (num === '.' && currentInput.includes('.')) return;
+                    currentInput += num;
                 }
-            };
+            }
+            updateScreen();
+        }
 
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full fade-in text-center">
-                        <div className="bg-blue-100 p-4 rounded-full inline-block mb-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        </div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">Bảo mật truy cập</h2>
-                        <p className="text-gray-500 text-sm mb-6">Vui lòng nhập mã khóa để tiếp tục</p>
-                        
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <input 
-                                id="pass-input"
-                                type="password" 
-                                className="w-full text-center text-2xl tracking-widest border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                placeholder="****"
-                                maxLength="4"
-                                autoFocus
-                                value={pass}
-                                onChange={(e) => setPass(e.target.value)}
-                            />
-                            {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
-                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-md">
-                                Mở Khóa
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- CONFIG SCREEN COMPONENT ---
-        const ConfigScreen = ({ onSave }) => {
-            const [apiKey, setApiKey] = React.useState('');
-            const [authDomain, setAuthDomain] = React.useState('');
-            const [projectId, setProjectId] = React.useState('');
+        function appendOper(op) {
+            if (justCalculated) {
+                justCalculated = false;
+            }
             
-            const [error, setError] = React.useState('');
-            const [isTesting, setIsTesting] = React.useState(false);
+            // Check if last char is an operator, replace it if so
+            const lastChar = currentInput.slice(-1);
+            if (['+', '-', '*', '/', '%'].includes(lastChar)) {
+                currentInput = currentInput.slice(0, -1) + op;
+            } else {
+                currentInput += op;
+            }
+            updateScreen();
+        }
 
-            const handleSave = async () => {
-                setError('');
-                if (!apiKey || !authDomain || !projectId) {
-                    setError("Vui lòng điền đầy đủ 3 thông tin.");
-                    return;
-                }
+        function clearAll() {
+            currentInput = '0';
+            subDisplay.innerText = '';
+            justCalculated = false;
+            updateScreen();
+        }
 
-                const config = {
-                    apiKey: apiKey.trim(),
-                    authDomain: authDomain.trim(),
-                    projectId: projectId.trim()
-                };
+        function deleteChar() {
+            if (justCalculated) {
+                clearAll();
+                return;
+            }
+            if (currentInput.length === 1) {
+                currentInput = '0';
+            } else {
+                currentInput = currentInput.slice(0, -1);
+            }
+            updateScreen();
+        }
 
-                setIsTesting(true);
+        function handleSci(func) {
+            let val = parseFloat(evalSafe(currentInput));
+            if (isNaN(val)) return;
 
-                try {
-                    const testAppName = 'test-connection-' + Date.now();
-                    const testApp = firebase.initializeApp(config, testAppName);
-                    await testApp.auth().signInAnonymously();
-                    await testApp.delete();
-                    
-                    localStorage.setItem('my_firebase_config', JSON.stringify(config));
-                    onSave(config);
-
-                } catch (e) {
-                    console.error("Test connection failed:", e);
-                    let msg = "Kết nối thất bại.";
-                    if (e.code === 'auth/api-key-not-valid-please-pass-a-valid-api-key' || e.code === 'auth/invalid-api-key') {
-                        msg = "Lỗi: API Key sai.";
-                    } else if (e.code === 'auth/operation-not-allowed') {
-                        msg = "Lỗi: Chưa bật Anonymous (Ẩn danh) trong Authentication.";
-                    } else {
-                        msg = "Lỗi: Kiểm tra lại Project ID hoặc đường mạng.";
-                    }
-                    setError(msg);
-                } finally {
-                    setIsTesting(false);
-                }
-            };
-
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full fade-in">
-                        <div className="text-center mb-6">
-                            <div className="bg-blue-100 p-3 rounded-full inline-block mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-800">Cấu hình kết nối</h2>
-                            <p className="text-gray-500 text-sm mt-2">Nhập thông tin dự án Firebase của bạn.</p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Project ID</label>
-                                <input 
-                                    type="text"
-                                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                    value={projectId}
-                                    onChange={(e) => setProjectId(e.target.value)}
-                                    disabled={isTesting}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                                <input 
-                                    type="text"
-                                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    disabled={isTesting}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Auth Domain</label>
-                                <input 
-                                    type="text"
-                                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                    value={authDomain}
-                                    onChange={(e) => setAuthDomain(e.target.value)}
-                                    disabled={isTesting}
-                                />
-                            </div>
-
-                            {error && (
-                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-xs" role="alert">
-                                    <strong className="font-bold">Thông báo: </strong>
-                                    <span className="block sm:inline">{error}</span>
-                                </div>
-                            )}
-
-                            <button 
-                                onClick={handleSave} 
-                                disabled={isTesting}
-                                className={`w-full text-white font-bold py-3 rounded-lg transition shadow-lg mt-2 flex justify-center items-center space-x-2 ${isTesting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5'}`}
-                            >
-                                {isTesting ? 'Đang kiểm tra...' : 'Kết nối'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- MAIN APP COMPONENT ---
-        const App = () => {
-            const [isLocked, setIsLocked] = React.useState(true);
-            const [isConfigured, setIsConfigured] = React.useState(false);
-            const [user, setUser] = React.useState(null);
-            const [loading, setLoading] = React.useState(true);
-            const [logs, setLogs] = React.useState([]);
-            const [selectedMonth, setSelectedMonth] = React.useState(new Date().toISOString().slice(0, 7));
-            const [dbInstance, setDbInstance] = React.useState(null);
-            const [dbError, setDbError] = React.useState(null);
+            let result = 0;
+            switch(func) {
+                case 'sin': result = Math.sin(val * Math.PI / 180); break; // Degree
+                case 'cos': result = Math.cos(val * Math.PI / 180); break;
+                case 'tan': result = Math.tan(val * Math.PI / 180); break;
+                case 'sqrt': result = Math.sqrt(val); break;
+                case 'log': result = Math.log10(val); break;
+            }
             
-            // Form State
-            const [formData, setFormData] = React.useState({
-                date: new Date().toISOString().slice(0, 10),
-                gate: '',
-                actual: '',
-                note: ''
+            // Format scientific result
+            result = parseFloat(result.toFixed(8)).toString();
+            addToHistory(`${func}(${val})`, result);
+            currentInput = result;
+            justCalculated = true;
+            updateScreen();
+        }
+
+        function calculate() {
+            try {
+                // Replace visual symbols for eval
+                let expression = currentInput
+                    .replace(/×/g, '*')
+                    .replace(/÷/g, '/');
+
+                // Handle percentage (simple logic: number% -> number/100)
+                // Note: Complex accounting logic like 100 + 10% is tricky in simple eval. 
+                // We will treat % as /100 for standard scientific behavior.
+                expression = expression.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+
+                const result = evalSafe(expression);
+                
+                if (result === Infinity || isNaN(result)) {
+                    currentInput = "Error";
+                } else {
+                    // Format result: Remove trailing zeros, limit decimals
+                    let formattedResult = parseFloat(result.toFixed(10)).toString();
+                    addToHistory(currentInput, formattedResult);
+                    currentInput = formattedResult;
+                }
+                justCalculated = true;
+            } catch (e) {
+                currentInput = "Error";
+            }
+            updateScreen();
+        }
+
+        // Safer Eval function
+        function evalSafe(fn) {
+            return new Function('return ' + fn)();
+        }
+
+        function updateScreen() {
+            // Add thousand separators for readability
+            // We split by operators to format only the numbers
+            const formatted = currentInput.replace(/([0-9]+(\.[0-9]+)?)/g, (match) => {
+                // Only format if it's purely a number (not inside a scientific notation if we had one)
+                if (match.includes('.')) return match; // Simplification: don't comma decimals yet while typing
+                return match; 
+                // Note: Real-time formatting while typing is complex. 
+                // For this display, we just show raw input mostly, but formatted result.
             });
-            const [isEditing, setIsEditing] = React.useState(null);
 
-            // Chart Refs
-            const barChartRef = React.useRef(null);
-            const pieChartRef = React.useRef(null);
-            const barChartInstance = React.useRef(null);
-            const pieChartInstance = React.useRef(null);
-
-            // --- INIT FIREBASE ---
-            React.useEffect(() => {
-                const sessionUnlocked = sessionStorage.getItem('app_unlocked');
-                if (sessionUnlocked === 'true') {
-                    setIsLocked(false);
-                }
-
-                // CẤU HÌNH ĐÃ ĐƯỢC MÃ HÓA (OBFUSCATED CONFIG)
-                // Kỹ thuật này giúp giấu key khỏi việc đọc code thông thường.
-                const _k = (s) => atob(s);
-                
-                // key: AIzaSyB9hiIWGvlG-Qk82XbQrF7WxD0s6YcGwYQ -> Base64
-                // domain: quanlybangke.firebaseapp.com -> Base64
-                // project: quanlybangke -> Base64
-                
-                const hiddenConfig = {
-                    apiKey: _k("QUl6YVN5QjloaUlXR3ZsRy1RazgyWGJRckY3V3hEMHM2WWNHd1lR"),
-                    authDomain: _k("cXVhbmx5YmFuZ2tlLmZpcmViYXNlYXBwLmNvbQ=="),
-                    projectId: _k("cXVhbmx5YmFuZ2tl")
-                };
-
-                initializeFirebase(hiddenConfig);
-            }, []);
-
-            const initializeFirebase = (config) => {
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(config);
-                }
-                const auth = firebase.auth();
-                const db = firebase.firestore();
-                setDbInstance(db);
-
-                const initAuth = async () => {
-                    try {
-                        await auth.signInAnonymously();
-                    } catch (e) {
-                        console.error("Auth failed", e);
-                        setLoading(false);
-                    }
-                };
-
-                initAuth();
-                auth.onAuthStateChanged((u) => {
-                    if (u) {
-                        setUser(u);
-                        setIsConfigured(true);
-                        setLoading(false);
-                    }
-                });
-            };
-
-            const handleConfigSave = (config) => {
-                setLoading(true);
-                initializeFirebase(config);
-            };
-
-            const resetConfig = () => {
-                if(confirm("Bạn muốn đổi sang dự án Firebase khác?")) {
-                    localStorage.removeItem('my_firebase_config');
-                    window.location.reload();
-                }
-            };
-
-            const handleLock = () => {
-                setIsLocked(true);
-                sessionStorage.removeItem('app_unlocked');
-            };
-
-            const handleUnlock = () => {
-                setIsLocked(false);
-                sessionStorage.setItem('app_unlocked', 'true'); 
-            };
-
-            // --- DATA FETCHING ---
-            React.useEffect(() => {
-                if (!user || !dbInstance) return;
-
-                const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'personal-tracker';
-                const collectionRef = dbInstance.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('daily_logs');
-                
-                const unsubscribe = collectionRef.onSnapshot((snapshot) => {
-                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    data.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    setLogs(data);
-                }, (error) => {
-                    console.error("Error fetching data:", error);
-                    if (error.code === 'permission-denied') {
-                        if (error.message && (error.message.includes("Cloud Firestore API") || error.message.includes("disabled"))) {
-                            setDbError('api_not_enabled');
-                        } else {
-                            setDbError('permission_denied');
-                        }
-                    } else if (error.code === 'unavailable') {
-                         // Ignore offline
-                    }
-                });
-
-                return () => unsubscribe();
-            }, [user, dbInstance]);
-
-            // --- COMPUTED DATA & CHARTS ---
-            const currentMonthLogs = React.useMemo(() => {
-                return logs.filter(log => log.date.startsWith(selectedMonth));
-            }, [logs, selectedMonth]);
-
-            const stats = React.useMemo(() => {
-                let totalGate = 0;
-                let totalActual = 0;
-                let correctDays = 0;
-                let errorDays = 0;
-
-                currentMonthLogs.forEach(log => {
-                    totalGate += Number(log.gate) || 0;
-                    totalActual += Number(log.actual) || 0;
-                    if ((log.note || '').toLowerCase().includes('đúng')) correctDays++;
-                    else errorDays++;
-                });
-
-                return { totalGate, totalActual, correctDays, errorDays };
-            }, [currentMonthLogs]);
-
-            React.useEffect(() => {
-                if (loading || isLocked || !isConfigured || dbError || !barChartRef.current || !pieChartRef.current) return;
-
-                const chartData = [...currentMonthLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
-                const labels = chartData.map(l => l.date.split('-')[2]);
-                const gateData = chartData.map(l => l.gate);
-                const actualData = chartData.map(l => l.actual);
-
-                if (barChartInstance.current) barChartInstance.current.destroy();
-                barChartInstance.current = new Chart(barChartRef.current, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { label: 'Cổng', data: gateData, backgroundColor: '#3b82f6', borderRadius: 4 },
-                            { label: 'Thực tế', data: actualData, backgroundColor: '#10b981', borderRadius: 4 }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
-
-                if (pieChartInstance.current) pieChartInstance.current.destroy();
-                pieChartInstance.current = new Chart(pieChartRef.current, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Đúng', 'Sai/Lệch'],
-                        datasets: [{
-                            data: [stats.correctDays, stats.errorDays],
-                            backgroundColor: ['#10b981', '#ef4444'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } }
-                    }
-                });
-
-            }, [currentMonthLogs, loading, isConfigured, isLocked, stats, dbError]);
-
-            // --- HANDLERS ---
-            const handleInputChange = (e) => {
-                const { name, value } = e.target;
-                setFormData(prev => {
-                    const newData = { ...prev, [name]: value };
-                    if (name === 'gate' || name === 'actual') {
-                        const g = name === 'gate' ? Number(value) : Number(newData.gate);
-                        const a = name === 'actual' ? Number(value) : Number(newData.actual);
-                        if (g > 0 && a > 0) {
-                            if (g === a) newData.note = 'Đúng';
-                            else newData.note = `Sai (Lệch ${Math.abs(g - a)})`;
-                        }
-                    }
-                    return newData;
-                });
-            };
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                if (!user || !dbInstance) return;
-                const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'personal-tracker';
-                const collectionRef = dbInstance.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('daily_logs');
-
-                try {
-                    await collectionRef.doc(formData.date).set({
-                        date: formData.date,
-                        gate: Number(formData.gate),
-                        actual: Number(formData.actual),
-                        note: formData.note,
-                        month: formData.date.slice(0, 7)
-                    });
-                    setFormData({ date: formData.date, gate: '', actual: '', note: '' });
-                    setIsEditing(null);
-                } catch (err) { console.error("Save error", err); alert("Lỗi khi lưu! Kiểm tra kết nối mạng."); }
-            };
-
-            const handleEdit = (log) => {
-                setFormData(log);
-                setIsEditing(log.id);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
-
-            const handleDelete = async (id) => {
-                if (!confirm("Bạn có chắc muốn xóa ngày này không?")) return;
-                const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'personal-tracker';
-                await dbInstance.collection('artifacts').doc(currentAppId).collection('public').doc('data').collection('daily_logs').doc(id).delete();
-            };
-
-            const exportToExcel = () => {
-                const now = new Date();
-                const timeString = `${now.getHours()}h${now.getMinutes()}`;
-                const ws = XLSX.utils.json_to_sheet(currentMonthLogs.map(l => ({
-                    'Ngày': l.date,
-                    'Số lượng Cổng': l.gate,
-                    'Số lượng Thực Tế': l.actual,
-                    'Ghi Chú': l.note
-                })));
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Báo Cáo");
-                XLSX.writeFile(wb, `Bao_Cao_${selectedMonth}_${timeString}.xlsx`);
-            };
-
-            // Icons
-            const SaveIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>;
-            const FileTextIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
-            const BarChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>;
-            const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
-            const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
-            const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
-             const CloudUploadIcon = () => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
-                    <path d="M12 12v9"></path>
-                    <path d="m16 16-4-4-4 4"></path>
-                </svg>
-            );
-            const LockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
-
-            // --- RENDER ---
-            if (isLocked) return <LockScreen onUnlock={handleUnlock} />;
-            // Logic for Error Help: If specific DB error AND we have config, show help
-            const currentProjectId = JSON.parse(localStorage.getItem('my_firebase_config') || '{}').projectId || 'quanlybangke';
-            if (dbError && isConfigured) return <ErrorHelpScreen errorType={dbError} projectId={currentProjectId} onReset={resetConfig} />;
+            mainDisplay.value = currentInput;
             
-            if (!isConfigured) return <ConfigScreen onSave={handleConfigSave} />;
-            if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100"><Spinner /></div>;
+            // Auto scroll main display to right
+            // mainDisplay.scrollLeft = mainDisplay.scrollWidth;
+        }
 
-            return (
-                <div className="min-h-screen pb-10">
-                    {/* Header */}
-                    <header className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg sticky top-0 z-50">
-                        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-                            <div className="flex items-center space-x-3">
-                                <FileTextIcon />
-                                <h1 className="text-xl font-bold hidden md:block">Quản Lý Bảng Kê & Đối Chiếu</h1>
-                                <h1 className="text-xl font-bold md:hidden">Bảng Kê</h1>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <div className="text-sm bg-white/20 px-3 py-1 rounded-full hidden md:block">
-                                    ID: {user?.uid ? user.uid.slice(0,6) : '...'}
-                                </div>
-                                <button onClick={handleLock} className="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10" title="Đăng xuất / Khóa màn hình">
-                                    <LockIcon />
-                                </button>
-                                <button onClick={resetConfig} className="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10" title="Cài đặt">
-                                    <SettingsIcon />
-                                </button>
-                            </div>
-                        </div>
-                    </header>
+        function addToHistory(expr, res) {
+            const item = `<div class="mb-1 border-b border-gray-200/10 pb-1">
+                            <span class="text-xs opacity-70">${expr} =</span> 
+                            <span class="font-bold">${res}</span>
+                          </div>`;
+            historyDisplay.innerHTML = item + historyDisplay.innerHTML;
+        }
 
-                    <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-                        
-                        {/* Control Bar */}
-                        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm gap-4 border border-gray-100">
-                            <div className="flex items-center space-x-3 w-full md:w-auto">
-                                <span className="text-gray-600 font-medium">Tháng:</span>
-                                <input 
-                                    type="month" 
-                                    value={selectedMonth}
-                                    onChange={(e) => setSelectedMonth(e.target.value)}
-                                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm flex-1"
-                                />
-                            </div>
-                            <div className="flex space-x-2 w-full md:w-auto">
-                                <button 
-                                    onClick={exportToExcel}
-                                    className="flex-1 md:flex-none flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg transition shadow-sm font-medium"
-                                    title="Tải file Excel về máy"
-                                >
-                                    <DownloadIcon />
-                                    <span>Tải Excel</span>
-                                </button>
-                                <button 
-                                    onClick={() => window.open('https://drive.google.com/drive/my-drive', '_blank')}
-                                    className="flex-1 md:flex-none flex items-center justify-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg transition shadow-sm font-medium"
-                                    title="Mở Google Drive để upload file vừa tải"
-                                >
-                                    <CloudUploadIcon />
-                                    <span>Lên Drive</span>
-                                </button>
-                            </div>
-                        </div>
+        // --- Dark Mode Logic ---
+        let isDarkMode = false;
+        themeBtn.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+                themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        });
 
-                        {/* Input Form */}
-                        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-600">
-                            <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center justify-between">
-                                <span>{isEditing ? 'Cập nhật số liệu' : 'Nhập số liệu mới'}</span>
-                                {isEditing && <button onClick={() => {setIsEditing(null); setFormData(prev => ({...prev, gate: '', actual: '', note: ''}))}} className="text-xs text-red-500 font-normal hover:underline">Hủy sửa</button>}
-                            </h2>
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-6 items-end">
-                                <div className="md:col-span-1">
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Ngày</label>
-                                    <input 
-                                        type="date" 
-                                        name="date"
-                                        required
-                                        value={formData.date}
-                                        onChange={handleInputChange}
-                                        disabled={!!isEditing}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-gray-50"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Số Cổng</label>
-                                    <input 
-                                        type="number" 
-                                        name="gate"
-                                        required
-                                        placeholder="0"
-                                        value={formData.gate}
-                                        onChange={handleInputChange}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Số Thực Tế</label>
-                                    <input 
-                                        type="number" 
-                                        name="actual"
-                                        required
-                                        placeholder="0"
-                                        value={formData.actual}
-                                        onChange={handleInputChange}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                                    />
-                                </div>
-                                <div className="md:col-span-1">
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Ghi chú</label>
-                                    <input 
-                                        type="text" 
-                                        name="note"
-                                        placeholder="Tự động..."
-                                        value={formData.note}
-                                        onChange={handleInputChange}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                                    />
-                                </div>
-                                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md hover:shadow-lg flex justify-center items-center space-x-2 transform active:scale-95">
-                                    <SaveIcon />
-                                    <span>{isEditing ? 'Lưu Lại' : 'Thêm Mới'}</span>
-                                </button>
-                            </form>
-                        </div>
+        // --- Keyboard Support ---
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            
+            // Numbers
+            if (/[0-9]/.test(key)) {
+                appendNum(key);
+                animateButton(key);
+            }
+            // Operators
+            else if (['+', '-', '*', '/'].test(key)) {
+                appendOper(key);
+                animateButton(key);
+            }
+            // Special Keys
+            else if (key === 'Enter' || key === '=') {
+                e.preventDefault();
+                calculate();
+                animateButton('=');
+            }
+            else if (key === 'Backspace') {
+                deleteChar();
+                animateButton('DEL');
+            }
+            else if (key === 'Escape') {
+                clearAll();
+                animateButton('AC');
+            }
+            else if (key === '.') {
+                appendNum('.');
+                animateButton('.');
+            }
+            else if (key === '%') {
+                appendOper('%');
+                animateButton('%');
+            }
+        });
 
-                        {/* Statistics Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <StatCard 
-                                title="Tổng Cổng" 
-                                value={stats.totalGate.toLocaleString()} 
-                                icon={<BarChartIcon />} 
-                                color="bg-blue-500" 
-                            />
-                            <StatCard 
-                                title="Tổng Thực Tế" 
-                                value={stats.totalActual.toLocaleString()} 
-                                icon={<BarChartIcon />} 
-                                color="bg-indigo-500" 
-                            />
-                             <StatCard 
-                                title="Ngày Đúng" 
-                                value={stats.correctDays} 
-                                icon={<span className="font-bold text-xl">✓</span>} 
-                                color="bg-green-500" 
-                            />
-                            <StatCard 
-                                title="Ngày Lệch" 
-                                value={stats.errorDays} 
-                                icon={<span className="font-bold text-xl">!</span>} 
-                                color="bg-red-500" 
-                            />
-                        </div>
+        // Visual feedback helper for keyboard press
+        function animateButton(keyVal) {
+            // Find button with specific text and add 'pressed' class temporarily
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                const text = btn.innerText;
+                // Mapping some symbols
+                if (text === keyVal || 
+                   (keyVal === '*' && text === '×') || 
+                   (keyVal === '/' && text === '÷') ||
+                   (keyVal === 'Enter' && text === '=') ||
+                   (keyVal === 'Backspace' && text === 'DEL') ||
+                   (keyVal === 'Escape' && text === 'AC')) {
+                    
+                    btn.classList.add('pressed');
+                    setTimeout(() => btn.classList.remove('pressed'), 150);
+                }
+            });
+        }
 
-                        {/* Charts Area */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                <h3 className="font-bold text-gray-800 mb-6 flex items-center">
-                                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                                    Biểu đồ đối chiếu ngày
-                                </h3>
-                                <div className="chart-container">
-                                    <canvas ref={barChartRef}></canvas>
-                                </div>
-                            </div>
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                <h3 className="font-bold text-gray-800 mb-6 flex items-center">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                                    Tỷ lệ chính xác
-                                </h3>
-                                <div className="chart-container">
-                                    <canvas ref={pieChartRef}></canvas>
-                                </div>
-                            </div>
-                        </div>
+        // Click Ripple Effect
+        document.querySelectorAll('.btn-calc').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                let x = e.clientX - e.target.offsetLeft;
+                let y = e.clientY - e.target.offsetTop;
+                let ripples = document.createElement('span');
+                ripples.classList.add('ripple');
+                ripples.style.left = x + 'px';
+                ripples.style.top = y + 'px';
+                this.appendChild(ripples);
+                setTimeout(() => {
+                    ripples.remove();
+                }, 600);
+            });
+        });
 
-                        {/* Data Table */}
-                        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-bold tracking-wider">
-                                            <th className="px-6 py-4">Ngày</th>
-                                            <th className="px-6 py-4 text-center">Cổng</th>
-                                            <th className="px-6 py-4 text-center">Thực Tế</th>
-                                            <th className="px-6 py-4 text-center">Lệch</th>
-                                            <th className="px-6 py-4">Ghi Chú</th>
-                                            <th className="px-6 py-4 text-right">Thao tác</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {currentMonthLogs.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="6" className="text-center py-12">
-                                                    <div className="flex flex-col items-center justify-center text-gray-400">
-                                                        <FileTextIcon />
-                                                        <span className="mt-2 text-sm">Chưa có dữ liệu tháng {selectedMonth}</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            currentMonthLogs.map((log) => {
-                                                const diff = Number(log.gate) - Number(log.actual);
-                                                const isCorrect = diff === 0;
-                                                return (
-                                                    <tr key={log.id} className="hover:bg-blue-50/50 transition duration-150">
-                                                        <td className="px-6 py-4 font-medium text-gray-900">{log.date.split('-').reverse().join('/')}</td>
-                                                        <td className="px-6 py-4 text-center text-blue-600 font-bold">{log.gate}</td>
-                                                        <td className="px-6 py-4 text-center text-indigo-600 font-bold">{log.actual}</td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            {diff !== 0 ? (
-                                                                <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-md text-xs font-bold shadow-sm">{diff > 0 ? `+${diff}` : diff}</span>
-                                                            ) : (
-                                                                <span className="text-gray-300">-</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${isCorrect ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
-                                                                {log.note || (isCorrect ? 'Đúng' : 'Sai')}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-right space-x-3">
-                                                            <button 
-                                                                onClick={() => handleEdit(log)}
-                                                                className="text-blue-600 hover:text-blue-800 text-sm font-semibold hover:underline"
-                                                            >
-                                                                Sửa
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleDelete(log.id)}
-                                                                className="text-red-400 hover:text-red-600 transition"
-                                                                title="Xóa"
-                                                            >
-                                                                <TrashIcon />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                    </main>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
     </script>
 </body>
 </html>
