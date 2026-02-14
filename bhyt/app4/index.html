@@ -3,672 +3,502 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Rà Soát BHYT Thông Minh v2.4</title>
+    <title>Ứng Dụng Rà Soát BHYT Thông Minh</title>
     
-    <!-- Thư viện giao diện & Icon -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Thư viện xử lý Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Font chữ -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        danger: '#ef4444',
+                        success: '#22c55e',
+                        darkBg: '#0f172a',
+                        darkCard: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        /* --- 1. BIẾN MÀU SẮC (THEMING) --- */
-        :root {
-            /* Mặc định là Dark Mode */
-            --bg-gradient-start: #0f172a;
-            --bg-gradient-end: #1e293b;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-            --input-bg: rgba(0, 0, 0, 0.3);
-            --input-border: rgba(255, 255, 255, 0.1);
-            --panel-bg: rgba(15, 23, 42, 0.95);
-            --table-head-bg: #1e293b;
-            --table-row-hover: rgba(51, 65, 85, 0.5);
-            --table-border: #334155;
-            --scrollbar-track: #1e293b;
-            --scrollbar-thumb: #475569;
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
-
-        [data-theme="light"] {
-            /* Light Mode */
-            --bg-gradient-start: #f0f9ff;
-            --bg-gradient-end: #e0f2fe;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --glass-bg: rgba(255, 255, 255, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.8);
-            --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-            --input-bg: rgba(255, 255, 255, 0.9);
-            --input-border: #cbd5e1;
-            --panel-bg: rgba(255, 255, 255, 0.98);
-            --table-head-bg: #f1f5f9;
-            --table-row-hover: #e2e8f0;
-            --table-border: #cbd5e1;
-            --scrollbar-track: #f1f5f9;
-            --scrollbar-thumb: #cbd5e1;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            color: var(--text-main);
-            min-height: 100vh;
-            transition: background 0.5s ease, color 0.5s ease;
-        }
-
-        .text-theme-main { color: var(--text-main) !important; }
-        .text-theme-muted { color: var(--text-muted) !important; }
-        .border-theme { border-color: var(--table-border) !important; }
-
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-            transition: all 0.3s ease;
-        }
-
-        .glass-panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(16px);
-            border-left: 1px solid var(--glass-border);
-        }
-
-        .glass-input {
-            background: var(--input-bg);
-            border: 1px solid var(--input-border);
-            color: var(--text-main);
-            transition: all 0.3s ease;
-        }
-
-        .glass-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-
-        .table-head-theme { background-color: var(--table-head-bg); color: var(--text-muted); }
-        .table-row-hover:hover { background-color: var(--table-row-hover); }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
-        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        .modal-open { overflow: hidden; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
 </head>
-<body class="overflow-x-hidden" data-theme="dark">
+<body class="bg-gray-50 text-gray-800 dark:bg-darkBg dark:text-gray-100 min-h-screen">
+    <div id="root"></div>
 
-    <!-- PHẦN 1: MÀN HÌNH ĐĂNG NHẬP -->
-    <div id="loginSection" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1504384308090-c54be3855462?auto=format&fit=crop&q=80')] bg-cover bg-center transition-all duration-700">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
-        <div class="relative glass p-10 rounded-2xl w-full max-w-md text-center animate-fade-in mx-4">
-            <div class="mb-6">
-                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/40">
-                    <i class="fas fa-shield-virus text-2xl text-white"></i>
-                </div>
-                <h1 class="text-3xl font-bold text-white mb-2">BHYT Audit Pro</h1>
-                <p class="text-slate-200 text-sm opacity-80">Hệ thống rà soát hồ sơ tự động</p>
-            </div>
-            <div class="space-y-4">
-                <div class="relative">
-                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                    <input type="password" id="passwordInput" placeholder="Nhập mã bảo mật..." 
-                        class="glass-input w-full py-3 pl-10 pr-4 rounded-xl text-sm border-white/20 text-white placeholder-slate-300 focus:bg-black/40">
-                </div>
-                <button onclick="checkLogin()" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg transform hover:scale-[1.02]">
-                    Đăng Nhập
-                </button>
-                <p id="loginError" class="text-red-300 text-xs mt-2 hidden bg-red-900/50 py-1 rounded"><i class="fas fa-exclamation-circle"></i> Mật khẩu không đúng</p>
-            </div>
-        </div>
-    </div>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
 
-    <!-- PHẦN 2: GIAO DIỆN CHÍNH -->
-    <div id="appSection" class="hidden min-h-screen p-4 md:p-8">
+        // --- Helper Functions ---
         
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-8 glass p-4 rounded-2xl">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg text-white">
-                    <i class="fas fa-stethoscope"></i>
-                </div>
-                <div>
-                    <h2 class="font-bold text-xl text-theme-main">BHYT Auditor v2.4</h2>
-                    <p class="text-xs text-theme-muted">Kiểm soát chuyên khoa Nhi/TMH/Sản/Ngoại</p>
-                </div>
-            </div>
+        // Parse date string like YYYYMMDD or YYYYMMDDHHMM
+        const parseDateStr = (str) => {
+            if (!str) return null;
+            const s = str.toString();
+            if (s.length < 8) return null;
+            const y = parseInt(s.substring(0, 4));
+            const m = parseInt(s.substring(4, 6)) - 1;
+            const d = parseInt(s.substring(6, 8));
+            return new Date(y, m, d);
+        };
+
+        // Extract pure date string (YYYYMMDD) ignoring time
+        const getDatePart = (str) => {
+            if (!str) return "";
+            return str.toString().substring(0, 8);
+        };
+
+        const calculateAge = (dobStr, visitDateStr) => {
+            const dob = parseDateStr(dobStr);
+            const visit = parseDateStr(visitDateStr) || new Date();
+            if (!dob) return 0;
             
-            <div class="flex items-center gap-4">
-                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full glass flex items-center justify-center text-theme-muted hover:text-blue-500 transition-colors" title="Đổi giao diện Sáng/Tối">
-                    <i class="fas fa-moon" id="themeIcon"></i>
-                </button>
-
-                <button onclick="logout()" class="flex items-center gap-2 text-theme-muted hover:text-red-500 transition px-3 py-2 rounded-lg hover:bg-red-500/10">
-                    <i class="fas fa-sign-out-alt text-xl"></i>
-                    <span class="text-sm font-medium hidden md:inline">Thoát</span>
-                </button>
-            </div>
-        </header>
-
-        <!-- Main Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            <!-- LEFT: Upload Control -->
-            <div class="lg:col-span-3 space-y-4">
-                <!-- Bảng 1 -->
-                <div class="glass p-4 rounded-xl border-l-4 border-blue-500">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-blue-500 text-xs uppercase">Bảng 1 (Tổng hợp)</h3>
-                        <span id="statusB1" class="text-[10px] px-2 py-0.5 rounded bg-slate-600 text-slate-200">Chưa tải</span>
-                    </div>
-                    <label class="block w-full text-center p-3 border border-dashed border-theme rounded-lg cursor-pointer hover:bg-slate-500/10 transition group">
-                        <i class="fas fa-file-excel text-lg text-theme-muted mb-1 group-hover:text-blue-500"></i>
-                        <input type="file" id="fileB1" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFile(this, 'B1')" />
-                    </label>
-                </div>
-
-                <!-- Bảng 3 -->
-                <div class="glass p-4 rounded-xl border-l-4 border-purple-500">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-purple-500 text-xs uppercase">Bảng 3 (Dịch vụ)</h3>
-                        <span id="statusB3" class="text-[10px] px-2 py-0.5 rounded bg-slate-600 text-slate-200">Chưa tải</span>
-                    </div>
-                    <label class="block w-full text-center p-3 border border-dashed border-theme rounded-lg cursor-pointer hover:bg-slate-500/10 transition group">
-                        <i class="fas fa-file-medical text-lg text-theme-muted mb-1 group-hover:text-purple-500"></i>
-                        <input type="file" id="fileB3" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFile(this, 'B3')" />
-                    </label>
-                </div>
-
-                <!-- CCHN File (MỚI) -->
-                <div class="glass p-4 rounded-xl border-l-4 border-orange-500">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-semibold text-orange-500 text-xs uppercase">DS Chứng Chỉ HN</h3>
-                        <span id="statusCCHN" class="text-[10px] px-2 py-0.5 rounded bg-slate-600 text-slate-200">Chưa tải</span>
-                    </div>
-                    <label class="block w-full text-center p-3 border border-dashed border-theme rounded-lg cursor-pointer hover:bg-slate-500/10 transition group">
-                        <i class="fas fa-id-badge text-lg text-theme-muted mb-1 group-hover:text-orange-500"></i>
-                        <input type="file" id="fileCCHN" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleFile(this, 'CCHN')" />
-                    </label>
-                </div>
-
-                <button onclick="processData()" id="btnProcess" disabled 
-                    class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500 transition-all transform active:scale-95 mt-2">
-                    TIẾN HÀNH RÀ SOÁT
-                </button>
-                
-                <div id="quickStats" class="hidden grid grid-cols-2 gap-2 mt-2">
-                    <div class="glass p-3 rounded-lg text-center">
-                        <p class="text-theme-muted text-[10px]">Hồ sơ</p>
-                        <p id="totalRecords" class="text-lg font-bold text-theme-main">0</p>
-                    </div>
-                    <div class="glass p-3 rounded-lg text-center border border-red-500/30">
-                        <p class="text-red-500 text-[10px]">Lỗi</p>
-                        <p id="totalErrors" class="text-lg font-bold text-red-600">0</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT: Result Table -->
-            <div class="lg:col-span-9 glass p-6 rounded-2xl flex flex-col h-[85vh]">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-lg text-theme-main"><i class="fas fa-clipboard-check mr-2 text-blue-500"></i>Kết Quả Rà Soát</h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="searchInput" placeholder="Tìm tên bệnh nhân..." onkeyup="filterTable()" 
-                            class="glass-input py-1.5 px-3 rounded-lg text-sm w-64">
-                        <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-sm transition font-medium shadow-md">
-                            <i class="fas fa-file-export mr-1"></i> Xuất Excel
-                        </button>
-                    </div>
-                </div>
-
-                <div class="overflow-auto flex-1 rounded-xl border border-theme bg-[var(--table-head-bg)]/20">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="table-head-theme text-xs uppercase sticky top-0 z-10 shadow-sm">
-                            <tr>
-                                <th class="p-4 w-1/5 font-semibold">Thông tin Bệnh nhân</th>
-                                <th class="p-4 w-1/6 font-semibold">Thời gian khám</th>
-                                <th class="p-4 w-1/2 font-semibold">Chi tiết Lỗi & Hướng xử lý</th>
-                                <th class="p-4 w-1/6 text-center font-semibold">Tác vụ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultBody" class="text-sm divide-y divide-[var(--table-border)]">
-                            <tr>
-                                <td colspan="4" class="p-12 text-center text-theme-muted">
-                                    <div class="flex flex-col items-center">
-                                        <i class="fas fa-cloud-upload-alt text-4xl mb-3 opacity-30"></i>
-                                        <span>Vui lòng tải đủ 3 file dữ liệu</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CHI TIẾT BỆNH NHÂN -->
-    <div id="detailModal" class="fixed inset-0 z-[100] hidden">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
-        <div class="absolute inset-y-0 right-0 w-full max-w-2xl glass-panel shadow-2xl transform transition-transform duration-300 translate-x-full" id="modalContent">
-            
-            <div class="h-16 flex items-center justify-between px-6 border-b border-theme bg-[var(--table-head-bg)]/50">
-                <h2 class="text-lg font-bold text-theme-main flex items-center">
-                    <i class="fas fa-id-card mr-3 text-blue-500"></i>
-                    Chi Tiết Hồ Sơ
-                </h2>
-                <button onclick="closeModal()" class="text-theme-muted hover:text-red-500 p-2 transition">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-
-            <div class="overflow-y-auto h-[calc(100vh-64px)] p-6 space-y-6">
-                <div class="bg-[var(--glass-bg)] rounded-xl p-4 border border-theme">
-                    <h3 class="text-xs font-bold text-blue-500 uppercase mb-3">Thông tin hành chính (Bảng 1)</h3>
-                    <div id="modalInfo" class="grid grid-cols-2 gap-4 text-sm"></div>
-                </div>
-
-                <div class="bg-[var(--glass-bg)] rounded-xl p-4 border border-theme">
-                    <h3 class="text-xs font-bold text-purple-500 uppercase mb-3 flex justify-between">
-                        <span>Dịch vụ đã dùng (Bảng 3)</span>
-                        <span id="serviceCount" class="bg-purple-900 text-purple-200 px-2 rounded text-[10px]">0</span>
-                    </h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs">
-                            <thead class="text-theme-muted border-b border-theme">
-                                <tr>
-                                    <th class="py-2 text-left">Mã BS/CCHN</th>
-                                    <th class="py-2 text-left">Tên Dịch Vụ</th>
-                                    <th class="py-2 text-right">Số lượng</th>
-                                </tr>
-                            </thead>
-                            <tbody id="modalServices" class="divide-y divide-[var(--table-border)] text-theme-main"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Logic Javascript -->
-    <script>
-        // --- 1. CONFIG & VARS ---
-        let rawDataB1 = [];
-        let rawDataB3 = [];
-        let rawDataCCHN = [];
-        let processedResults = [];
-        let mapB3 = {};
-        let mapCCHN = {}; // Map: MA_CCHN -> PHONG_KHAM
-        let currentTheme = 'dark';
-
-        // --- 2. THEME HANDLING ---
-        function toggleTheme() {
-            const body = document.body;
-            const icon = document.getElementById('themeIcon');
-            if (currentTheme === 'dark') {
-                currentTheme = 'light';
-                body.setAttribute('data-theme', 'light');
-                icon.className = 'fas fa-sun text-yellow-500';
-            } else {
-                currentTheme = 'dark';
-                body.setAttribute('data-theme', 'dark');
-                icon.className = 'fas fa-moon';
+            let age = visit.getFullYear() - dob.getFullYear();
+            const m = visit.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && visit.getDate() < dob.getDate())) {
+                age--;
             }
-        }
+            return age;
+        };
 
-        // --- 3. AUTH ---
-        const passwordInput = document.getElementById('passwordInput');
-        passwordInput.addEventListener("keypress", (e) => { if (e.key === "Enter") checkLogin(); });
+        // --- Main App Component ---
 
-        function checkLogin() {
-            if (document.getElementById('passwordInput').value === '1402') {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('appSection').classList.remove('hidden');
-                document.getElementById('appSection').classList.add('animate-fade-in');
-            } else {
-                const err = document.getElementById('loginError');
-                err.classList.remove('hidden');
-                passwordInput.classList.add('border-red-500');
-                setTimeout(() => {
-                    err.classList.add('hidden');
-                    passwordInput.classList.remove('border-red-500');
-                }, 2000);
-            }
-        }
-        function logout() { location.reload(); }
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [password, setPassword] = useState("");
+            const [darkMode, setDarkMode] = useState(false);
+            
+            // Data States
+            const [file1Data, setFile1Data] = useState([]);
+            const [file3Data, setFile3Data] = useState([]);
+            const [fileName1, setFileName1] = useState("");
+            const [fileName3, setFileName3] = useState("");
+            
+            // Processing States
+            const [errors, setErrors] = useState([]);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [selectedPatient, setSelectedPatient] = useState(null); // For Modal
 
-        // --- 4. EXCEL HANDLING ---
-        function handleFile(input, type) {
-            const file = input.files[0];
-            const statusLabel = document.getElementById(`status${type}`);
-            if (!file) return;
+            // --- Dark Mode Logic ---
+            useEffect(() => {
+                if (darkMode) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }, [darkMode]);
 
-            statusLabel.innerText = "Đang đọc...";
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
-
-                if (type === 'B1') rawDataB1 = jsonData;
-                else if (type === 'B3') rawDataB3 = jsonData;
-                else rawDataCCHN = jsonData;
-
-                statusLabel.innerText = `OK (${jsonData.length} dòng)`;
-                statusLabel.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white";
-                checkReady();
+            // --- Login Logic ---
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (password === "1402") {
+                    setIsLoggedIn(true);
+                } else {
+                    alert("Sai mật khẩu!");
+                }
             };
-            reader.readAsArrayBuffer(file);
-        }
 
-        function checkReady() {
-            if (rawDataB1.length > 0 && rawDataB3.length > 0 && rawDataCCHN.length > 0) {
-                document.getElementById('btnProcess').disabled = false;
-            }
-        }
+            // --- File Upload Logic ---
+            const handleFileUpload = (e, setData, setFileName) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setFileName(file.name);
+                
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const bstr = evt.target.result;
+                    const wb = XLSX.read(bstr, { type: 'binary' });
+                    const wsname = wb.SheetNames[0];
+                    const ws = wb.Sheets[wsname];
+                    const data = XLSX.utils.sheet_to_json(ws);
+                    setData(data);
+                };
+                reader.readAsBinaryString(file);
+            };
 
-        // --- 5. CORE LOGIC ---
-        function processData() {
-            const btn = document.getElementById('btnProcess');
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...`;
-            btn.disabled = true;
+            // --- Validation Core Logic ---
+            const runValidation = () => {
+                if (file1Data.length === 0) {
+                    alert("Vui lòng tải Bảng 1 trước.");
+                    return;
+                }
+                
+                setIsProcessing(true);
+                const newErrors = [];
 
-            setTimeout(() => {
-                processedResults = [];
-                let errorCount = 0;
-
-                // 5.1 Xử lý dữ liệu CCHN (Tạo Map: MA_CCHN => PHONG_KHAM)
-                mapCCHN = {};
-                rawDataCCHN.forEach(row => {
-                    // Cột trong file CCHN: "MA CCHN", "PHÒNG KHÁM"
-                    let maCCHN = String(row['MA CCHN'] || "").trim();
-                    let phongKham = String(row['PHÒNG KHÁM'] || "").trim();
-                    if (maCCHN) {
-                        mapCCHN[maCCHN] = phongKham;
+                // Create Map for Table 3 for faster lookup by MA_LK
+                // Value is array of services for that MA_LK
+                const table3Map = new Map();
+                file3Data.forEach(row => {
+                    const maLk = row.MA_LK;
+                    if (!table3Map.has(maLk)) {
+                        table3Map.set(maLk, []);
                     }
+                    table3Map.get(maLk).push(row);
                 });
 
-                // 5.2 Index Bảng 3
-                mapB3 = {};
-                rawDataB3.forEach(row => {
-                    const maLk = String(row['MA_LK']).trim();
-                    if (!mapB3[maLk]) mapB3[maLk] = [];
-                    mapB3[maLk].push(row);
-                });
+                file1Data.forEach((patient, index) => {
+                    const patientErrors = [];
+                    const maLk = patient.MA_LK;
+                    
+                    // 1. Check Required Fields (Empty or Null)
+                    const requiredFields = [
+                        'HO_TEN', 'MA_BN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 
+                        'MA_THE_BHYT', 'MA_DKBD', 'GT_THE_TU', 'GT_THE_DEN', 
+                        'LY_DO_VV', 'CHAN_DOAN_VAO', 'CHAN_DOAN_RV', 
+                        'MA_BENH_CHINH', 'MA_DOITUONG_KCB', 'CAN_NANG'
+                    ];
 
-                // 5.3 Duyệt Bảng 1
-                rawDataB1.forEach(row => {
-                    let errors = [];
-                    const maLk = String(row['MA_LK'] || "").trim();
-                    const addError = (msg, current, fix) => errors.push({ msg, current, fix });
-
-                    // A. Check bắt buộc
-                    ['HO_TEN', 'MA_BN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 
-                     'MA_THE_BHYT', 'MA_DKBD', 'GT_THE_TU', 'GT_THE_DEN', 
-                     'LY_DO_VV', 'CHAN_DOAN_VAO', 'CHAN_DOAN_RV', 
-                     'MA_BENH_CHINH', 'MA_DOITUONG_KCB', 'CAN_NANG'].forEach(field => {
-                        let val = row[field];
-                        if (val === undefined || val === null || String(val).trim() === "") {
-                            addError(`Thiếu thông tin cột [${field}]`, "Trống", "Bổ sung dữ liệu");
+                    requiredFields.forEach(field => {
+                        if (patient[field] === undefined || patient[field] === null || String(patient[field]).trim() === '') {
+                            patientErrors.push({
+                                code: 'MISSING_FIELD',
+                                message: `Thiếu thông tin bắt buộc: ${field}`,
+                                current: 'Trống',
+                                fix: `Bổ sung thông tin cột ${field}`
+                            });
                         }
                     });
 
-                    // B. Lý do vào viện
-                    const lyDo = String(row['LY_DO_VV'] || "");
-                    if (!/[a-zA-Z\u00C0-\u1EF9]/.test(lyDo)) {
-                        addError("Lý do vào viện sai định dạng", lyDo, "Phải chứa ký tự chữ cái");
-                    }
-
-                    // C. Giới tính
-                    const gioiTinh = String(row['GIOI_TINH']).trim();
-                    if (gioiTinh !== '1' && gioiTinh !== '2') {
-                        addError("Mã giới tính sai", gioiTinh, "Chỉ nhập 1 (Nam) hoặc 2 (Nữ)");
-                    }
-
-                    // D. Ngày tháng
-                    const cleanDate = (d) => String(d || "").substring(0, 8);
-                    const ngayVao = cleanDate(row['NGAY_VAO']);
-                    const ngayRa = cleanDate(row['NGAY_RA']);
-                    const ngayTToan = cleanDate(row['NGAY_TTOAN']);
-
-                    if (ngayVao && ngayRa && ngayTToan) {
-                        if (ngayVao !== ngayRa || ngayVao !== ngayTToan) {
-                            addError("Ngày Vào - Ra - Thanh toán không khớp", 
-                                `Vào:${ngayVao}, Ra:${ngayRa}`, "Chỉnh 3 cột ngày cùng 1 ngày");
-                        }
-                    }
-
-                    // E. Logic Tuổi & Chuyên Khoa
-                    let ageInfo = "N/A";
-                    if (row['NGAY_SINH'] && row['NGAY_VAO']) {
-                        const dobStr = String(row['NGAY_SINH']);
-                        const visitStr = String(row['NGAY_VAO']);
-                        const dobDate = new Date(dobStr.substring(0, 4), parseInt(dobStr.substring(4, 6))-1, dobStr.substring(6, 8));
-                        const visitDate = new Date(visitStr.substring(0, 4), parseInt(visitStr.substring(4, 6))-1, visitStr.substring(6, 8));
-
-                        let age = visitDate.getFullYear() - dobDate.getFullYear();
-                        const m = visitDate.getMonth() - dobDate.getMonth();
-                        if (m < 0 || (m === 0 && visitDate.getDate() < dobDate.getDate())) age--;
-                        ageInfo = age;
-
-                        // Check dịch vụ trong Bảng 3
-                        const services = mapB3[maLk] || [];
-                        const servicesToCheck = services;
-
-                        if (age < 16) {
-                            // Logic MỚI: Dưới 16 tuổi - Kiểm tra từng dịch vụ
-                            servicesToCheck.forEach(svc => {
-                                let maBacSi = String(svc['MA_BAC_SI'] || "").trim();
-                                let tenDichVu = String(svc['TEN_DICH_VU'] || "").toLowerCase();
-                                
-                                // Tìm Phòng khám của bác sĩ này trong file CCHN
-                                let phongKham = mapCCHN[maBacSi] || "";
-                                let pkLower = phongKham.toLowerCase();
-
-                                // Kiểm tra nếu đây là dịch vụ Khám (Dựa vào tên PK hoặc tên DV chứa từ "Khám")
-                                if (pkLower.includes('khám') || tenDichVu.includes('khám')) {
-                                    
-                                    // Danh sách cho phép: Nhi, Tai Mũi Họng, Sản, Ngoại tổng hợp
-                                    let isAllowed = pkLower.includes('nhi') || 
-                                                    pkLower.includes('tai mũi họng') || 
-                                                    pkLower.includes('sản') || // Bao gồm "Phụ sản"
-                                                    pkLower.includes('ngoại tổng hợp');
-                                    
-                                    // Nếu có tên phòng khám mà không nằm trong danh sách cho phép
-                                    if (!isAllowed && phongKham !== "") {
-                                        addError(
-                                            `Dưới 16t khám sai chuyên khoa`,
-                                            `BS: ${maBacSi} - PK: ${phongKham}`,
-                                            `Chuyển sang Khám Nhi, TMH, Sản hoặc Ngoại TH`
-                                        );
-                                    }
-                                }
+                    // 2. Check LY_DO_VV (Must contain letters)
+                    if (patient.LY_DO_VV) {
+                        const hasLetters = /[a-zA-Z\u00C0-\u1EF9]/.test(String(patient.LY_DO_VV));
+                        if (!hasLetters) {
+                            patientErrors.push({
+                                code: 'INVALID_REASON',
+                                message: 'Lý do vào viện không hợp lệ',
+                                current: patient.LY_DO_VV,
+                                fix: 'Lý do vào viện phải chứa chữ cái, không được chỉ có số hoặc ký tự đặc biệt.'
                             });
                         }
                     }
 
-                    if (errors.length > 0) {
-                        errorCount++;
-                        processedResults.push({
-                            rawData: row,
-                            maLk: maLk,
-                            hoTen: row['HO_TEN'],
-                            ngayVao: row['NGAY_VAO'],
-                            ngaySinh: row['NGAY_SINH'],
-                            tuoi: ageInfo,
-                            gioiTinh: gioiTinh === '1' ? 'Nam' : 'Nữ',
-                            errors: errors
+                    // 3. Check Date Consistency (Vào = Ra = TToan) - Only checking dates, ignoring time
+                    const dVao = getDatePart(patient.NGAY_VAO);
+                    const dRa = getDatePart(patient.NGAY_RA);
+                    const dTToan = getDatePart(patient.NGAY_TTOAN);
+
+                    if (dVao && dRa && dTToan) {
+                         if (dVao !== dRa || dRa !== dTToan) {
+                            patientErrors.push({
+                                code: 'DATE_MISMATCH',
+                                message: 'Ngày Vào, Ra, Thanh toán không trùng khớp',
+                                current: `Vào: ${dVao}, Ra: ${dRa}, TT: ${dTToan}`,
+                                fix: 'Chỉnh sửa NGAY_VAO, NGAY_RA, NGAY_TTOAN về cùng một ngày.'
+                            });
+                         }
+                    } else {
+                         // Missing date implies handled by required field check, but adding specific note if needed
+                    }
+
+                    // 4. Cross Check with Table 3
+                    const services = table3Map.get(maLk) || [];
+                    const age = calculateAge(patient.NGAY_SINH, patient.NGAY_VAO);
+
+                    services.forEach(svc => {
+                        const tenDV = String(svc.TEN_DICH_VU || "").toLowerCase();
+                        
+                        // Rule: < 16 tuổi -> Không được có "Khám Nội"
+                        if (age < 16) {
+                            if (tenDV.includes("khám nội")) {
+                                patientErrors.push({
+                                    code: 'AGE_SERVICE_CONFLICT',
+                                    message: 'Bệnh nhân dưới 16 tuổi có dịch vụ sai quy định',
+                                    current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
+                                    fix: 'Xóa dịch vụ "Khám Nội" hoặc chuyển sang chuyên khoa Nhi.'
+                                });
+                            }
+                        }
+                        
+                        // Rule: >= 16 tuổi -> Không được có "Khám Nhi"
+                        if (age >= 16) {
+                            if (tenDV.includes("khám nhi")) {
+                                patientErrors.push({
+                                    code: 'AGE_SERVICE_CONFLICT',
+                                    message: 'Bệnh nhân trên 16 tuổi có dịch vụ sai quy định',
+                                    current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
+                                    fix: 'Xóa dịch vụ "Khám Nhi".'
+                                });
+                            }
+                        }
+                    });
+
+                    // If errors exist, add to main list
+                    if (patientErrors.length > 0) {
+                        newErrors.push({
+                            patientInfo: patient,
+                            detailErrors: patientErrors
                         });
                     }
                 });
 
-                renderResults(processedResults);
-                
-                document.getElementById('quickStats').classList.remove('hidden');
-                document.getElementById('totalRecords').innerText = rawDataB1.length;
-                document.getElementById('totalErrors').innerText = errorCount;
+                setErrors(newErrors);
+                setIsProcessing(false);
+            };
 
-                btn.innerHTML = `RÀ SOÁT LẠI`;
-                btn.disabled = false;
-            }, 100);
-        }
-
-        // --- 6. RENDER UI ---
-        function renderResults(data) {
-            const tbody = document.getElementById('resultBody');
-            tbody.innerHTML = "";
-
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-emerald-500 font-bold"><i class="fas fa-check-circle text-4xl mb-3 block"></i>Tuyệt vời! Không phát hiện lỗi nào.</td></tr>`;
-                return;
-            }
-
-            data.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.className = "table-row-hover transition-colors border-b border-[var(--table-border)] group";
-                
-                // Loại bỏ lỗi trùng lặp (ví dụ 1 bệnh nhân khám 2 lần sai cùng 1 lỗi)
-                let uniqueErrors = [];
-                let signature = new Set();
-                item.errors.forEach(e => {
-                    let sig = e.msg + e.current;
-                    if(!signature.has(sig)) {
-                        signature.add(sig);
-                        uniqueErrors.push(e);
-                    }
-                });
-
-                const errorHtml = uniqueErrors.map(e => `
-                    <div class="mb-2 pb-2 border-b border-[var(--table-border)] last:border-0 last:pb-0">
-                        <div class="text-red-500 font-semibold text-xs flex items-center">
-                            <i class="fas fa-exclamation-triangle mr-1.5"></i> ${e.msg}
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 mt-1 text-[11px]">
-                            <span class="text-theme-muted">Hiện tại: <span class="text-theme-main">${e.current}</span></span>
-                            <span class="text-emerald-500 font-medium">Cần sửa: ${e.fix}</span>
+            // --- Render: Login Screen ---
+            if (!isLoggedIn) {
+                return (
+                    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
+                        <div className="bg-white p-8 rounded-2xl shadow-2xl w-96 transform transition-all hover:scale-105">
+                            <div className="text-center mb-6">
+                                <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i className="fa-solid fa-user-doctor text-3xl text-blue-600"></i>
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-800">Đăng Nhập Hệ Thống</h2>
+                                <p className="text-sm text-gray-500">Giám định BHYT</p>
+                            </div>
+                            <form onSubmit={handleLogin}>
+                                <div className="mb-4">
+                                    <input 
+                                        type="password" 
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center tracking-widest text-lg"
+                                        placeholder="Nhập mã bảo mật..."
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                                <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg">
+                                    Truy cập
+                                </button>
+                            </form>
                         </div>
                     </div>
-                `).join('');
-
-                tr.innerHTML = `
-                    <td class="p-4 align-top">
-                        <div class="font-bold text-theme-main text-base">${item.hoTen}</div>
-                        <div class="text-xs text-theme-muted mt-1">
-                            <span class="bg-slate-500/20 px-1.5 py-0.5 rounded text-theme-main mr-2 border border-slate-500/30">${item.gioiTinh}</span>
-                            <span>${item.tuoi} tuổi</span>
-                        </div>
-                        <div class="text-[10px] text-theme-muted mt-1 font-mono">NS: ${item.ngaySinh}</div>
-                    </td>
-                    <td class="p-4 align-top">
-                        <div class="text-sm text-theme-muted"><i class="far fa-clock mr-1"></i>Vào: ${item.ngayVao}</div>
-                    </td>
-                    <td class="p-4 align-top">
-                        <div class="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
-                            ${errorHtml}
-                        </div>
-                    </td>
-                    <td class="p-4 align-top text-center">
-                        <button onclick="showDetail(${index})" class="bg-blue-500/10 hover:bg-blue-600 hover:text-white text-blue-500 border border-blue-500/30 rounded-lg px-3 py-2 text-xs transition-all flex items-center justify-center mx-auto gap-2">
-                            <i class="fas fa-eye"></i> Xem chi tiết
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // --- 7. MODAL DETAIL ---
-        function showDetail(index) {
-            const item = processedResults[index];
-            const maLk = item.maLk;
-            const modal = document.getElementById('detailModal');
-            const content = document.getElementById('modalContent');
-            const services = mapB3[maLk] || [];
-
-            const infoContainer = document.getElementById('modalInfo');
-            infoContainer.innerHTML = Object.entries(item.rawData).map(([key, val]) => `
-                <div class="flex flex-col border-b border-[var(--table-border)] pb-1">
-                    <span class="text-[10px] text-theme-muted uppercase">${key}</span>
-                    <span class="text-theme-main font-mono truncate" title="${val}">${val}</span>
-                </div>
-            `).join('');
-
-            document.getElementById('serviceCount').innerText = services.length;
-            const serviceBody = document.getElementById('modalServices');
-            if (services.length === 0) {
-                serviceBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-theme-muted">Không tìm thấy dịch vụ trong Bảng 3</td></tr>`;
-            } else {
-                serviceBody.innerHTML = services.map(s => {
-                    // Lấy thêm thông tin phòng khám để hiển thị cho rõ
-                    let maBS = s['MA_BAC_SI'] || "";
-                    let pk = mapCCHN[maBS] ? `<br><span class="text-[9px] text-orange-400">${mapCCHN[maBS]}</span>` : "";
-                    
-                    return `
-                    <tr>
-                        <td class="py-2 text-theme-muted font-mono align-top">${maBS}${pk}</td>
-                        <td class="py-2 text-theme-main align-top">${s['TEN_DICH_VU']}</td>
-                        <td class="py-2 text-right font-mono text-emerald-500 font-bold align-top">${s['SO_LUONG']}</td>
-                    </tr>
-                `}).join('');
+                );
             }
 
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                content.classList.remove('translate-x-full');
-            }, 10);
-            document.body.classList.add('modal-open');
+            // --- Render: Main App ---
+            return (
+                <div className="container mx-auto p-4 md:p-8 max-w-7xl">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                                <i className="fa-solid fa-stethoscope mr-2 text-blue-500"></i>
+                                BHYT Inspector Pro
+                            </h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Công cụ rà soát hồ sơ khám chữa bệnh tự động</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:opacity-80 transition-all w-10 h-10 flex items-center justify-center">
+                                {darkMode ? <i className="fa-solid fa-sun text-yellow-400"></i> : <i className="fa-solid fa-moon text-gray-600"></i>}
+                            </button>
+                            <button onClick={() => setIsLoggedIn(false)} className="px-4 py-2 bg-red-100 text-red-600 rounded-lg font-medium hover:bg-red-200 transition-colors">
+                                <i className="fa-solid fa-right-from-bracket mr-2"></i>Thoát
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Controls Area */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        {/* File 1 Upload */}
+                        <div className="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                                <i className="fa-solid fa-file-csv mr-2 text-green-500"></i>Bảng 1 (Thông tin BN)
+                            </label>
+                            <div className="relative">
+                                <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => handleFileUpload(e, setFile1Data, setFileName1)} className="hidden" id="file1" />
+                                <label htmlFor="file1" className="cursor-pointer flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-800 transition-all text-sm truncate">
+                                    {fileName1 || "Chọn file..."}
+                                </label>
+                            </div>
+                            <div className="mt-2 text-xs text-right text-gray-400">{file1Data.length} dòng đã tải</div>
+                        </div>
+
+                        {/* File 3 Upload */}
+                        <div className="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                                <i className="fa-solid fa-file-csv mr-2 text-orange-500"></i>Bảng 3 (Dịch vụ)
+                            </label>
+                            <div className="relative">
+                                <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => handleFileUpload(e, setFile3Data, setFileName3)} className="hidden" id="file3" />
+                                <label htmlFor="file3" className="cursor-pointer flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-800 transition-all text-sm truncate">
+                                    {fileName3 || "Chọn file..."}
+                                </label>
+                            </div>
+                            <div className="mt-2 text-xs text-right text-gray-400">{file3Data.length} dòng đã tải</div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="flex items-center">
+                            <button 
+                                onClick={runValidation} 
+                                disabled={isProcessing}
+                                className={`w-full h-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:-translate-y-1 flex flex-col items-center justify-center gap-2
+                                    ${isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-blue-500/30'}
+                                `}
+                            >
+                                {isProcessing ? (
+                                    <><i className="fa-solid fa-circle-notch fa-spin"></i> Đang xử lý...</>
+                                ) : (
+                                    <><i className="fa-solid fa-magnifying-glass-chart text-2xl"></i> BẮT ĐẦU DÒ LỖI</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Results Area */}
+                    {errors.length > 0 ? (
+                        <div className="space-y-6 animate-fade-in-up">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                                    Kết quả: Tìm thấy <span className="text-red-500 text-2xl">{errors.length}</span> hồ sơ lỗi
+                                </h3>
+                                <button onClick={() => setErrors([])} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline">Xóa kết quả</button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                                {errors.map((item, idx) => (
+                                    <div key={idx} className="bg-white dark:bg-darkCard rounded-xl shadow-md border-l-4 border-red-500 overflow-hidden hover:shadow-lg transition-shadow">
+                                        <div className="p-5 flex flex-col md:flex-row gap-4">
+                                            {/* Left: Patient Summary */}
+                                            <div className="md:w-1/4 min-w-[200px] border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-700 pb-4 md:pb-0 md:pr-4">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg text-blue-600 dark:text-blue-400">
+                                                        <i className="fa-solid fa-user"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-lg text-gray-800 dark:text-gray-100">{item.patientInfo.HO_TEN}</h4>
+                                                        <div className="text-sm text-gray-500 mt-1 space-y-1">
+                                                            <p><i className="fa-regular fa-calendar-check mr-1 w-4"></i> Khám: {item.patientInfo.NGAY_VAO}</p>
+                                                            <p><i className="fa-solid fa-venus-mars mr-1 w-4"></i> Giới: {item.patientInfo.GIOI_TINH == 1 ? 'Nam' : 'Nữ'}</p>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => setSelectedPatient(item.patientInfo)}
+                                                            className="mt-3 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                                                        >
+                                                            <i className="fa-solid fa-eye"></i> Xem Full Info
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Right: Error Details */}
+                                            <div className="flex-1">
+                                                <div className="flex flex-col gap-3">
+                                                    {item.detailErrors.map((err, errIdx) => (
+                                                        <div key={errIdx} className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-100 dark:border-red-900/30">
+                                                            <div className="flex items-start gap-3">
+                                                                <i className="fa-solid fa-circle-exclamation text-red-500 mt-1"></i>
+                                                                <div className="w-full">
+                                                                    <p className="font-semibold text-red-700 dark:text-red-400 text-sm uppercase tracking-wide">{err.message}</p>
+                                                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                                                                        <div className="bg-white dark:bg-darkBg/50 p-2 rounded">
+                                                                            <span className="text-gray-500 text-xs block uppercase">Hiện tại</span>
+                                                                            <span className="font-mono text-red-600 break-words">{String(err.current)}</span>
+                                                                        </div>
+                                                                        <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-100 dark:border-green-900/30">
+                                                                            <span className="text-green-600 text-xs block uppercase">Hướng xử lý</span>
+                                                                            <span className="text-green-700 dark:text-green-400 font-medium">{err.fix}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-20 bg-white dark:bg-darkCard rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                            <div className="text-gray-300 dark:text-gray-600 text-6xl mb-4">
+                                <i className="fa-regular fa-clipboard"></i>
+                            </div>
+                            <h3 className="text-xl font-medium text-gray-500 dark:text-gray-400">Chưa có kết quả phân tích</h3>
+                            <p className="text-gray-400 text-sm mt-2">Vui lòng tải file và nhấn nút "Bắt đầu dò lỗi"</p>
+                        </div>
+                    )}
+
+                    {/* Modal for Patient Details */}
+                    {selectedPatient && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass-effect animate-fade-in">
+                            <div className="bg-white dark:bg-darkCard w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+                                <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
+                                    <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                        <i className="fa-solid fa-address-card text-blue-500"></i>
+                                        Chi tiết bệnh nhân
+                                    </h3>
+                                    <button onClick={() => setSelectedPatient(null)} className="text-gray-400 hover:text-red-500 text-2xl transition-colors">
+                                        <i className="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <div className="p-6 overflow-y-auto">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {Object.entries(selectedPatient).map(([key, value]) => (
+                                            <div key={key} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-blue-300 transition-colors">
+                                                <span className="text-xs font-bold text-gray-400 uppercase block mb-1 tracking-wider">{key}</span>
+                                                <span className="text-sm font-medium text-gray-800 dark:text-gray-200 break-words">{value !== null && value !== undefined ? String(value) : <span className="italic text-gray-400">Empty</span>}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-end">
+                                    <button onClick={() => setSelectedPatient(null)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                        Đóng
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
         }
 
-        function closeModal() {
-            const content = document.getElementById('modalContent');
-            content.classList.add('translate-x-full');
-            setTimeout(() => {
-                document.getElementById('detailModal').classList.add('hidden');
-                document.body.classList.remove('modal-open');
-            }, 300);
-        }
-
-        function filterTable() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = processedResults.filter(item => item.hoTen.toLowerCase().includes(term));
-            renderResults(filtered);
-        }
-
-        function exportToExcel() {
-            if (processedResults.length === 0) return alert("Không có dữ liệu!");
-            const exportData = [];
-            processedResults.forEach(item => {
-                item.errors.forEach(err => {
-                    exportData.push({
-                        "Họ Tên": item.hoTen,
-                        "Tuổi": item.tuoi,
-                        "Lỗi": err.msg,
-                        "Hiện tại": err.current,
-                        "Cần sửa": err.fix
-                    });
-                });
-            });
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "ChiTietLoi");
-            XLSX.writeFile(wb, "KetQuaRasoat.xlsx");
-        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
+
+    <style>
+        /* Animation Utilities */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
+        .animate-scale-in { animation: scaleIn 0.2s ease-out; }
+    </style>
 </body>
 </html>
