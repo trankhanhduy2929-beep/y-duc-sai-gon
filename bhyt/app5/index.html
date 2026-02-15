@@ -88,9 +88,12 @@
             LogOut: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
             Sun: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
             Moon: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+            ChevronDown: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="6 9 12 15 18 9"/></svg>,
+            ChevronUp: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="18 15 12 9 6 15"/></svg>,
+            Search: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
         };
 
-        const { Lock, Upload, FileSpreadsheet, FileText, User, Stethoscope, Pill, Activity, Clock, Trash2, CheckCircle, LogOut, Sun, Moon } = Icons;
+        const { Lock, Upload, FileSpreadsheet, FileText, User, Stethoscope, Pill, Activity, Clock, Trash2, CheckCircle, LogOut, Sun, Moon, ChevronDown, ChevronUp, Search } = Icons;
 
         // --- UTILS ---
         const formatDateTime = (str) => {
@@ -178,6 +181,100 @@
             );
         };
 
+        // SEARCHABLE SELECT (AUTOCOMPLETE)
+        const SearchableSelect = ({ options, value, onChange, placeholder }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [searchTerm, setSearchTerm] = useState("");
+            const wrapperRef = useRef(null);
+
+            // Update search term when value changes externally or initially
+            useEffect(() => {
+                const selected = options.find(o => o.id === value);
+                if (selected) {
+                    setSearchTerm(selected.name);
+                } else if (!value) {
+                    setSearchTerm("");
+                }
+            }, [value, options]);
+
+            // Close on click outside
+            useEffect(() => {
+                function handleClickOutside(event) {
+                    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                        setIsOpen(false);
+                        // Reset search term to currently selected value if user didn't select new one
+                        const selected = options.find(o => o.id === value);
+                        setSearchTerm(selected ? selected.name : "");
+                    }
+                }
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, [wrapperRef, value, options]);
+
+            const filteredOptions = useMemo(() => {
+                if (!searchTerm && !isOpen) return options; 
+                const lowerTerm = searchTerm.toLowerCase();
+                return options.filter(opt =>
+                    opt.name.toLowerCase().includes(lowerTerm) ||
+                    opt.id.toLowerCase().includes(lowerTerm)
+                );
+            }, [options, searchTerm, isOpen]);
+
+            return (
+                <div className="relative" ref={wrapperRef}>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            className="w-full pl-3 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm placeholder-gray-400 dark:placeholder-gray-500"
+                            placeholder={placeholder}
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setIsOpen(true);
+                            }}
+                            onFocus={() => {
+                                setIsOpen(true);
+                                // Optional: Clear on focus to allow fresh search, 
+                                // or keep value. Keeping value is usually better for editing.
+                                // If user wants to clear, they can delete.
+                            }}
+                            onClick={() => setIsOpen(true)}
+                        />
+                        <div className="absolute right-3 top-2.5 pointer-events-none text-gray-400">
+                            {isOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+                        </div>
+                    </div>
+
+                    {isOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {filteredOptions.length > 0 ? (
+                                filteredOptions.map((opt) => (
+                                    <div
+                                        key={opt.id}
+                                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/30 border-b border-gray-50 dark:border-gray-700 last:border-0 ${opt.id === value ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-200'}`}
+                                        onClick={() => {
+                                            onChange(opt.id);
+                                            setIsOpen(false);
+                                            setSearchTerm(opt.name);
+                                        }}
+                                    >
+                                        <div className="flex flex-col">
+                                            <span>{opt.name}</span>
+                                            <span className="text-[10px] text-gray-400">{opt.id}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 text-center italic">
+                                    Không tìm thấy bác sĩ phù hợp
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         // LOGIN SCREEN
         const LoginScreen = ({ onLogin }) => {
             const [pass, setPass] = useState("");
@@ -205,7 +302,7 @@
                             </div>
                             <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">Đăng nhập</button>
                         </form>
-                        <p className="text-center text-xs text-gray-400 mt-6">Phiên bản Pro Max v2.2</p>
+                        <p className="text-center text-xs text-gray-400 mt-6">Phiên bản Pro Max v2.3</p>
                     </div>
                 </div>
             );
@@ -421,13 +518,13 @@
                                 <div className="space-y-5">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Bác sĩ</label>
-                                        <div className="relative">
-                                            <select className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" value={selectedDoctorId} onChange={(e) => setSelectedDoctorId(e.target.value)}>
-                                                <option value="">-- Chọn bác sĩ --</option>
-                                                {doctorList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                            </select>
-                                            <div className="absolute right-3 top-3 pointer-events-none text-gray-400"><User size={14} /></div>
-                                        </div>
+                                        {/* NEW SEARCHABLE SELECT COMPONENT */}
+                                        <SearchableSelect 
+                                            options={doctorList} 
+                                            value={selectedDoctorId} 
+                                            onChange={setSelectedDoctorId} 
+                                            placeholder="-- Nhập tên hoặc mã bác sĩ --" 
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Ngày chỉ định / KQ</label>
