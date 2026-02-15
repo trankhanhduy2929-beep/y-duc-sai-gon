@@ -24,7 +24,7 @@
 
     <script>
         tailwind.config = {
-            darkMode: 'class', // Bật chế độ dark mode bằng class
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -46,40 +46,23 @@
     </script>
 
     <style>
-        /* Base Transition */
         body { transition: background-color 0.3s, color 0.3s; }
-        
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* Dark mode scrollbar */
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
         .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-
         .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- DUAL RANGE SLIDER CSS --- */
         .range-slider { position: relative; width: 100%; height: 5px; border-radius: 5px; background: #e2e8f0; margin-top: 10px; margin-bottom: 25px; }
         .dark .range-slider { background: #334155; }
-        
         .range-slider .progress { position: absolute; left: 0%; right: 0%; height: 100%; border-radius: 5px; background: #3b82f6; }
-        
-        .range-slider input[type="range"] {
-            position: absolute; width: 100%; height: 5px; -webkit-appearance: none; pointer-events: none; background: none; outline: none; top: 0;
-        }
-        
-        .range-slider input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #3b82f6; pointer-events: auto; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-        
-        .range-slider input[type="range"]::-moz-range-thumb {
-            width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #3b82f6; pointer-events: auto; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-
+        .range-slider input[type="range"] { position: absolute; width: 100%; height: 5px; -webkit-appearance: none; pointer-events: none; background: none; outline: none; top: 0; }
+        .range-slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #3b82f6; pointer-events: auto; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .range-slider input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #3b82f6; pointer-events: auto; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .dark .range-slider input[type="range"]::-webkit-slider-thumb { background: #1e293b; border-color: #60a5fa; }
     </style>
 </head>
@@ -95,6 +78,7 @@
             Activity: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,
             Upload: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
             FileSpreadsheet: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>,
+            FileText: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
             User: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
             Pill: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>,
             Stethoscope: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>,
@@ -106,7 +90,7 @@
             Moon: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
         };
 
-        const { Lock, Upload, FileSpreadsheet, User, Stethoscope, Pill, Activity, Clock, Trash2, CheckCircle, LogOut, Sun, Moon } = Icons;
+        const { Lock, Upload, FileSpreadsheet, FileText, User, Stethoscope, Pill, Activity, Clock, Trash2, CheckCircle, LogOut, Sun, Moon } = Icons;
 
         // --- UTILS ---
         const formatDateTime = (str) => {
@@ -139,7 +123,7 @@
 
         // --- COMPONENTS ---
 
-        // DUAL RANGE SLIDER COMPONENT
+        // DUAL RANGE SLIDER
         const TimeRangeSlider = ({ min, max, onChange, initialMin, initialMax }) => {
             const [minVal, setMinVal] = useState(initialMin);
             const [maxVal, setMaxVal] = useState(initialMax);
@@ -147,10 +131,8 @@
             const maxValRef = useRef(initialMax);
             const range = useRef(null);
 
-            // Convert to percentage
             const getPercent = (value) => Math.round(((value - min) / (max - min)) * 100);
 
-            // Set width of the range to decrease from the left side
             useEffect(() => {
                 const minPercent = getPercent(minVal);
                 const maxPercent = getPercent(maxValRef.current);
@@ -158,16 +140,15 @@
                     range.current.style.left = `${minPercent}%`;
                     range.current.style.width = `${maxPercent - minPercent}%`;
                 }
-            }, [minVal, getPercent]);
+            }, [minVal]);
 
-            // Set width of the range to decrease from the right side
             useEffect(() => {
                 const minPercent = getPercent(minValRef.current);
                 const maxPercent = getPercent(maxVal);
                 if (range.current) {
                     range.current.style.width = `${maxPercent - minPercent}%`;
                 }
-            }, [maxVal, getPercent]);
+            }, [maxVal]);
 
             return (
                 <div className="pt-2">
@@ -177,90 +158,60 @@
                     </div>
                     <div className="range-slider">
                         <div ref={range} className="progress"></div>
-                        <input
-                            type="range"
-                            min={min}
-                            max={max}
-                            value={minVal}
-                            onChange={(event) => {
-                                const value = Math.min(Number(event.target.value), maxVal - 1);
+                        <input type="range" min={min} max={max} value={minVal}
+                            onChange={(e) => {
+                                const value = Math.min(Number(e.target.value), maxVal - 1);
                                 setMinVal(value);
                                 minValRef.current = value;
                                 onChange({ min: value, max: maxVal });
-                            }}
-                            className="z-[3]"
-                        />
-                        <input
-                            type="range"
-                            min={min}
-                            max={max}
-                            value={maxVal}
-                            onChange={(event) => {
-                                const value = Math.max(Number(event.target.value), minVal + 1);
+                            }} className="z-[3]" />
+                        <input type="range" min={min} max={max} value={maxVal}
+                            onChange={(e) => {
+                                const value = Math.max(Number(e.target.value), minVal + 1);
                                 setMaxVal(value);
                                 maxValRef.current = value;
                                 onChange({ min: minVal, max: value });
-                            }}
-                            className="z-[4]"
-                        />
+                            }} className="z-[4]" />
                     </div>
-                    <div className="text-center text-[10px] text-gray-400 dark:text-gray-500 italic">
-                        Kéo 2 đầu tròn để giới hạn giờ
-                    </div>
+                    <div className="text-center text-[10px] text-gray-400 dark:text-gray-500 italic">Kéo 2 đầu tròn để giới hạn giờ</div>
                 </div>
             );
         };
 
-
-        // 1. LOGIN COMPONENT
+        // LOGIN SCREEN
         const LoginScreen = ({ onLogin }) => {
             const [pass, setPass] = useState("");
             const [error, setError] = useState(false);
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                if (pass === "1402") {
-                    onLogin();
-                } else {
-                    setError(true);
-                    setTimeout(() => setError(false), 500);
-                }
+                if (pass === "1402") onLogin();
+                else { setError(true); setTimeout(() => setError(false), 500); }
             };
 
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-dark-bg dark:to-slate-900 p-4 transition-colors">
                     <div className="bg-white dark:bg-dark-card p-8 rounded-2xl shadow-xl w-full max-w-md fade-in border dark:border-dark-border">
                         <div className="text-center mb-8">
-                            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-4">
-                                <Lock size={32} />
-                            </div>
+                            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-4"><Lock size={32} /></div>
                             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Hệ thống Audit</h1>
                             <p className="text-gray-500 dark:text-dark-muted text-sm mt-1">Vui lòng đăng nhập để tiếp tục</p>
                         </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mật khẩu truy cập</label>
-                                <input 
-                                    type="password" 
-                                    className={`w-full px-4 py-3 rounded-lg border ${error ? 'border-red-500 ring-2 ring-red-100' : 'border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900'} outline-none transition-all`}
-                                    placeholder="Nhập mã PIN..."
-                                    value={pass}
-                                    onChange={(e) => setPass(e.target.value)}
-                                    autoFocus
-                                />
+                                <input type="password" className={`w-full px-4 py-3 rounded-lg border ${error ? 'border-red-500 ring-2 ring-red-100' : 'border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100'} outline-none`} placeholder="Nhập mã PIN..." value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
                                 {error && <p className="text-red-500 text-xs mt-1 ml-1">Mật khẩu không đúng</p>}
                             </div>
-                            <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">
-                                Đăng nhập
-                            </button>
+                            <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">Đăng nhập</button>
                         </form>
-                        <p className="text-center text-xs text-gray-400 mt-6">Phiên bản Pro Max v2.1</p>
+                        <p className="text-center text-xs text-gray-400 mt-6">Phiên bản Pro Max v2.2</p>
                     </div>
                 </div>
             );
         };
 
-        // 2. FILE UPLOADER UI
+        // FILE UPLOADER
         const FileUploader = ({ label, onDataLoaded, colorTheme = "blue", icon: Icon }) => {
             const [fileName, setFileName] = useState("");
             const [isDragging, setIsDragging] = useState(false);
@@ -268,10 +219,7 @@
             const processFile = (file) => {
                 setFileName(file.name);
                 if (file.name.toLowerCase().endsWith('.csv')) {
-                    Papa.parse(file, {
-                        header: true, skipEmptyLines: true, encoding: "UTF-8",
-                        complete: (res) => onDataLoaded(normalizeData(res.data))
-                    });
+                    Papa.parse(file, { header: true, skipEmptyLines: true, encoding: "UTF-8", complete: (res) => onDataLoaded(normalizeData(res.data)) });
                 } else if (file.name.match(/\.(xls|xlsx)$/i)) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
@@ -292,14 +240,11 @@
             return (
                 <div className="mb-3">
                     <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">{label}</label>
-                    <div 
-                        className={`relative group rounded-xl border-2 border-dashed transition-all duration-200 p-3 flex items-center justify-center cursor-pointer overflow-hidden ${colors[colorTheme]} ${isDragging ? 'ring-2 ring-offset-2 ring-blue-400 scale-[1.02]' : ''}`}
+                    <div className={`relative group rounded-xl border-2 border-dashed transition-all duration-200 p-3 flex items-center justify-center cursor-pointer overflow-hidden ${colors[colorTheme]} ${isDragging ? 'ring-2 ring-offset-2 ring-blue-400 scale-[1.02]' : ''}`}
                         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                         onDragLeave={() => setIsDragging(false)}
-                        onDrop={(e) => { e.preventDefault(); setIsDragging(false); if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }}
-                    >
+                        onDrop={(e) => { e.preventDefault(); setIsDragging(false); if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }}>
                         <input type="file" accept=".csv, .xlsx, .xls" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => e.target.files[0] && processFile(e.target.files[0])} />
-                        
                         <div className="flex items-center space-x-2 z-0">
                             {fileName ? (
                                 <>
@@ -325,22 +270,18 @@
             </div>
         );
 
-        // 3. MAIN DASHBOARD
+        // DASHBOARD
         const Dashboard = ({ onLogout, toggleTheme, isDarkMode }) => {
             const [b1Data, setB1Data] = useState([]);
             const [b2Data, setB2Data] = useState([]);
             const [b3Data, setB3Data] = useState([]);
+            const [b4Data, setB4Data] = useState([]); 
             const [cchnData, setCchnData] = useState([]);
-            
             const [selectedDoctorId, setSelectedDoctorId] = useState("");
             const [dateFilter, setDateFilter] = useState("");
             const [isConfigOpen, setIsConfigOpen] = useState(true);
-            
-            // Time Range State (Minutes from 0 to 1439)
-            // Default 00:00 to 23:59
             const [timeRange, setTimeRange] = useState({ min: 0, max: 1439 });
 
-            // Derived Data
             const doctorsMap = useMemo(() => {
                 const map = {};
                 cchnData.forEach(r => {
@@ -363,13 +304,14 @@
                 const add = (id) => { if(id && String(id).length > 3) s.add(id); };
                 b2Data.forEach(r => add(r["MA_BAC_SI"]));
                 b3Data.forEach(r => { add(r["MA_BAC_SI"]); add(r["NGUOI_THUC_HIEN"]); });
+                b4Data.forEach(r => add(r["MA_BS_DOC_KQ"])); 
                 return Array.from(s).map(id => ({ id, name: doctorsMap[id] || `(${id})` })).sort((a,b) => a.name.localeCompare(b.name));
-            }, [b2Data, b3Data, doctorsMap]);
+            }, [b2Data, b3Data, b4Data, doctorsMap]);
 
             const activities = useMemo(() => {
                 if (!selectedDoctorId) return [];
                 let acts = [];
-                // Process B2
+                // B2
                 b2Data.forEach((r, idx) => {
                     if (normalizeID(r["MA_BAC_SI"]) === selectedDoctorId) {
                         acts.push({
@@ -381,7 +323,7 @@
                         });
                     }
                 });
-                // Process B3
+                // B3
                 b3Data.forEach((r, idx) => {
                     const bs = normalizeID(r["MA_BAC_SI"]), th = normalizeID(r["NGUOI_THUC_HIEN"]);
                     if (bs === selectedDoctorId) {
@@ -402,29 +344,39 @@
                         });
                     }
                 });
+                // B4
+                b4Data.forEach((r, idx) => {
+                    if (normalizeID(r["MA_BS_DOC_KQ"]) === selectedDoctorId) {
+                        let content = r["TEN_CHI_SO"];
+                        let detail = r["KET_LUAN"] || r["MO_TA"] || r["GIA_TRI"];
+                        if (!content || content === '.') content = "Kết quả CLS (Chi tiết xem mô tả)";
+                        acts.push({
+                            type: 'KET_QUA', maLk: r["MA_LK"],
+                            patient: patientsMap[r["MA_LK"]]?.ten || "Không có tên",
+                            content: content,
+                            time: String(r["NGAY_KQ"] || ""), 
+                            timeResult: String(r["NGAY_KQ"] || ""),
+                            detail: detail, role: 'Đọc KQ', idx
+                        });
+                    }
+                });
                 return acts.sort((a,b) => (a.time || '0').localeCompare(b.time || '0'));
-            }, [selectedDoctorId, b2Data, b3Data, patientsMap]);
+            }, [selectedDoctorId, b2Data, b3Data, b4Data, patientsMap]);
 
             const filteredActs = useMemo(() => {
                 let result = activities;
-                
-                // 1. Filter by Date
                 if(dateFilter) {
                     const f = dateFilter.replace(/-/g, '');
                     result = result.filter(a => a.time && a.time.startsWith(f));
                 }
-
-                // 2. Filter by Time Range (Slider)
                 result = result.filter(a => {
                     const t = getTimeFromStr(a.time);
                     if (t === null) return false;
                     return t >= timeRange.min && t <= timeRange.max;
                 });
-
                 return result;
             }, [activities, dateFilter, timeRange]);
 
-            // Stats
             const stats = useMemo(() => {
                 const pts = new Set(filteredActs.map(a => a.maLk));
                 let min = "999999999999", max = "000000000000";
@@ -434,191 +386,111 @@
                     if(a.timeResult && a.timeResult > max) max = a.timeResult;
                 });
                 return {
-                    pts: pts.size,
-                    thuoc: filteredActs.filter(a => a.type === 'THUOC').length,
+                    pts: pts.size, thuoc: filteredActs.filter(a => a.type === 'THUOC').length,
                     dv: filteredActs.filter(a => a.type === 'DICH_VU').length,
+                    kq: filteredActs.filter(a => a.type === 'KET_QUA').length,
                     start: min !== "999999999999" ? formatDateTime(min) : "--",
                     end: max !== "000000000000" ? formatDateTime(max) : "--"
                 };
             }, [filteredActs]);
 
-            const totalRows = b1Data.length + b2Data.length + b3Data.length;
+            const totalRows = b1Data.length + b2Data.length + b3Data.length + b4Data.length;
 
             return (
                 <div className="flex flex-col h-screen overflow-hidden font-sans">
-                    {/* TOP NAVIGATION */}
                     <header className="h-16 bg-white dark:bg-dark-card border-b border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between px-6 z-20 transition-colors">
                         <div className="flex items-center space-x-3">
-                            <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-2 rounded-lg shadow-md">
-                                <Activity size={20} />
-                            </div>
+                            <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-2 rounded-lg shadow-md"><Activity size={20} /></div>
                             <div>
                                 <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 tracking-tight">Smart Audit <span className="text-blue-600 dark:text-blue-400 font-extrabold">Pro Max</span></h1>
-                                <div className="flex items-center text-[10px] text-gray-500 dark:text-gray-400 space-x-2">
-                                    <span className={`w-2 h-2 rounded-full ${totalRows > 0 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></span>
-                                    <span>{totalRows > 0 ? 'Hệ thống sẵn sàng' : 'Chờ dữ liệu'}</span>
-                                </div>
+                                <div className="flex items-center text-[10px] text-gray-500 dark:text-gray-400 space-x-2"><span className={`w-2 h-2 rounded-full ${totalRows > 0 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></span><span>{totalRows > 0 ? 'Hệ thống sẵn sàng' : 'Chờ dữ liệu'}</span></div>
                             </div>
                         </div>
-                        
                         <div className="flex items-center space-x-4">
-                            {/* Dark Mode Toggle */}
-                            <button 
-                                onClick={toggleTheme}
-                                className="p-2 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-                            >
-                                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-                            </button>
-
-                             <button 
-                                onClick={() => setIsConfigOpen(!isConfigOpen)}
-                                className={`text-sm px-4 py-2 rounded-full font-medium transition-all ${isConfigOpen ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
-                            >
-                                {isConfigOpen ? 'Thu gọn' : 'Mở bộ nạp dữ liệu'}
-                            </button>
+                            <button onClick={toggleTheme} className="p-2 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
+                            <button onClick={() => setIsConfigOpen(!isConfigOpen)} className={`text-sm px-4 py-2 rounded-full font-medium transition-all ${isConfigOpen ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700'}`}>{isConfigOpen ? 'Thu gọn' : 'Mở bộ nạp dữ liệu'}</button>
                             <div className="h-6 w-px bg-gray-200 dark:bg-gray-600"></div>
-                            <button onClick={onLogout} className="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
-                                <LogOut size={16} className="mr-2" /> Thoát
-                            </button>
+                            <button onClick={onLogout} className="flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"><LogOut size={16} className="mr-2" /> Thoát</button>
                         </div>
                     </header>
 
                     <div className="flex flex-1 overflow-hidden">
-                        
-                        {/* LEFT SIDEBAR - FILTERS */}
                         <aside className="w-80 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-gray-700 flex flex-col z-10 shadow-lg transition-colors">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-b from-white to-gray-50/50 dark:from-dark-card dark:to-slate-900/50">
                                 <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Bộ lọc dữ liệu</h2>
-                                
                                 <div className="space-y-5">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Bác sĩ</label>
                                         <div className="relative">
-                                            <select 
-                                                className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm outline-none appearance-none"
-                                                value={selectedDoctorId}
-                                                onChange={(e) => setSelectedDoctorId(e.target.value)}
-                                            >
+                                            <select className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" value={selectedDoctorId} onChange={(e) => setSelectedDoctorId(e.target.value)}>
                                                 <option value="">-- Chọn bác sĩ --</option>
                                                 {doctorList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                             </select>
-                                            <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
-                                                <User size={14} />
-                                            </div>
+                                            <div className="absolute right-3 top-3 pointer-events-none text-gray-400"><User size={14} /></div>
                                         </div>
                                     </div>
-
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Ngày chỉ định</label>
-                                        <input 
-                                            type="date" 
-                                            className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm outline-none"
-                                            value={dateFilter}
-                                            onChange={(e) => setDateFilter(e.target.value)}
-                                        />
+                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Ngày chỉ định / KQ</label>
+                                        <input type="date" className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm dark:text-white outline-none" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
                                     </div>
-                                    
-                                    {/* TIME SLIDER FILTER */}
                                     <div className="pt-2">
-                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1 flex items-center justify-between">
-                                            <span>Khung giờ làm việc</span>
-                                            <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">Check nghỉ trưa</span>
-                                        </label>
-                                        <TimeRangeSlider 
-                                            min={0} 
-                                            max={1439} 
-                                            initialMin={0}
-                                            initialMax={1439}
-                                            onChange={setTimeRange} 
-                                        />
+                                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1 flex items-center justify-between"><span>Khung giờ làm việc</span><span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">Check nghỉ trưa</span></label>
+                                        <TimeRangeSlider min={0} max={1439} initialMin={0} initialMax={1439} onChange={setTimeRange} />
                                     </div>
                                 </div>
                             </div>
-
-                            {/* STATS AREA */}
                             {selectedDoctorId && (
                                 <div className="flex-1 p-6 overflow-y-auto bg-gray-50/30 dark:bg-slate-900/30">
                                     <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Thống kê nhanh</h3>
-                                    
                                     <div className="grid grid-cols-2 gap-3 mb-6">
                                         <StatItem label="Bệnh nhân" value={stats.pts} color="text-purple-600" darkColor="dark:text-purple-400" />
                                         <StatItem label="Hoạt động" value={filteredActs.length} color="text-gray-800" darkColor="dark:text-gray-200" />
                                         <StatItem label="Thuốc" value={stats.thuoc} color="text-blue-600" darkColor="dark:text-blue-400" />
                                         <StatItem label="Dịch vụ" value={stats.dv} color="text-emerald-600" darkColor="dark:text-emerald-400" />
+                                        <div className="col-span-2"><StatItem label="Kết quả CLS" value={stats.kq} color="text-purple-500" darkColor="dark:text-purple-300" /></div>
                                     </div>
-
                                     <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center mb-3">
-                                            <div className="bg-orange-100 dark:bg-orange-900/40 p-1.5 rounded-md mr-2 text-orange-600 dark:text-orange-400"><Clock size={14}/></div>
-                                            <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Time Log</span>
-                                        </div>
+                                        <div className="flex items-center mb-3"><div className="bg-orange-100 dark:bg-orange-900/40 p-1.5 rounded-md mr-2 text-orange-600 dark:text-orange-400"><Clock size={14}/></div><span className="text-sm font-bold text-gray-800 dark:text-gray-200">Time Log</span></div>
                                         <div className="space-y-3">
-                                            <div className="flex justify-between items-center text-sm">
-                                                <span className="text-gray-500 dark:text-gray-400">Bắt đầu</span>
-                                                <span className="font-mono font-medium text-gray-800 dark:text-gray-100 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">{stats.start}</span>
-                                            </div>
+                                            <div className="flex justify-between items-center text-sm"><span className="text-gray-500 dark:text-gray-400">Bắt đầu</span><span className="font-mono font-medium text-gray-800 dark:text-gray-100 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">{stats.start}</span></div>
                                             <div className="w-full h-px bg-gray-100 dark:bg-gray-700"></div>
-                                            <div className="flex justify-between items-center text-sm">
-                                                <span className="text-gray-500 dark:text-gray-400">Kết thúc</span>
-                                                <span className="font-mono font-medium text-gray-800 dark:text-gray-100 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">{stats.end}</span>
-                                            </div>
+                                            <div className="flex justify-between items-center text-sm"><span className="text-gray-500 dark:text-gray-400">Kết thúc</span><span className="font-mono font-medium text-gray-800 dark:text-gray-100 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">{stats.end}</span></div>
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </aside>
 
-                        {/* RIGHT MAIN CONTENT */}
                         <main className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-dark-bg relative transition-colors">
-                            
-                            {/* CONFIG PANEL (COLLAPSIBLE) */}
                             {isConfigOpen && (
                                 <div className="bg-white dark:bg-dark-card border-b border-gray-200 dark:border-gray-700 p-6 shadow-sm z-10 fade-in transition-colors">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {/* External Section */}
                                         <div className="bg-blue-50/30 dark:bg-blue-900/10 rounded-xl p-4 border border-blue-100 dark:border-blue-900/30">
-                                            <div className="flex items-center mb-3 text-blue-800 dark:text-blue-300 font-bold text-sm uppercase tracking-wide">
-                                                <span className="w-2 h-4 bg-blue-500 rounded-full mr-2"></span>
-                                                Ngoại trú
+                                            <div className="flex items-center mb-3 text-blue-800 dark:text-blue-300 font-bold text-sm uppercase tracking-wide"><span className="w-2 h-4 bg-blue-500 rounded-full mr-2"></span>Ngoại trú</div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <FileUploader label="B1. Hành chính" colorTheme="blue" icon={FileSpreadsheet} onDataLoaded={d => setB1Data(p => [...p, ...d])} />
+                                                <FileUploader label="B2. Thuốc" colorTheme="blue" icon={Pill} onDataLoaded={d => setB2Data(p => [...p, ...d])} />
+                                                <FileUploader label="B3. Dịch vụ" colorTheme="blue" icon={Stethoscope} onDataLoaded={d => setB3Data(p => [...p, ...d])} />
+                                                <FileUploader label="B4. Kết quả CLS" colorTheme="blue" icon={FileText} onDataLoaded={d => setB4Data(p => [...p, ...d])} />
                                             </div>
-                                            <FileUploader label="B1. Hành chính" colorTheme="blue" icon={FileSpreadsheet} onDataLoaded={d => setB1Data(p => [...p, ...d])} />
-                                            <FileUploader label="B2. Thuốc" colorTheme="blue" icon={Pill} onDataLoaded={d => setB2Data(p => [...p, ...d])} />
-                                            <FileUploader label="B3. Dịch vụ" colorTheme="blue" icon={Stethoscope} onDataLoaded={d => setB3Data(p => [...p, ...d])} />
                                         </div>
-
-                                        {/* Internal Section */}
                                         <div className="bg-emerald-50/30 dark:bg-emerald-900/10 rounded-xl p-4 border border-emerald-100 dark:border-emerald-900/30">
-                                            <div className="flex items-center mb-3 text-emerald-800 dark:text-emerald-300 font-bold text-sm uppercase tracking-wide">
-                                                <span className="w-2 h-4 bg-emerald-500 rounded-full mr-2"></span>
-                                                Nội trú
-                                            </div>
+                                            <div className="flex items-center mb-3 text-emerald-800 dark:text-emerald-300 font-bold text-sm uppercase tracking-wide"><span className="w-2 h-4 bg-emerald-500 rounded-full mr-2"></span>Nội trú</div>
                                             <FileUploader label="B1. Hành chính" colorTheme="green" icon={FileSpreadsheet} onDataLoaded={d => setB1Data(p => [...p, ...d])} />
                                             <FileUploader label="B2. Thuốc" colorTheme="green" icon={Pill} onDataLoaded={d => setB2Data(p => [...p, ...d])} />
                                             <FileUploader label="B3. Dịch vụ" colorTheme="green" icon={Stethoscope} onDataLoaded={d => setB3Data(p => [...p, ...d])} />
                                         </div>
-
-                                        {/* Master Data */}
                                         <div className="bg-gray-50/50 dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700 flex flex-col">
-                                             <div className="flex items-center mb-3 text-gray-800 dark:text-gray-300 font-bold text-sm uppercase tracking-wide">
-                                                <span className="w-2 h-4 bg-gray-500 rounded-full mr-2"></span>
-                                                Hệ thống
-                                            </div>
+                                             <div className="flex items-center mb-3 text-gray-800 dark:text-gray-300 font-bold text-sm uppercase tracking-wide"><span className="w-2 h-4 bg-gray-500 rounded-full mr-2"></span>Hệ thống</div>
                                             <FileUploader label="Danh sách CCHN" colorTheme="gray" icon={User} onDataLoaded={d => setCchnData(p => [...p, ...d])} />
-                                            
                                             <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
-                                                <button 
-                                                    onClick={() => { if(confirm("Xóa toàn bộ dữ liệu?")) window.location.reload(); }}
-                                                    className="w-full flex items-center justify-center space-x-2 py-2.5 bg-white dark:bg-slate-700 border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 rounded-lg text-sm font-medium transition-all shadow-sm"
-                                                >
-                                                    <Trash2 size={16} /> <span>Làm mới dữ liệu</span>
-                                                </button>
+                                                <button onClick={() => { if(confirm("Xóa toàn bộ dữ liệu?")) window.location.reload(); }} className="w-full flex items-center justify-center space-x-2 py-2.5 bg-white dark:bg-slate-700 border border-red-200 dark:border-red-900/50 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 rounded-lg text-sm font-medium transition-all shadow-sm"><Trash2 size={16} /> <span>Làm mới dữ liệu</span></button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* DATA TABLE */}
                             <div className="flex-1 overflow-auto p-6">
                                 <div className="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[400px] transition-colors">
                                     <table className="w-full text-left border-collapse">
@@ -628,7 +500,7 @@
                                                 <th className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-40">Thời gian</th>
                                                 <th className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-64">Bệnh nhân</th>
                                                 <th className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">Loại</th>
-                                                <th className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Chi tiết Y lệnh</th>
+                                                <th className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Chi tiết Hoạt động</th>
                                                 <th className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-32">Vai trò</th>
                                                 <th className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-40">TG Kết quả</th>
                                             </tr>
@@ -638,112 +510,50 @@
                                                 filteredActs.map((row, i) => (
                                                     <tr key={i} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
                                                         <td className="py-3 px-4 text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">{i + 1}</td>
+                                                        <td className="py-3 px-4"><span className="font-mono text-sm text-blue-700 dark:text-blue-300 font-medium bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">{formatDateTime(row.time)}</span></td>
+                                                        <td className="py-3 px-4"><div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{row.patient}</div><div className="text-[10px] text-gray-400 font-mono mt-0.5">{row.maLk}</div></td>
                                                         <td className="py-3 px-4">
-                                                            <span className="font-mono text-sm text-blue-700 dark:text-blue-300 font-medium bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
-                                                                {formatDateTime(row.time)}
-                                                            </span>
+                                                            {row.type === 'THUOC' ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">Thuốc</span>
+                                                            : row.type === 'DICH_VU' ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">Dịch vụ</span>
+                                                            : <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">Kết quả</span>}
                                                         </td>
-                                                        <td className="py-3 px-4">
-                                                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{row.patient}</div>
-                                                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{row.maLk}</div>
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            {row.type === 'THUOC' ? (
-                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
-                                                                    Thuốc
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
-                                                                    Dịch vụ
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            <div className="text-sm text-gray-800 dark:text-gray-200">{row.content}</div>
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{row.detail}</div>
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 px-2 py-1 rounded-md bg-white dark:bg-slate-700">
-                                                                {row.role}
-                                                            </span>
-                                                        </td>
-                                                        <td className="py-3 px-4">
-                                                            {row.timeResult ? (
-                                                                <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                                                                    {formatDateTime(row.timeResult)}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-gray-300 dark:text-gray-600">-</span>
-                                                            )}
-                                                        </td>
+                                                        <td className="py-3 px-4"><div className="text-sm text-gray-800 dark:text-gray-200">{row.content}</div><div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2" title={row.detail}>{row.detail}</div></td>
+                                                        <td className="py-3 px-4"><span className="text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 px-2 py-1 rounded-md bg-white dark:bg-slate-700">{row.role}</span></td>
+                                                        <td className="py-3 px-4">{row.timeResult ? <span className="text-xs font-mono text-gray-600 dark:text-gray-400">{formatDateTime(row.timeResult)}</span> : <span className="text-gray-300 dark:text-gray-600">-</span>}</td>
                                                     </tr>
                                                 ))
                                             ) : (
-                                                <tr>
-                                                    <td colSpan="7" className="py-20 text-center">
-                                                        <div className="flex flex-col items-center justify-center opacity-40">
-                                                            <Activity size={48} className="text-gray-400 dark:text-gray-600 mb-4" />
-                                                            <p className="text-gray-500 dark:text-gray-400 font-medium">Chưa có dữ liệu hiển thị</p>
-                                                            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Vui lòng chọn bác sĩ, nạp file dữ liệu, hoặc kiểm tra thanh lọc giờ</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
+                                                <tr><td colSpan="7" className="py-20 text-center"><div className="flex flex-col items-center justify-center opacity-40"><Activity size={48} className="text-gray-400 dark:text-gray-600 mb-4" /><p className="text-gray-500 dark:text-gray-400 font-medium">Chưa có dữ liệu hiển thị</p><p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Vui lòng chọn bác sĩ, nạp file dữ liệu, hoặc kiểm tra thanh lọc giờ</p></div></td></tr>
                                             )}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-
                         </main>
                     </div>
                 </div>
             );
         };
 
-        // 4. ROOT APP
         const App = () => {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
             const [isDarkMode, setIsDarkMode] = useState(false);
 
             useEffect(() => {
-                // Check session simple
                 if(sessionStorage.getItem('audit_auth') === 'true') setIsLoggedIn(true);
-                // Check theme pref
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    setIsDarkMode(true);
-                }
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) setIsDarkMode(true);
             }, []);
 
             useEffect(() => {
                 const root = window.document.documentElement;
-                if (isDarkMode) {
-                    root.classList.add('dark');
-                    root.classList.remove('light');
-                } else {
-                    root.classList.add('light');
-                    root.classList.remove('dark');
-                }
+                if (isDarkMode) { root.classList.add('dark'); root.classList.remove('light'); }
+                else { root.classList.add('light'); root.classList.remove('dark'); }
             }, [isDarkMode]);
 
-            const handleLogin = () => {
-                sessionStorage.setItem('audit_auth', 'true');
-                setIsLoggedIn(true);
-            };
+            const handleLogin = () => { sessionStorage.setItem('audit_auth', 'true'); setIsLoggedIn(true); };
+            const handleLogout = () => { sessionStorage.removeItem('audit_auth'); setIsLoggedIn(false); };
 
-            const handleLogout = () => {
-                sessionStorage.removeItem('audit_auth');
-                setIsLoggedIn(false);
-            };
-
-            return isLoggedIn ? (
-                <Dashboard 
-                    onLogout={handleLogout} 
-                    toggleTheme={() => setIsDarkMode(!isDarkMode)} 
-                    isDarkMode={isDarkMode}
-                />
-            ) : (
-                <LoginScreen onLogin={handleLogin} />
-            );
+            return isLoggedIn ? <Dashboard onLogout={handleLogout} toggleTheme={() => setIsDarkMode(!isDarkMode)} isDarkMode={isDarkMode} /> : <LoginScreen onLogin={handleLogin} />;
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
