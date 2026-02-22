@@ -3,153 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần Mềm Dò Lỗi BHYT - Chuyên Đề X-Quang</title>
+    <title>Hệ Thống Dò Lỗi X-Quang BHYT</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
-        .file-upload-card { transition: all 0.3s ease; }
-        .file-upload-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        .table-container { max-height: 600px; overflow-y: auto; }
-        thead th { position: sticky; top: 0; background-color: #f8fafc; z-index: 10; }
-        /* Tùy chỉnh thanh cuộn cho danh sách bác sĩ */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f0f4f8; 
+            color: #1e293b;
+        }
+        
+        /* Hiệu ứng kính (Glassmorphism) cho thẻ card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+        }
+
+        /* Thanh cuộn chuyên nghiệp */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px;}
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .table-container { max-height: 65vh; overflow-y: auto; }
+        thead th { position: sticky; top: 0; background-color: #f8fafc; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+        /* Nền đăng nhập chuẩn X-Quang */
+        .login-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .login-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(56,189,248,0.05) 0%, transparent 60%);
+            animation: pulse 15s infinite linear;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="antialiased">
 
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-blue-700 mb-2"><i class="fa-solid fa-x-ray mr-2"></i>ỨNG DỤNG DÒ LỖI BHYT - CHUYÊN ĐỀ X-QUANG</h1>
-        <p class="text-slate-500">Kiểm tra chứng chỉ hành nghề, mã máy và tính hợp lý về thời gian</p>
-    </div>
-
-    <!-- Upload Section -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <!-- DS CCHN -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 file-upload-card">
-            <h3 class="font-semibold text-slate-700 mb-2"><i class="fa-solid fa-user-doctor text-indigo-500 mr-2"></i>DS CCHN (CSV/Excel)</h3>
-            <input type="file" id="fileCCHN" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"/>
-            <p class="text-xs text-slate-400 mt-2">Cần cột: MA CCHN, TEN BS</p>
-        </div>
-
-        <!-- Bảng 1 -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 file-upload-card">
-            <h3 class="font-semibold text-slate-700 mb-2"><i class="fa-solid fa-file-lines text-blue-500 mr-2"></i>Bảng 1 (CSV/Excel)</h3>
-            <input type="file" id="fileB1" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"/>
-            <p class="text-xs text-slate-400 mt-2">Cần cột: MA_LK, HO_TEN</p>
-        </div>
-
-        <!-- Bảng 3 -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 file-upload-card">
-            <h3 class="font-semibold text-slate-700 mb-2"><i class="fa-solid fa-syringe text-emerald-500 mr-2"></i>Bảng 3 (CSV/Excel)</h3>
-            <input type="file" id="fileB3" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"/>
-            <p class="text-xs text-slate-400 mt-2">Cần thời gian, BS, MA_MAY</p>
-        </div>
-
-        <!-- Bảng 4 -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 file-upload-card">
-            <h3 class="font-semibold text-slate-700 mb-2"><i class="fa-solid fa-microscope text-orange-500 mr-2"></i>Bảng 4 (CSV/Excel)</h3>
-            <input type="file" id="fileB4" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer"/>
-            <p class="text-xs text-slate-400 mt-2">Cần cột: MA_LK, MA_BS_DOC_KQ</p>
-        </div>
-    </div>
-
-    <!-- Doctor Filter Section (Hidden until CCHN is uploaded) -->
-    <div id="doctorSelectionSection" class="hidden bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 border-l-4 border-l-indigo-500">
-        <div class="mb-4">
-            <h3 class="font-bold text-slate-700"><i class="fa-solid fa-user-check text-indigo-500 mr-2"></i>Phân quyền Bác sĩ Thực hiện & Đọc KQ X-Quang</h3>
-            <p class="text-xs text-slate-500 mt-1">Phần mềm sẽ báo lỗi nếu người thực hiện hoặc đọc KQ không nằm trong danh sách được tick tương ứng dưới đây.</p>
+<!-- ================= MÀN HÌNH ĐĂNG NHẬP ================= -->
+<div id="loginScreen" class="login-bg min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-3xl shadow-2xl w-full max-w-md animate-fade-in z-10 text-center">
+        <div class="mb-6">
+            <div class="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/30">
+                <i class="fa-solid fa-x-ray text-4xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-white tracking-wide">HỆ THỐNG DÒ LỖI</h1>
+            <p class="text-cyan-200 text-sm mt-1 uppercase tracking-widest font-semibold">Chuyên đề X-Quang</p>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Cột Bác sĩ Thực hiện -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
-                    <h4 class="font-semibold text-sm text-blue-700"><i class="fa-solid fa-user-nurse mr-1"></i>Bác sĩ THỰC HIỆN</h4>
-                    <div class="flex space-x-1">
-                        <button type="button" id="btnSelectAllTH" class="text-[11px] font-semibold bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded transition-colors">Tất cả</button>
-                        <button type="button" id="btnDeselectAllTH" class="text-[11px] font-semibold bg-slate-200 hover:bg-slate-300 text-slate-600 px-2 py-1 rounded transition-colors">Bỏ chọn</button>
+        <div class="space-y-4">
+            <div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-lock text-slate-400"></i>
                     </div>
+                    <input type="password" id="txtPassword" placeholder="Nhập mã truy cập..." class="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors" autocomplete="off" />
                 </div>
-                <div id="doctorListThucHien" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                    <!-- Checkboxes Thực hiện -->
-                </div>
+                <p id="loginError" class="text-red-400 text-sm mt-2 hidden font-medium text-left"><i class="fa-solid fa-circle-exclamation mr-1"></i>Sai mật khẩu, vui lòng thử lại!</p>
             </div>
-
-            <!-- Cột Bác sĩ Đọc Kết quả -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
-                    <h4 class="font-semibold text-sm text-orange-600"><i class="fa-solid fa-user-md mr-1"></i>Bác sĩ ĐỌC KẾT QUẢ</h4>
-                    <div class="flex space-x-1">
-                        <button type="button" id="btnSelectAllKQ" class="text-[11px] font-semibold bg-orange-100 hover:bg-orange-200 text-orange-700 px-2 py-1 rounded transition-colors">Tất cả</button>
-                        <button type="button" id="btnDeselectAllKQ" class="text-[11px] font-semibold bg-slate-200 hover:bg-slate-300 text-slate-600 px-2 py-1 rounded transition-colors">Bỏ chọn</button>
-                    </div>
-                </div>
-                <div id="doctorListDocKq" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                    <!-- Checkboxes Đọc KQ -->
-                </div>
-            </div>
+            <button id="btnLogin" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> ĐĂNG NHẬP HỆ THỐNG
+            </button>
         </div>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="flex justify-center mb-8">
-        <button id="btnProcess" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-colors flex items-center">
-            <i class="fa-solid fa-play mr-2"></i> BẮT ĐẦU DÒ LỖI
-        </button>
-    </div>
-
-    <!-- Results Section -->
-    <div id="resultContainer" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-            <h2 class="text-lg font-bold text-slate-700"><i class="fa-solid fa-list-check mr-2"></i>Kết quả phân tích X-Quang</h2>
-            <div id="summaryStats" class="text-sm font-semibold text-slate-600"></div>
-        </div>
-        <div class="table-container">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead>
-                    <tr>
-                        <th class="px-4 py-3 text-left font-semibold text-slate-600 w-48">Tên Bệnh Nhân</th>
-                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Dịch vụ (Bảng 3) & Mã Máy</th>
-                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Bác Sĩ</th>
-                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Mốc thời gian</th>
-                        <th class="px-4 py-3 text-left font-semibold text-slate-600">Chi tiết Lỗi Phát Hiện</th>
-                    </tr>
-                </thead>
-                <tbody id="resultTableBody" class="bg-white divide-y divide-slate-200">
-                    <!-- Rows will be inserted here by JS -->
-                </tbody>
-            </table>
+        <div class="mt-8 text-xs text-slate-400">
+            &copy; 2026 Radiology Department. All rights reserved.
         </div>
     </div>
 </div>
 
+<!-- ================= MÀN HÌNH CHÍNH (Ẩn mặc định) ================= -->
+<div id="mainApp" class="hidden min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-x-ray text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wide text-white">KIỂM TOÁN X-QUANG BHYT</h1>
+                    <p class="text-[10px] text-cyan-300 uppercase tracking-widest opacity-80">Phân tích dữ liệu & Logic thời gian</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-slate-300 font-medium hidden sm:block"><i class="fa-solid fa-user-shield mr-1"></i>Admin</span>
+                <button id="btnLogout" class="text-slate-300 hover:text-white transition-colors" title="Đăng xuất">
+                    <i class="fa-solid fa-power-off text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-8 w-full animate-fade-in">
+        <!-- Section Uploads -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+            <!-- DS CCHN -->
+            <div class="glass-card rounded-2xl p-5">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"><i class="fa-solid fa-user-doctor"></i></div>
+                    <h3 class="font-bold text-slate-700">DS Bác Sĩ</h3>
+                </div>
+                <input type="file" id="fileCCHN" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer transition-colors"/>
+                <p class="text-[11px] text-slate-400 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Cần: MA CCHN, TEN BS</p>
+            </div>
+
+            <!-- Bảng 1 -->
+            <div class="glass-card rounded-2xl p-5">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i class="fa-solid fa-hospital-user"></i></div>
+                    <h3 class="font-bold text-slate-700">Bảng 1 (Hành chính)</h3>
+                </div>
+                <input type="file" id="fileB1" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer transition-colors"/>
+                <p class="text-[11px] text-slate-400 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Cần: MA_LK, HO_TEN</p>
+            </div>
+
+            <!-- Bảng 3 -->
+            <div class="glass-card rounded-2xl p-5 border-l-4 border-l-emerald-500">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i class="fa-solid fa-file-waveform"></i></div>
+                    <h3 class="font-bold text-slate-700">Bảng 3 (Dịch vụ)</h3>
+                </div>
+                <input type="file" id="fileB3" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer transition-colors"/>
+                <p class="text-[11px] text-slate-400 mt-2 font-medium text-emerald-600"><i class="fa-solid fa-star mr-1"></i>Bắt buộc tải lên</p>
+            </div>
+
+            <!-- Bảng 4 -->
+            <div class="glass-card rounded-2xl p-5">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="fa-solid fa-microscope"></i></div>
+                    <h3 class="font-bold text-slate-700">Bảng 4 (Cận lâm sàng)</h3>
+                </div>
+                <input type="file" id="fileB4" accept=".csv, .xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer transition-colors"/>
+                <p class="text-[11px] text-slate-400 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>Cần: MA_LK, MA_BS_DOC_KQ</p>
+            </div>
+        </div>
+
+        <!-- Section Filter (Hidden default) -->
+        <div id="doctorSelectionSection" class="hidden glass-card rounded-2xl p-6 mb-8 border-t-4 border-t-indigo-500">
+            <div class="mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-4">
+                <div>
+                    <h3 class="font-bold text-lg text-slate-800"><i class="fa-solid fa-user-check text-indigo-500 mr-2"></i>Phân Quyền Bác Sĩ</h3>
+                    <p class="text-sm text-slate-500 mt-1">Hệ thống sẽ báo lỗi nếu người Thực hiện hoặc Đọc KQ không được cấp quyền dưới đây.</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Cột THỰC HIỆN -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-user-nurse"></i></div>
+                            <h4 class="font-bold text-slate-700">Quyền THỰC HIỆN</h4>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button type="button" id="btnSelectAllTH" class="text-xs font-semibold bg-slate-100 hover:bg-blue-100 text-slate-600 hover:text-blue-700 px-3 py-1.5 rounded-md transition-colors">Tất cả</button>
+                            <button type="button" id="btnDeselectAllTH" class="text-xs font-semibold bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 px-3 py-1.5 rounded-md transition-colors">Xóa</button>
+                        </div>
+                    </div>
+                    <div id="doctorListThucHien" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-2 custom-scrollbar">
+                        <!-- Checkboxes in here -->
+                    </div>
+                </div>
+
+                <!-- Cột ĐỌC KẾT QUẢ -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded bg-orange-50 text-orange-600 flex items-center justify-center"><i class="fa-solid fa-user-md"></i></div>
+                            <h4 class="font-bold text-slate-700">Quyền ĐỌC KẾT QUẢ</h4>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button type="button" id="btnSelectAllKQ" class="text-xs font-semibold bg-slate-100 hover:bg-orange-100 text-slate-600 hover:text-orange-700 px-3 py-1.5 rounded-md transition-colors">Tất cả</button>
+                            <button type="button" id="btnDeselectAllKQ" class="text-xs font-semibold bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-700 px-3 py-1.5 rounded-md transition-colors">Xóa</button>
+                        </div>
+                    </div>
+                    <div id="doctorListDocKq" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-2 custom-scrollbar">
+                        <!-- Checkboxes in here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="flex justify-center mb-8 relative">
+            <div class="absolute inset-0 bg-blue-400 blur-xl opacity-20 rounded-full h-14 w-64 mx-auto"></div>
+            <button id="btnProcess" class="relative bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-10 rounded-full shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-1 flex items-center text-lg">
+                <i class="fa-solid fa-wand-magic-sparkles mr-3"></i> PHÂN TÍCH DỮ LIỆU
+            </button>
+        </div>
+
+        <!-- Section Results -->
+        <div id="resultContainer" class="hidden glass-card rounded-2xl overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-200 bg-white/50 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                    <div class="w-8 h-8 rounded bg-slate-900 text-white flex items-center justify-center mr-3"><i class="fa-solid fa-list-check"></i></div>
+                    Kết Quả Báo Cáo
+                </h2>
+                <div id="summaryStats" class="text-sm bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm font-medium text-slate-600 flex space-x-4">
+                    <!-- Stats inserted here -->
+                </div>
+            </div>
+            <div class="table-container bg-white">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead>
+                        <tr>
+                            <th class="px-5 py-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wider w-48">Thông tin BN</th>
+                            <th class="px-5 py-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wider">Dịch Vụ & Thiết Bị</th>
+                            <th class="px-5 py-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wider">Nhân Sự</th>
+                            <th class="px-5 py-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wider">Log Thời Gian</th>
+                            <th class="px-5 py-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wider">Kết Quả Kiểm Tra</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultTableBody" class="divide-y divide-slate-100">
+                        <!-- Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
 <script>
-    // Utils: Parse BHYT DateTime Format (YYYYMMDDHHmm)
+    // --- LOGIN LOGIC ---
+    document.getElementById('txtPassword').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') document.getElementById('btnLogin').click();
+    });
+
+    document.getElementById('btnLogin').addEventListener('click', () => {
+        const pass = document.getElementById('txtPassword').value;
+        if (pass === '1402') {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').classList.remove('hidden');
+        } else {
+            const err = document.getElementById('loginError');
+            err.classList.remove('hidden');
+            err.classList.add('animate-pulse');
+            setTimeout(() => err.classList.remove('animate-pulse'), 500);
+        }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        document.getElementById('txtPassword').value = '';
+        document.getElementById('loginError').classList.add('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('loginScreen').style.display = 'flex';
+    });
+
+    // --- UTILS ---
     function parseDateStr(str) {
         if (!str || str.length < 12) return null;
         const y = parseInt(str.substring(0, 4));
-        const m = parseInt(str.substring(4, 6)) - 1; // JS months are 0-11
+        const m = parseInt(str.substring(4, 6)) - 1; 
         const d = parseInt(str.substring(6, 8));
         const h = parseInt(str.substring(8, 10));
         const min = parseInt(str.substring(10, 12));
         return new Date(y, m, d, h, min);
     }
 
-    // Utils: Format Date for display
     function formatTime(date) {
         if (!date) return "Trống";
         const pad = (num) => String(num).padStart(2, '0');
         return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}/${pad(date.getMonth() + 1)}`;
     }
 
-    // Utils: Parse CSV or Excel file using Promise
     function parseDataFile(file) {
         return new Promise((resolve, reject) => {
             if (!file) { resolve([]); return; }
@@ -157,9 +295,7 @@
 
             if (fileName.endsWith('.csv')) {
                 Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    transformHeader: h => h.trim(),
+                    header: true, skipEmptyLines: true, transformHeader: h => h.trim(),
                     complete: function(results) { resolve(results.data); },
                     error: function(err) { reject(err); }
                 });
@@ -172,7 +308,6 @@
                         const firstSheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheetName];
                         const json = XLSX.utils.sheet_to_json(worksheet, { defval: '', raw: true });
-                        
                         const cleanedJson = json.map(row => {
                             const newRow = {};
                             for (let key in row) {
@@ -191,7 +326,7 @@
         });
     }
 
-    // --- UI Logic: Auto Parse CCHN to show Doctor List ---
+    // --- DOCTOR UI LOGIC ---
     document.getElementById('fileCCHN').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) {
@@ -200,62 +335,40 @@
         }
         try {
             const dataCCHN = await parseDataFile(file);
-            const doctorListThucHien = document.getElementById('doctorListThucHien');
-            const doctorListDocKq = document.getElementById('doctorListDocKq');
-            doctorListThucHien.innerHTML = '';
-            doctorListDocKq.innerHTML = '';
+            const listTH = document.getElementById('doctorListThucHien');
+            const listKQ = document.getElementById('doctorListDocKq');
+            listTH.innerHTML = ''; listKQ.innerHTML = '';
             
             const cchnMapTemp = new Map();
             dataCCHN.forEach(row => {
                 let ma = row['MA CCHN'] || row['MA_CCHN'];
                 let ten = row['TEN BS'] || row['TEN_BS'] || ma;
-                if (ma && !cchnMapTemp.has(ma)) {
-                    cchnMapTemp.set(ma, ten);
-                }
+                if (ma && !cchnMapTemp.has(ma)) cchnMapTemp.set(ma, ten);
             });
 
             if (cchnMapTemp.size > 0) {
                 cchnMapTemp.forEach((ten, ma) => {
-                    // Checkbox cho Thực hiện
-                    const divTH = document.createElement('div');
-                    divTH.className = 'flex items-center space-x-2 bg-white p-2 rounded border border-slate-200 shadow-sm';
-                    divTH.innerHTML = `
-                        <input type="checkbox" id="chk_th_${ma}" value="${ma}" class="doc-checkbox-th w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" checked>
-                        <label for="chk_th_${ma}" class="text-sm font-medium text-slate-700 truncate cursor-pointer w-full" title="${ma} - ${ten}">${ten}</label>
+                    const makeHTML = (type, color) => `
+                        <label class="flex items-center space-x-3 bg-slate-50 hover:bg-${color}-50 p-2.5 rounded-lg border border-slate-200 cursor-pointer transition-colors group">
+                            <input type="checkbox" value="${ma}" class="doc-checkbox-${type} w-4 h-4 text-${color}-600 rounded border-slate-300 focus:ring-${color}-500" checked>
+                            <span class="text-sm font-medium text-slate-700 group-hover:text-${color}-700 truncate w-full" title="${ma} - ${ten}">${ten}</span>
+                        </label>
                     `;
-                    doctorListThucHien.appendChild(divTH);
-
-                    // Checkbox cho Đọc KQ
-                    const divKQ = document.createElement('div');
-                    divKQ.className = 'flex items-center space-x-2 bg-white p-2 rounded border border-slate-200 shadow-sm';
-                    divKQ.innerHTML = `
-                        <input type="checkbox" id="chk_kq_${ma}" value="${ma}" class="doc-checkbox-kq w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer" checked>
-                        <label for="chk_kq_${ma}" class="text-sm font-medium text-slate-700 truncate cursor-pointer w-full" title="${ma} - ${ten}">${ten}</label>
-                    `;
-                    doctorListDocKq.appendChild(divKQ);
+                    listTH.insertAdjacentHTML('beforeend', makeHTML('th', 'blue'));
+                    listKQ.insertAdjacentHTML('beforeend', makeHTML('kq', 'orange'));
                 });
                 document.getElementById('doctorSelectionSection').classList.remove('hidden');
+                document.getElementById('doctorSelectionSection').classList.add('animate-fade-in');
             }
-        } catch (err) {
-            console.error("Lỗi đọc file CCHN để tạo danh sách Bác sĩ:", err);
-        }
+        } catch (err) { console.error("Lỗi đọc CCHN:", err); }
     });
 
-    document.getElementById('btnSelectAllTH').addEventListener('click', () => {
-        document.querySelectorAll('.doc-checkbox-th').forEach(cb => cb.checked = true);
-    });
-    document.getElementById('btnDeselectAllTH').addEventListener('click', () => {
-        document.querySelectorAll('.doc-checkbox-th').forEach(cb => cb.checked = false);
-    });
+    document.getElementById('btnSelectAllTH').addEventListener('click', () => document.querySelectorAll('.doc-checkbox-th').forEach(cb => cb.checked = true));
+    document.getElementById('btnDeselectAllTH').addEventListener('click', () => document.querySelectorAll('.doc-checkbox-th').forEach(cb => cb.checked = false));
+    document.getElementById('btnSelectAllKQ').addEventListener('click', () => document.querySelectorAll('.doc-checkbox-kq').forEach(cb => cb.checked = true));
+    document.getElementById('btnDeselectAllKQ').addEventListener('click', () => document.querySelectorAll('.doc-checkbox-kq').forEach(cb => cb.checked = false));
 
-    document.getElementById('btnSelectAllKQ').addEventListener('click', () => {
-        document.querySelectorAll('.doc-checkbox-kq').forEach(cb => cb.checked = true);
-    });
-    document.getElementById('btnDeselectAllKQ').addEventListener('click', () => {
-        document.querySelectorAll('.doc-checkbox-kq').forEach(cb => cb.checked = false);
-    });
-
-    // --- Main Processing Logic ---
+    // --- MAIN PROCESSING LOGIC ---
     document.getElementById('btnProcess').addEventListener('click', async () => {
         const fileCCHN = document.getElementById('fileCCHN').files[0];
         const fileB1 = document.getElementById('fileB1').files[0];
@@ -263,38 +376,31 @@
         const fileB4 = document.getElementById('fileB4').files[0];
 
         if (!fileB3) {
-            alert("Vui lòng tải lên ít nhất Bảng 3 để kiểm tra!");
+            alert("Vui lòng tải lên Bảng 3 (Dịch vụ) để tiến hành kiểm tra!");
             return;
         }
 
         const btn = document.getElementById('btnProcess');
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang xử lý...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-3"></i> ĐANG PHÂN TÍCH...';
+        btn.classList.add('opacity-80', 'cursor-not-allowed');
         btn.disabled = true;
 
         try {
-            // Read all files
             const [dataCCHN, dataB1, dataB3, dataB4] = await Promise.all([
-                parseDataFile(fileCCHN),
-                parseDataFile(fileB1),
-                parseDataFile(fileB3),
-                parseDataFile(fileB4)
+                parseDataFile(fileCCHN), parseDataFile(fileB1), parseDataFile(fileB3), parseDataFile(fileB4)
             ]);
 
-            // Build Allowed Doctors Sets from Checkboxes
             const allowedThucHienIds = new Set(Array.from(document.querySelectorAll('.doc-checkbox-th:checked')).map(cb => cb.value));
             const allowedDocKqIds = new Set(Array.from(document.querySelectorAll('.doc-checkbox-kq:checked')).map(cb => cb.value));
             const isDocSelectionEnabled = !document.getElementById('doctorSelectionSection').classList.contains('hidden');
 
-            // 1. Build Lookup Maps
             const cchnMap = new Map();
             dataCCHN.forEach(row => {
                 let ma = row['MA CCHN'] || row['MA_CCHN'];
-                let ten = row['TEN BS'] || row['TEN_BS'] || ma;
-                if (ma) cchnMap.set(ma, ten);
+                if (ma) cchnMap.set(ma, row['TEN BS'] || row['TEN_BS'] || ma);
             });
             const patientMap = new Map(dataB1.map(row => [row['MA_LK'], row['HO_TEN']]));
             
-            // Map Bảng 4
             const b4Map = new Map();
             dataB4.forEach(row => {
                 let key = `${row['MA_LK']}_${row['MA_DICH_VU']}`;
@@ -304,7 +410,7 @@
 
             let xrayRecords = [];
 
-            // 2. Filter Bảng 3 for X-Quang and evaluate initial rules
+            // 1. Lọc X-Quang & Kiểm tra dòng đơn lẻ
             dataB3.forEach(row => {
                 const tenDv = (row['TEN_DICH_VU'] || '').toLowerCase();
                 if (tenDv.includes('x-quang') || tenDv.includes('xquang') || tenDv.includes('x quang')) {
@@ -321,15 +427,9 @@
                         tenBn: patientMap.get(maLk) || 'Không có trong Bảng 1',
                         tenDv: row['TEN_DICH_VU'],
                         maMay: row['MA_MAY'] || '',
-                        bsChiDinhId: bsChiDinhId,
-                        bsThucHienId: bsThucHienId,
-                        bsDocKqId: bsDocKqId,
                         bsChiDinhName: cchnMap.get(bsChiDinhId) || bsChiDinhId || 'Trống',
                         bsThucHienName: cchnMap.get(bsThucHienId) || bsThucHienId || 'Trống',
                         bsDocKqName: b4Row ? (cchnMap.get(bsDocKqId) || bsDocKqId || 'Trống') : null,
-                        ngayYlRaw: row['NGAY_YL'],
-                        ngayThYlRaw: row['NGAY_TH_YL'],
-                        ngayKqRaw: b4Row ? b4Row['NGAY_KQ'] : row['NGAY_KQ'],
                         tYL: parseDateStr(row['NGAY_YL']),
                         tTH: parseDateStr(row['NGAY_TH_YL']),
                         tKQ: parseDateStr(b4Row ? b4Row['NGAY_KQ'] : row['NGAY_KQ']),
@@ -337,100 +437,78 @@
                         originalRowId: Math.random().toString(36).substr(2, 9)
                     };
 
-                    // --- KIỂM TRA MÃ MÁY ---
+                    // Check Mã Máy
                     if (!record.maMay || !record.maMay.toUpperCase().includes('XQ')) {
-                        record.errors.push(`Mã máy "${record.maMay || 'Trống'}" không hợp lệ (không chứa ký tự "XQ").`);
+                        record.errors.push(`Mã máy <span class="font-mono text-xs bg-red-100 px-1 rounded">${record.maMay || 'Trống'}</span> không hợp lệ (Không chứa "XQ").`);
                     }
 
-                    // --- KIỂM TRA CHỨNG CHỈ HÀNH NGHỀ TỔNG QUÁT ---
+                    // Check CCHN Tổng quát
                     if (dataCCHN.length > 0) {
-                        if (record.bsChiDinhId && !cchnMap.has(record.bsChiDinhId)) 
-                            record.errors.push(`BS Chỉ định không có trong file DS CCHN.`);
-                        if (record.bsThucHienId && !cchnMap.has(record.bsThucHienId)) 
-                            record.errors.push(`BS Thực hiện không có trong file DS CCHN.`);
-                        if (record.bsDocKqId && !cchnMap.has(record.bsDocKqId)) 
-                            record.errors.push(`BS Đọc KQ không có trong file DS CCHN.`);
+                        if (bsChiDinhId && !cchnMap.has(bsChiDinhId)) record.errors.push(`BS Chỉ định thiếu thông tin CCHN.`);
+                        if (bsThucHienId && !cchnMap.has(bsThucHienId)) record.errors.push(`BS Thực hiện thiếu thông tin CCHN.`);
+                        if (bsDocKqId && !cchnMap.has(bsDocKqId)) record.errors.push(`BS Đọc KQ thiếu thông tin CCHN.`);
                     }
 
-                    // --- KIỂM TRA QUYỀN THỰC HIỆN / ĐỌC KQ TỪ DANH SÁCH LỌC TÁCH RIÊNG ---
+                    // Check Quyền
                     if (isDocSelectionEnabled) {
-                        if (record.bsThucHienId && !allowedThucHienIds.has(record.bsThucHienId)) {
-                            record.errors.push(`BS Thực hiện (${record.bsThucHienName}) KHÔNG có quyền chụp (chưa được chọn).`);
-                        }
-                        if (record.bsDocKqId && !allowedDocKqIds.has(record.bsDocKqId)) {
-                            record.errors.push(`BS Đọc KQ (${record.bsDocKqName}) KHÔNG có quyền đọc KQ (chưa được chọn).`);
-                        }
+                        if (bsThucHienId && !allowedThucHienIds.has(bsThucHienId)) record.errors.push(`BS <b>${record.bsThucHienName}</b> không được cấp quyền chụp.`);
+                        if (bsDocKqId && !allowedDocKqIds.has(bsDocKqId)) record.errors.push(`BS <b>${record.bsDocKqName}</b> không được cấp quyền đọc KQ.`);
                     }
 
-                    if (dataB4.length > 0 && !b4Row) {
-                        record.errors.push(`Không tìm thấy kết quả ở Bảng 4 tương ứng.`);
-                    }
+                    if (dataB4.length > 0 && !b4Row) record.errors.push(`Không có kết quả ở Bảng 4.`);
 
-                    // --- KIỂM TRA THỜI GIAN CỦA BẢN THÂN DÒNG ĐÓ ---
-                    if (!record.tYL) record.errors.push("Thiếu NGAY_YL");
-                    if (!record.tTH) record.errors.push("Thiếu NGAY_TH_YL");
-                    if (!record.tKQ) record.errors.push("Thiếu NGAY_KQ");
+                    // Check Thời gian cá nhân
+                    if (!record.tYL) record.errors.push("Thiếu giờ Y lệnh.");
+                    if (!record.tTH) record.errors.push("Thiếu giờ Thực hiện.");
+                    if (!record.tKQ) record.errors.push("Thiếu giờ Kết quả.");
 
                     if (record.tYL && record.tTH) {
                         let diffYlTh = (record.tTH - record.tYL) / 60000;
-                        if (diffYlTh < 0) {
-                            // Trình tự thời gian sai hoàn toàn
-                            record.errors.push(`Trình tự thời gian SAI: Y lệnh có SAU khi Thực hiện (${Math.abs(diffYlTh)} phút).`);
-                        } else if (diffYlTh < 1) {
-                            record.errors.push(`Từ Y lệnh đến Thực hiện là ${diffYlTh} phút (Quy định: Tối thiểu 1 phút).`);
-                        }
+                        if (diffYlTh < 0) record.errors.push(`Lỗi trình tự: Y lệnh đi sau Thực hiện (${Math.abs(diffYlTh)} phút).`);
+                        else if (diffYlTh < 1) record.errors.push(`Y lệnh -> Thực hiện: <b>${diffYlTh} phút</b> (Quy định: >= 1p).`);
                     }
 
                     if (record.tTH && record.tKQ) {
                         let diffThKq = (record.tKQ - record.tTH) / 60000;
-                        if (diffThKq < 0) {
-                            // Trình tự thời gian sai hoàn toàn
-                            record.errors.push(`Trình tự thời gian SAI: Kết quả có TRƯỚC khi Thực hiện (${Math.abs(diffThKq)} phút).`);
-                        } else if (diffThKq !== 7) {
-                            record.errors.push(`Từ Thực hiện đến Kết quả là ${diffThKq} phút (Quy định: Kéo dài ĐÚNG 7 phút).`);
-                        }
+                        if (diffThKq < 0) record.errors.push(`Lỗi trình tự: KQ có trước Thực hiện (${Math.abs(diffThKq)} phút).`);
+                        else if (diffThKq !== 7) record.errors.push(`Thực hiện -> KQ: <b>${diffThKq} phút</b> (Quy định: Đúng 7p).`);
                     }
 
                     xrayRecords.push(record);
                 }
             });
 
-            // --- KIỂM TRA THỜI GIAN GIỮA CÁC BỆNH NHÂN KHÁC NHAU ---
-            
+            // 2. Check Thời gian giữa các bệnh nhân
             let recordsWithTh = xrayRecords.filter(r => r.tTH !== null).sort((a, b) => a.tTH - b.tTH);
             for (let i = 1; i < recordsWithTh.length; i++) {
-                let prev = recordsWithTh[i-1];
-                let curr = recordsWithTh[i];
-                if (prev.maLk !== curr.maLk) {
-                    let diffTh = (curr.tTH - prev.tTH) / 60000;
+                if (recordsWithTh[i-1].maLk !== recordsWithTh[i].maLk) {
+                    let diffTh = (recordsWithTh[i].tTH - recordsWithTh[i-1].tTH) / 60000;
                     if (diffTh >= 0 && diffTh < 4) {
-                        let targetRecord = xrayRecords.find(r => r.originalRowId === curr.originalRowId);
-                        targetRecord.errors.push(`Thời gian Thực hiện trùng/sát với BN trước (${prev.tenBn}). Cách nhau: ${diffTh} phút (Tối thiểu 4 phút).`);
+                        let target = xrayRecords.find(r => r.originalRowId === recordsWithTh[i].originalRowId);
+                        target.errors.push(`Giờ Thực hiện đụng BN trước (${recordsWithTh[i-1].tenBn}). Cách: <b>${diffTh} phút</b> (Quy định: >= 4p).`);
                     }
                 }
             }
 
             let recordsWithKq = xrayRecords.filter(r => r.tKQ !== null).sort((a, b) => a.tKQ - b.tKQ);
             for (let i = 1; i < recordsWithKq.length; i++) {
-                let prev = recordsWithKq[i-1];
-                let curr = recordsWithKq[i];
-                if (prev.maLk !== curr.maLk) {
-                    let diffKq = (curr.tKQ - prev.tKQ) / 60000;
+                if (recordsWithKq[i-1].maLk !== recordsWithKq[i].maLk) {
+                    let diffKq = (recordsWithKq[i].tKQ - recordsWithKq[i-1].tKQ) / 60000;
                     if (diffKq >= 0 && diffKq < 4) {
-                        let targetRecord = xrayRecords.find(r => r.originalRowId === curr.originalRowId);
-                        targetRecord.errors.push(`Thời gian Kết quả trùng/sát với BN trước (${prev.tenBn}). Cách nhau: ${diffKq} phút (Tối thiểu 4 phút).`);
+                        let target = xrayRecords.find(r => r.originalRowId === recordsWithKq[i].originalRowId);
+                        target.errors.push(`Giờ Đọc KQ đụng BN trước (${recordsWithKq[i-1].tenBn}). Cách: <b>${diffKq} phút</b> (Quy định: >= 4p).`);
                     }
                 }
             }
 
-            // Render Kết quả
             renderResults(xrayRecords);
 
         } catch (error) {
             console.error(error);
-            alert("Có lỗi xảy ra khi đọc file.\nChi tiết: " + error.message);
+            alert("Lỗi xử lý file: " + error.message);
         } finally {
-            btn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> BẮT ĐẦU DÒ LỖI';
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-3"></i> PHÂN TÍCH DỮ LIỆU';
+            btn.classList.remove('opacity-80', 'cursor-not-allowed');
             btn.disabled = false;
         }
     });
@@ -438,7 +516,6 @@
     function renderResults(records) {
         const tbody = document.getElementById('resultTableBody');
         const container = document.getElementById('resultContainer');
-        const stats = document.getElementById('summaryStats');
         tbody.innerHTML = '';
 
         let errorCount = 0;
@@ -448,48 +525,56 @@
             if (hasError) errorCount++;
 
             const tr = document.createElement('tr');
-            tr.className = hasError ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-slate-50';
+            tr.className = `transition-colors ${hasError ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-slate-50'}`;
 
             const bsHtml = `
-                <div class="text-xs space-y-1">
-                    <div class="font-semibold text-blue-700 text-[13px]"><span class="text-slate-500 font-normal">Chỉ định:</span> ${r.bsChiDinhName}</div>
-                    <div><span class="text-slate-500">Thực hiện:</span> ${r.bsThucHienName}</div>
-                    <div><span class="text-slate-500">Đọc KQ:</span> ${r.bsDocKqName || '-'}</div>
+                <div class="space-y-1.5 text-xs text-slate-600">
+                    <div class="flex items-start"><span class="w-16 inline-block text-slate-400">Chỉ định:</span> <span class="font-semibold text-slate-700">${r.bsChiDinhName}</span></div>
+                    <div class="flex items-start"><span class="w-16 inline-block text-slate-400">Thực hiện:</span> <span class="font-medium text-blue-700">${r.bsThucHienName}</span></div>
+                    <div class="flex items-start"><span class="w-16 inline-block text-slate-400">Đọc KQ:</span> <span class="font-medium text-orange-600">${r.bsDocKqName || '-'}</span></div>
                 </div>
             `;
 
             const timeHtml = `
-                <div class="text-xs whitespace-nowrap space-y-1">
-                    <div><span class="text-slate-500">Y lệnh:</span> <span class="font-medium">${formatTime(r.tYL)}</span></div>
-                    <div><span class="text-slate-500">Thực hiện:</span> <span class="font-medium">${formatTime(r.tTH)}</span></div>
-                    <div><span class="text-slate-500">Kết quả:</span> <span class="font-medium">${formatTime(r.tKQ)}</span></div>
+                <div class="space-y-1 text-[13px] font-mono">
+                    <div class="text-slate-500">YL: <span class="text-slate-800">${formatTime(r.tYL)}</span></div>
+                    <div class="text-slate-500">TH: <span class="text-blue-700 font-semibold">${formatTime(r.tTH)}</span></div>
+                    <div class="text-slate-500">KQ: <span class="text-orange-600 font-semibold">${formatTime(r.tKQ)}</span></div>
                 </div>
             `;
 
-            let errorHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fa-solid fa-check mr-1"></i>Hợp lệ</span>';
+            let errorHtml = '<div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check mr-1.5"></i>Đạt Chuẩn</div>';
             if (hasError) {
-                errorHtml = `<ul class="list-disc pl-4 text-xs text-red-600 font-medium space-y-1.5">
+                errorHtml = `<ul class="list-disc pl-4 text-xs text-red-600 space-y-1.5 font-medium">
                     ${r.errors.map(err => `<li>${err}</li>`).join('')}
                 </ul>`;
             }
 
             tr.innerHTML = `
-                <td class="px-4 py-3 align-top border-b border-slate-200">
-                    <div class="font-bold text-slate-900 text-sm whitespace-normal">${r.tenBn}</div>
+                <td class="px-5 py-4 align-top">
+                    <div class="font-bold text-slate-800 text-[13px] whitespace-normal leading-tight">${r.tenBn}</div>
                 </td>
-                <td class="px-4 py-3 align-top border-b border-slate-200">
-                    <div class="truncate max-w-xs font-medium text-slate-700" title="${r.tenDv}">${r.tenDv}</div>
-                    <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-barcode mr-1"></i>Mã máy: <span class="font-mono text-indigo-600">${r.maMay || 'Trống'}</span></div>
+                <td class="px-5 py-4 align-top">
+                    <div class="font-medium text-slate-700 text-[13px] leading-tight mb-2">${r.tenDv}</div>
+                    <div class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-slate-100 border border-slate-200 text-slate-600">
+                        <i class="fa-solid fa-barcode mr-1.5 opacity-70"></i>${r.maMay || 'Trống'}
+                    </div>
                 </td>
-                <td class="px-4 py-3 align-top border-b border-slate-200">${bsHtml}</td>
-                <td class="px-4 py-3 align-top border-b border-slate-200">${timeHtml}</td>
-                <td class="px-4 py-3 align-top border-b border-slate-200">${errorHtml}</td>
+                <td class="px-5 py-4 align-top">${bsHtml}</td>
+                <td class="px-5 py-4 align-top">${timeHtml}</td>
+                <td class="px-5 py-4 align-top">${errorHtml}</td>
             `;
             tbody.appendChild(tr);
         });
 
-        stats.innerHTML = `Tổng dòng X-Quang: <span class="text-blue-600 font-bold">${records.length}</span> | Lỗi phát hiện: <span class="text-red-600 font-bold">${errorCount}</span> dòng`;
+        document.getElementById('summaryStats').innerHTML = `
+            <div>Tổng lượt chụp: <span class="text-blue-600 font-bold ml-1">${records.length}</span></div>
+            <div class="text-slate-300">|</div>
+            <div>Phát hiện lỗi: <span class="text-red-500 font-bold ml-1">${errorCount}</span></div>
+        `;
+        
         container.classList.remove('hidden');
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 </script>
 
