@@ -55,7 +55,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        select { scrollbar-width: thin; }
+        select, input[type="date"] { scrollbar-width: thin; }
         
         /* Modern File Input styling over Tailwind defaults */
         input[type="file"]::file-selector-button {
@@ -96,7 +96,7 @@
                 <h1 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600 tracking-tight">HỆ THỐNG DÒ LỖI BHYT</h1>
                 <p class="text-gray-500 mt-1 font-medium text-sm">Công cụ tự động đối soát Bảng 1, Bảng 3, Bảng 4 & Danh sách CCHN</p>
             </div>
-            <div class="mt-4 md:mt-0 flex items-center gap-2 text-sm text-indigo-600 font-semibold bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100">
+            <div class="mt-4 md:mt-0 flex items-center gap-2 text-sm text-indigo-600 font-semibold bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 shadow-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Phiên bản Premium
             </div>
@@ -135,12 +135,13 @@
 
     <!-- Filters -->
     <div id="filterSection" class="glass-panel rounded-3xl p-8 mb-6 hidden slide-up" style="animation-delay: 0.2s;">
-        <div class="flex items-center gap-2 mb-5">
+        <div class="flex items-center gap-2 mb-5 border-b border-gray-100 pb-4">
             <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-            <h2 class="text-xl font-bold text-gray-800">Bộ Lọc Toàn Bộ Dữ Liệu</h2>
+            <h2 class="text-xl font-bold text-gray-800">Bộ Lọc Thông Minh Đa Chiều</h2>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end mb-6">
+        <!-- Hàng 1: Lọc Đối Tượng -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end mb-4">
             <div class="relative">
                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Chọn Bệnh Nhân</label>
                 <select id="filterBN" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer appearance-none transition-shadow outline-none shadow-sm">
@@ -169,27 +170,57 @@
                 </div>
             </div>
         </div>
+
+        <!-- Hàng 2: Lọc Thời Gian & Trùng Giờ Cụ Thể -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end mb-6 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+            <div class="relative">
+                <label class="block text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Từ Ngày (Thực hiện)
+                </label>
+                <input type="date" id="filterTuNgay" class="w-full bg-white border border-blue-200 text-gray-800 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer appearance-none transition-shadow outline-none shadow-sm">
+            </div>
+            <div class="relative">
+                <label class="block text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Đến Ngày (Thực hiện)
+                </label>
+                <input type="date" id="filterDenNgay" class="w-full bg-white border border-blue-200 text-gray-800 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer appearance-none transition-shadow outline-none shadow-sm">
+            </div>
+            <div class="relative">
+                <label class="block text-xs font-bold text-amber-600 uppercase mb-2 flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Lọc Mốc Trùng Giờ Cụ Thể
+                </label>
+                <select id="filterThoiGianTrung" class="w-full bg-amber-50 border border-amber-300 text-amber-900 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 cursor-pointer appearance-none transition-shadow outline-none shadow-sm font-semibold">
+                    <option value="">-- Chọn mốc thời gian bị trùng --</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 pt-6 text-amber-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+        </div>
         
         <div class="flex flex-wrap items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
             <label class="flex items-center cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-rose-200 shadow-sm hover:bg-rose-50 transition-colors">
                 <input type="checkbox" id="filterCoLoi" class="w-5 h-5 text-rose-600 border-gray-300 rounded focus:ring-rose-500 cursor-pointer">
-                <span class="ml-3 text-sm font-bold text-rose-700">CHỈ HIỆN CÓ LỖI</span>
+                <span class="ml-3 text-sm font-bold text-rose-700">CHỈ HIỆN CÓ LỖI CHUNG</span>
             </label>
             <label class="flex items-center cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-amber-200 shadow-sm hover:bg-amber-50 transition-colors">
                 <input type="checkbox" id="filterChongGio" class="w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">
-                <span class="ml-3 text-sm font-semibold text-amber-700">Chỉ hiện chồng giờ</span>
+                <span class="ml-3 text-sm font-semibold text-amber-700">Chỉ hiện tất cả ca trùng giờ</span>
             </label>
             
-            <div class="ml-auto flex flex-wrap gap-3 text-sm">
-                 <div class="bg-white text-gray-600 px-4 py-2 rounded-xl border border-gray-200 shadow-sm font-medium">
+            <div class="ml-auto flex flex-wrap gap-3 text-sm mt-4 sm:mt-0">
+                 <div class="bg-white text-gray-600 px-4 py-2 rounded-xl border border-gray-200 shadow-sm font-medium text-center">
                      <span class="text-xs uppercase text-gray-400 block mb-0.5">Tổng DV</span>
                      <span id="totalRecords" class="text-lg font-bold text-gray-800 leading-none">0</span>
                  </div>
-                 <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl border border-rose-200 shadow-sm font-medium">
+                 <div class="bg-rose-50 text-rose-700 px-4 py-2 rounded-xl border border-rose-200 shadow-sm font-medium text-center">
                      <span class="text-xs uppercase text-rose-400 block mb-0.5">Phát hiện Lỗi</span>
                      <span id="totalErrors" class="text-lg font-bold leading-none">0</span>
                  </div>
-                 <div class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl border border-indigo-200 shadow-sm font-medium">
+                 <div class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl border border-indigo-200 shadow-sm font-medium text-center">
                      <span class="text-xs uppercase text-indigo-400 block mb-0.5">Đang hiển thị</span>
                      <span id="showingErrors" class="text-lg font-bold leading-none">0</span>
                  </div>
@@ -239,7 +270,6 @@
             setTimeout(() => {
                 loginScreen.classList.add('hidden');
                 mainApp.classList.remove('hidden');
-                // Trigger reflow to start opacity transition
                 void mainApp.offsetWidth; 
                 mainApp.classList.remove('opacity-0');
             }, 500);
@@ -259,13 +289,19 @@
     });
 
     // --- MAIN APP LOGIC ---
-    const formatDateTime = (str) => {
+    const formatDateTimeHTML = (str) => {
         if (!str || str.length < 12) return str;
         return `<span class="font-medium text-indigo-600">${str.slice(6,8)}/${str.slice(4,6)}/${str.slice(0,4)}</span> <span class="text-gray-500">${str.slice(8,10)}:${str.slice(10,12)}</span>`;
     };
 
+    const formatDateTimeText = (str) => {
+        if (!str || str.length < 12) return str;
+        return `${str.slice(6,8)}/${str.slice(4,6)}/${str.slice(0,4)} ${str.slice(8,10)}:${str.slice(10,12)}`;
+    };
+
     let rawData = { b1: [], b3: [], b4: [], bs: [] };
     let allRecords = []; 
+    let overlappingTimesSet = new Set();
     
     const btnProcess = document.getElementById('btnProcess');
     const loading = document.getElementById('loading');
@@ -275,7 +311,7 @@
 
     btnProcess.addEventListener('click', processFiles);
     
-    ['filterBN', 'filterBS', 'filterMay', 'filterCoLoi', 'filterChongGio'].forEach(id => {
+    ['filterBN', 'filterBS', 'filterMay', 'filterCoLoi', 'filterChongGio', 'filterTuNgay', 'filterDenNgay', 'filterThoiGianTrung'].forEach(id => {
         document.getElementById(id).addEventListener('change', renderTable);
     });
 
@@ -352,6 +388,7 @@
 
     function analyzeData() {
         allRecords = [];
+        overlappingTimesSet.clear();
         let uniquePatients = new Map();
         let uniqueDoctors = new Set();
         let uniqueMachines = new Set();
@@ -464,6 +501,7 @@
                             text: `Trùng giờ máy (${uniquePatientsList.length} BN dùng chung)` 
                         });
                         rec.isOverlap = true;
+                        overlappingTimesSet.add(rec.ngayThucHien); // Gom mốc thời gian trùng
                     }
                 }
             }
@@ -482,10 +520,12 @@
         const selBN = document.getElementById('filterBN');
         const selBS = document.getElementById('filterBS');
         const selMay = document.getElementById('filterMay');
+        const selThoiGianTrung = document.getElementById('filterThoiGianTrung');
 
         selBN.innerHTML = '<option value="">-- Tất cả Bệnh Nhân --</option>';
         selBS.innerHTML = '<option value="">-- Tất cả Bác Sỹ --</option>';
         selMay.innerHTML = '<option value="">-- Tất cả Mã Máy --</option>';
+        selThoiGianTrung.innerHTML = '<option value="">-- Chọn mốc thời gian bị trùng --</option>';
 
         Array.from(patientsMap.entries())
             .sort((a, b) => a[1].localeCompare(b[1]))
@@ -493,21 +533,53 @@
 
         Array.from(doctorsSet).sort().forEach(bs => { selBS.add(new Option(bs, bs)); });
         Array.from(machinesSet).sort().forEach(m => { selMay.add(new Option(m, m)); });
+        
+        // Bỏ các mốc thời gian bị trùng vào dropdown
+        Array.from(overlappingTimesSet).sort().forEach(time => {
+            selThoiGianTrung.add(new Option(formatDateTimeText(time), time));
+        });
     }
 
     function renderTable() {
         const fBN = document.getElementById('filterBN').value;
         const fBS = document.getElementById('filterBS').value;
         const fMay = document.getElementById('filterMay').value;
+        const fTuNgay = document.getElementById('filterTuNgay').value;
+        const fDenNgay = document.getElementById('filterDenNgay').value;
+        const fThoiGianTrung = document.getElementById('filterThoiGianTrung').value;
+        
         const fCoLoi = document.getElementById('filterCoLoi').checked;
         const fChongGio = document.getElementById('filterChongGio').checked;
 
         const filteredData = allRecords.filter(rec => {
+            // Lọc Trạng Thái
             if (fCoLoi && rec.errors.length === 0) return false;
             if (fChongGio && !rec.isOverlap) return false;
+            
+            // Lọc Cụ Thể Từng Mốc Trùng Giờ
+            if (fThoiGianTrung && rec.ngayThucHien !== fThoiGianTrung) return false;
+
+            // Lọc Bệnh Nhân / Bác Sỹ / Mã Máy
             if (fBN && rec.maLk !== fBN) return false;
             if (fMay && rec.maMay !== fMay) return false;
             if (fBS && !(rec.bsKham === fBS || rec.bsThucHien === fBS || rec.bsDocKq === fBS)) return false;
+
+            // Lọc Thời Gian (Từ ngày - Đến ngày)
+            if (rec.ngayThucHien && rec.ngayThucHien.length >= 8) {
+                let dateStr = rec.ngayThucHien.substring(0, 8); // Format: YYYYMMDD
+                if (fTuNgay) {
+                    let fromDate = fTuNgay.replace(/-/g, ''); // Từ 2026-02-22 -> 20260222
+                    if (dateStr < fromDate) return false;
+                }
+                if (fDenNgay) {
+                    let toDate = fDenNgay.replace(/-/g, '');
+                    if (dateStr > toDate) return false;
+                }
+            } else if (fTuNgay || fDenNgay) {
+                // Nếu User có chọn bộ lọc ngày mà dòng record không có thông tin ngày hợp lệ thì loại bỏ
+                return false; 
+            }
+
             return true;
         });
 
@@ -537,6 +609,11 @@
             }
 
             let rowClass = rec.errors.length > 0 ? 'bg-rose-50/40 hover:bg-rose-100/60' : 'bg-white/40 hover:bg-blue-50/60';
+            
+            // Nếu dòng này đang bị focus bằng dropdown "Lọc mốc trùng giờ"
+            if(fThoiGianTrung && rec.ngayThucHien === fThoiGianTrung) {
+                rowClass = 'bg-amber-100/60 hover:bg-amber-200/50 ring-2 ring-inset ring-amber-300';
+            }
 
             html += `
                 <tr class="transition-all duration-200 border-b border-gray-100 ${rowClass}">
@@ -546,7 +623,7 @@
                     </td>
                     <td class="px-6 py-4 align-top">
                         <div class="text-sm font-semibold text-gray-800 line-clamp-2 leading-tight mb-1" title="${rec.tenDichVu}">${rec.tenDichVu}</div>
-                        <div class="text-[11px] bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm inline-block">${formatDateTime(rec.ngayThucHien)}</div>
+                        <div class="text-[11px] bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm inline-block">${formatDateTimeHTML(rec.ngayThucHien)}</div>
                     </td>
                     <td class="px-6 py-4 align-top">
                         <div class="text-sm text-gray-800 font-mono bg-white border border-gray-200 shadow-sm px-2.5 py-1 rounded-lg inline-block font-semibold">
