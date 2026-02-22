@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chấm Công & Tính Lương Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            background-image: radial-gradient(circle at top right, #e0e7ff 0%, #f0f2f5 40%);
+            min-height: 100vh;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .calendar-cell { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .calendar-cell:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+        }
+
+        /* Modal animations */
+        .modal-overlay { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        
+        /* PIN dots */
+        .pin-dot {
+            width: 16px; height: 16px; border-radius: 50%;
+            background-color: #e2e8f0; transition: all 0.2s;
+        }
+        .pin-dot.filled { background-color: #3b82f6; transform: scale(1.2); }
+    </style>
+</head>
+<body class="text-gray-800 antialiased overflow-x-hidden">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-md flex justify-center items-center flex-col transition-opacity duration-500">
+        <div class="glass-card p-8 rounded-3xl shadow-2xl w-full max-w-sm mx-4 transform transition-all text-center">
+            <div class="w-16 h-16 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-6">
+                <i class="fas fa-lock text-white text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Đăng Nhập</h2>
+            <p class="text-sm text-gray-500 mb-8">Vui lòng nhập mã PIN để mở khóa</p>
+
+            <div class="flex justify-center gap-4 mb-8" id="pinDots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+
+            <input type="password" id="hiddenPinInput" class="opacity-0 absolute -z-10" inputmode="numeric" maxlength="4">
+
+            <!-- Custom Numpad -->
+            <div class="grid grid-cols-3 gap-4 max-w-[240px] mx-auto">
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('1')">1</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('2')">2</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('3')">3</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('4')">4</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('5')">5</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('6')">6</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('7')">7</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('8')">8</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('9')">9</button>
+                <div class="w-14 h-14"></div>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 text-xl font-bold transition" onclick="enterPin('0')">0</button>
+                <button class="numpad-btn w-14 h-14 rounded-full bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 transition" onclick="deletePin()">
+                    <i class="fas fa-backspace"></i>
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-6 mt-4">Mật khẩu mặc định: 1402</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP APP (Hidden by default) -->
+    <div id="mainApp" class="hidden pb-10">
+        <!-- Navbar -->
+        <nav class="glass-card shadow-sm sticky top-0 z-40">
+            <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2.5 rounded-xl shadow-md">
+                        <i class="fas fa-calendar-check text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-xl text-gray-800 tracking-tight">HR<span class="text-blue-600">Pro</span></h1>
+                        <p class="text-[10px] text-green-500 font-medium uppercase tracking-wider"><i class="fas fa-cloud-upload-alt mr-1"></i>Đã đồng bộ cục bộ</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportExcel()" class="w-10 h-10 rounded-full bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition" title="Xuất Excel">
+                        <i class="fas fa-file-excel"></i>
+                    </button>
+                    <button onclick="openSettings()" class="w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center transition" title="Cài đặt">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button onclick="logout()" class="w-10 h-10 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition hidden sm:flex" title="Khóa ứng dụng">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-5xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+            
+            <!-- Left Panel: Settings & Summary -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Financial Settings -->
+                <div class="glass-card p-5 rounded-2xl shadow-sm">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="fas fa-money-bill-wave"></i> Thông số Lương
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Lương cơ bản (26 ngày)</label>
+                            <div class="relative">
+                                <input type="number" id="baseSalaryInput" placeholder="0" 
+                                    class="w-full pl-3 pr-10 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-gray-800 transition">
+                                <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400 text-sm">₫</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Thưởng / Phụ cấp</label>
+                                <div class="relative">
+                                    <input type="number" id="bonusInput" placeholder="0" 
+                                        class="w-full pl-3 pr-8 py-2 bg-green-50/30 border border-green-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-semibold text-green-700 transition text-sm">
+                                    <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-green-400/50 text-xs">₫</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Phạt / Khấu trừ</label>
+                                <div class="relative">
+                                    <input type="number" id="deductInput" placeholder="0" 
+                                        class="w-full pl-3 pr-8 py-2 bg-red-50/30 border border-red-100 rounded-xl focus:ring-2 focus:ring-red-400 outline-none font-semibold text-red-700 transition text-sm">
+                                    <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-red-400/50 text-xs">₫</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Card -->
+                <div class="bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900 p-6 rounded-3xl shadow-xl text-white relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                    <div class="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/20 rounded-full blur-xl -ml-10 -mb-10"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <p class="text-blue-200/80 text-xs font-medium uppercase tracking-wider mb-1">Tổng kết Tháng</p>
+                                <h2 id="summaryMonthTxt" class="text-xl font-bold text-white"></h2>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-blue-200/80 text-xs font-medium uppercase tracking-wider mb-1">Công chuẩn</p>
+                                <div class="flex items-baseline gap-1 justify-end">
+                                    <span id="totalDaysTxt" class="text-3xl font-black text-white">0</span>
+                                    <span class="text-blue-200 text-sm font-medium">/ 26</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Breakdown -->
+                        <div class="bg-black/20 rounded-xl p-3 mb-6 grid grid-cols-3 gap-2 text-center backdrop-blur-sm">
+                            <div>
+                                <div class="text-[10px] text-blue-200 mb-0.5">Hành chính</div>
+                                <div class="font-bold text-sm" id="statHC">0</div>
+                            </div>
+                            <div class="border-x border-white/10">
+                                <div class="text-[10px] text-emerald-200 mb-0.5">Gãy ca</div>
+                                <div class="font-bold text-sm" id="statGC">0</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-amber-200 mb-0.5">Nửa ngày</div>
+                                <div class="font-bold text-sm" id="statHalf">0</div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-white/10">
+                            <p class="text-blue-200/80 text-xs font-medium uppercase tracking-wider mb-1">Thực nhận dự kiến</p>
+                            <div id="totalSalaryTxt" class="text-3xl font-black tracking-tight text-emerald-400 drop-shadow-md">
+                                0 ₫
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Calendar -->
+            <div class="lg:col-span-8">
+                <div class="glass-card p-5 sm:p-7 rounded-3xl shadow-sm border border-white">
+                    
+                    <!-- Calendar Header -->
+                    <div class="flex justify-between items-center mb-6 bg-gray-50/50 p-2 rounded-2xl border border-gray-100">
+                        <button onclick="changeMonth(-1)" class="w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-100 shadow-sm rounded-xl transition">
+                            <i class="fas fa-chevron-left text-gray-600"></i>
+                        </button>
+                        <h2 id="monthYearDisplay" class="text-lg sm:text-xl font-black text-gray-800 tracking-tight">Tháng --, ----</h2>
+                        <button onclick="changeMonth(1)" class="w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-100 shadow-sm rounded-xl transition">
+                            <i class="fas fa-chevron-right text-gray-600"></i>
+                        </button>
+                    </div>
+
+                    <!-- Days of week -->
+                    <div class="grid grid-cols-7 gap-2 mb-3">
+                        <div class="text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">T2</div>
+                        <div class="text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">T3</div>
+                        <div class="text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">T4</div>
+                        <div class="text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">T5</div>
+                        <div class="text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">T6</div>
+                        <div class="text-center text-[10px] sm:text-xs font-bold text-blue-400 uppercase tracking-wider">T7</div>
+                        <div class="text-center text-[10px] sm:text-xs font-bold text-red-400 uppercase tracking-wider">CN</div>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-2 sm:gap-3">
+                        <!-- JS will inject days here -->
+                    </div>
+
+                </div>
+                
+                <!-- Legend -->
+                <div class="mt-6 flex gap-4 sm:gap-6 justify-center flex-wrap px-2">
+                     <div class="flex items-center gap-2 text-xs font-medium text-gray-500"><span class="w-4 h-4 rounded-md bg-blue-50 border border-blue-200"></span> Hành chính</div>
+                     <div class="flex items-center gap-2 text-xs font-medium text-gray-500"><span class="w-4 h-4 rounded-md bg-emerald-50 border border-emerald-200"></span> Gãy ca</div>
+                     <div class="flex items-center gap-2 text-xs font-medium text-gray-500"><span class="w-4 h-4 rounded-md bg-amber-50 border border-amber-200"></span> Nửa ngày</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Shift Selection Modal -->
+    <div id="shiftModal" class="modal-overlay fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex justify-center items-end sm:items-center opacity-0 pointer-events-none">
+        <div id="shiftModalContent" class="modal-content bg-white w-full max-w-md rounded-t-[2rem] sm:rounded-3xl p-6 transform translate-y-full sm:translate-y-0 sm:scale-95 shadow-2xl">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 class="font-bold text-gray-900 text-xl tracking-tight">Chi tiết ngày làm</h3>
+                    <p id="modalDateTxt" class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md inline-block mt-1"></p>
+                </div>
+                <button onclick="closeModal()" class="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 mb-5" id="shiftOptions">
+                <!-- Injected via JS -->
+            </div>
+
+            <div class="border-t border-gray-100 pt-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Ghi chú (Tùy chọn)</label>
+                <textarea id="dayNoteInput" rows="2" placeholder="Ví dụ: Đi muộn 15p, làm thêm giờ..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none"></textarea>
+                <button onclick="saveNoteOnly()" class="w-full mt-2 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition">Lưu ghi chú</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex justify-center items-center opacity-0 pointer-events-none">
+        <div id="settingsModalContent" class="modal-content bg-white w-full max-w-sm rounded-3xl p-6 transform scale-95 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-gray-900 text-lg">Cài đặt ứng dụng</h3>
+                <button onclick="closeSettings()" class="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                    <h4 class="text-sm font-bold text-gray-800 mb-3"><i class="fas fa-key text-blue-500 mr-2"></i>Đổi mã PIN</h4>
+                    <input type="password" id="oldPin" placeholder="Mã PIN cũ" class="w-full mb-2 p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" maxlength="4" inputmode="numeric">
+                    <input type="password" id="newPin" placeholder="Mã PIN mới (4 số)" class="w-full mb-3 p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" maxlength="4" inputmode="numeric">
+                    <button onclick="changePassword()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition shadow-md shadow-blue-500/30">Cập nhật PIN</button>
+                </div>
+                
+                <button onclick="logout()" class="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl text-sm transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất & Khóa app
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIG & STATE ---
+        const STANDARD_WORK_DAYS = 26;
+        const DEFAULT_PIN = "1402";
+        
+        // Define Shift Types (S1, S2 grouped as Hành chính for stats)
+        const SHIFTS = {
+            'NONE': { id: 'NONE', label: 'Xóa ca / Trống', val: 0, type: 'none', style: 'bg-white border-gray-200 text-gray-500 hover:border-red-300', icon: 'fa-eraser', iconColor: 'text-gray-400' },
+            'S1': { id: 'S1', label: '7:00 - 15:00', sub: 'Hành chính (1 công)', val: 1, type: 'HC', style: 'bg-blue-50/50 border-blue-200 text-blue-800 hover:border-blue-400', badge: 'bg-blue-100 text-blue-700', icon: 'fa-sun', iconColor: 'text-blue-500' },
+            'S2': { id: 'S2', label: '8:00 - 16:00', sub: 'Hành chính (1 công)', val: 1, type: 'HC', style: 'bg-indigo-50/50 border-indigo-200 text-indigo-800 hover:border-indigo-400', badge: 'bg-indigo-100 text-indigo-700', icon: 'fa-briefcase', iconColor: 'text-indigo-500' },
+            'S3': { id: 'S3', label: '7:00-11:00 & 13:00-17:00', sub: 'Gãy ca (1 công)', val: 1, type: 'GC', style: 'bg-emerald-50/50 border-emerald-200 text-emerald-800 hover:border-emerald-400', badge: 'bg-emerald-100 text-emerald-700', icon: 'fa-clock', iconColor: 'text-emerald-500' },
+            'S4': { id: 'S4', label: '7:00 - 11:00', sub: 'Nửa ngày (0.5 công)', val: 0.5, type: 'HALF', style: 'bg-amber-50/50 border-amber-200 text-amber-800 hover:border-amber-400', badge: 'bg-amber-100 text-amber-700', icon: 'fa-star-half-alt', iconColor: 'text-amber-500' },
+        };
+
+        // App State Structure
+        let state = {
+            pin: btoa(DEFAULT_PIN), // simple base64 "encryption"
+            baseSalary: 0,
+            bonus: 0,
+            deduct: 0,
+            records: {} 
+            // records format changed to object to support notes:
+            // "2026-02": { "1": { shift: "S1", note: "" } }
+        };
+
+        let currentDate = new Date();
+        let activeSelectingDay = null;
+        let enteredPin = "";
+
+        // DOM Elements
+        const el = {
+            login: document.getElementById('loginScreen'),
+            app: document.getElementById('mainApp'),
+            dots: document.querySelectorAll('.pin-dot'),
+            baseSal: document.getElementById('baseSalaryInput'),
+            bonus: document.getElementById('bonusInput'),
+            deduct: document.getElementById('deductInput'),
+            monthDisplay: document.getElementById('monthYearDisplay'),
+            sumMonth: document.getElementById('summaryMonthTxt'),
+            grid: document.getElementById('calendarGrid'),
+            totalDays: document.getElementById('totalDaysTxt'),
+            totalSal: document.getElementById('totalSalaryTxt'),
+            statHC: document.getElementById('statHC'),
+            statGC: document.getElementById('statGC'),
+            statHalf: document.getElementById('statHalf'),
+            // Modals
+            sModal: document.getElementById('shiftModal'),
+            sModalContent: document.getElementById('shiftModalContent'),
+            modalDate: document.getElementById('modalDateTxt'),
+            shiftOpts: document.getElementById('shiftOptions'),
+            noteInput: document.getElementById('dayNoteInput'),
+            setModal: document.getElementById('settingsModal'),
+            setContent: document.getElementById('settingsModalContent')
+        };
+
+        // --- 2. INIT & DATA ---
+
+        function init() {
+            loadData();
+            setupInputs();
+            buildModalOptions();
+            checkAuth();
+        }
+
+        function saveData() { localStorage.setItem('hrpro_v2_data', JSON.stringify(state)); }
+
+        function loadData() {
+            const saved = localStorage.getItem('hrpro_v2_data');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    // Merge properties to handle upgrades
+                    state = { ...state, ...parsed };
+                    if (!state.records) state.records = {};
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        function setupInputs() {
+            el.baseSal.value = state.baseSalary || '';
+            el.bonus.value = state.bonus || '';
+            el.deduct.value = state.deduct || '';
+
+            const inputs = [
+                { el: el.baseSal, key: 'baseSalary' },
+                { el: el.bonus, key: 'bonus' },
+                { el: el.deduct, key: 'deduct' }
+            ];
+
+            inputs.forEach(item => {
+                item.el.addEventListener('input', (e) => {
+                    state[item.key] = parseFloat(e.target.value) || 0;
+                    saveData();
+                    updateDashboard();
+                });
+            });
+        }
+
+        // --- 3. AUTHENTICATION ---
+
+        function checkAuth() {
+            const isAuthed = sessionStorage.getItem('hrpro_auth') === 'true';
+            if (isAuthed) {
+                showApp();
+            } else {
+                el.login.classList.remove('hidden');
+                // Auto focus logic for physical keyboard
+                document.addEventListener('keydown', handleKeyboardPin);
+            }
+        }
+
+        function handleKeyboardPin(e) {
+            if (sessionStorage.getItem('hrpro_auth') === 'true') return;
+            if (/[0-9]/.test(e.key) && enteredPin.length < 4) {
+                enterPin(e.key);
+            } else if (e.key === 'Backspace') {
+                deletePin();
+            }
+        }
+
+        function enterPin(num) {
+            if (enteredPin.length < 4) {
+                enteredPin += num;
+                updateDots();
+                if (enteredPin.length === 4) verifyPin();
+            }
+        }
+
+        function deletePin() {
+            if (enteredPin.length > 0) {
+                enteredPin = enteredPin.slice(0, -1);
+                updateDots();
+            }
+        }
+
+        function updateDots() {
+            el.dots.forEach((dot, idx) => {
+                if (idx < enteredPin.length) dot.classList.add('filled');
+                else dot.classList.remove('filled');
+            });
+        }
+
+        function verifyPin() {
+            if (btoa(enteredPin) === state.pin) {
+                // Success
+                el.dots.forEach(d => { d.style.backgroundColor = '#10b981'; d.classList.add('filled'); });
+                setTimeout(() => {
+                    sessionStorage.setItem('hrpro_auth', 'true');
+                    document.removeEventListener('keydown', handleKeyboardPin);
+                    showApp();
+                }, 400);
+            } else {
+                // Fail
+                el.dots.forEach(d => { d.style.backgroundColor = '#ef4444'; d.classList.add('filled'); });
+                document.getElementById('pinDots').classList.add('animate-bounce');
+                setTimeout(() => {
+                    enteredPin = "";
+                    updateDots();
+                    el.dots.forEach(d => { d.style.backgroundColor = ''; });
+                    document.getElementById('pinDots').classList.remove('animate-bounce');
+                }, 600);
+            }
+        }
+
+        function showApp() {
+            el.login.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                el.login.classList.add('hidden');
+                el.app.classList.remove('hidden');
+                renderCalendar();
+            }, 500);
+        }
+
+        function logout() {
+            sessionStorage.removeItem('hrpro_auth');
+            closeSettings();
+            enteredPin = "";
+            updateDots();
+            el.app.classList.add('hidden');
+            el.login.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            document.addEventListener('keydown', handleKeyboardPin);
+        }
+
+        function changePassword() {
+            const oldP = document.getElementById('oldPin').value;
+            const newP = document.getElementById('newPin').value;
+            
+            if(btoa(oldP) !== state.pin) {
+                Swal.fire({icon: 'error', title: 'Lỗi', text: 'Mã PIN cũ không đúng', confirmButtonColor: '#3b82f6'});
+                return;
+            }
+            if(!/^\d{4}$/.test(newP)) {
+                Swal.fire({icon: 'warning', title: 'Lỗi', text: 'Mã PIN mới phải là 4 chữ số', confirmButtonColor: '#3b82f6'});
+                return;
+            }
+            
+            state.pin = btoa(newP);
+            saveData();
+            document.getElementById('oldPin').value = '';
+            document.getElementById('newPin').value = '';
+            closeSettings();
+            Swal.fire({icon: 'success', title: 'Thành công', text: 'Đã đổi mã PIN', confirmButtonColor: '#10b981', timer: 1500, showConfirmButton: false});
+        }
+
+        // --- 4. CALENDAR LOGIC ---
+
+        function getCurrentMonthKey() {
+            return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function getDayData(day) {
+            const mData = state.records[getCurrentMonthKey()] || {};
+            // Upgrade old data format dynamically if needed
+            let data = mData[String(day)];
+            if (typeof data === 'string') data = { shift: data, note: '' };
+            return data || { shift: 'NONE', note: '' };
+        }
+
+        function renderCalendar() {
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            
+            el.monthDisplay.innerText = `Tháng ${m + 1}, ${y}`;
+            el.sumMonth.innerText = `${String(m + 1).padStart(2, '0')} / ${y}`;
+
+            const firstDay = new Date(y, m, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            let offset = firstDay === 0 ? 6 : firstDay - 1;
+
+            el.grid.innerHTML = '';
+            for (let i = 0; i < offset; i++) el.grid.innerHTML += `<div></div>`;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayData = getDayData(day);
+                const shift = SHIFTS[dayData.shift] || SHIFTS['NONE'];
+                const hasNote = dayData.note && dayData.note.trim() !== '';
+                
+                const isToday = new Date().toDateString() === new Date(y, m, day).toDateString();
+                const todayClass = isToday ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-white' : 'border border-gray-100';
+
+                let bgClass = dayData.shift === 'NONE' ? 'bg-white' : shift.style.split(' ')[0]; // get bg color
+                let borderClass = dayData.shift === 'NONE' ? '' : shift.style.split(' ')[1]; // get border color
+                
+                let content = `
+                    <div onclick="openModal(${day})" class="calendar-cell aspect-square rounded-[1rem] ${bgClass} ${borderClass} ${todayClass} flex flex-col justify-center items-center cursor-pointer relative group">
+                        ${hasNote ? `<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full shadow-sm"></span>` : ''}
+                        <span class="text-sm sm:text-lg font-bold text-gray-800 mb-0.5 sm:mb-1">${day}</span>
+                        ${dayData.shift !== 'NONE' 
+                            ? `<span class="text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded shadow-sm ${shift.badge}">${shift.val}</span>` 
+                            : `<span class="text-[10px] opacity-0 group-hover:opacity-100 text-gray-400 font-medium transition duration-300"><i class="fas fa-plus"></i></span>`}
+                    </div>`;
+                el.grid.innerHTML += content;
+            }
+            updateDashboard();
+        }
+
+        // --- 5. MODALS & ACTIONS ---
+
+        function buildModalOptions() {
+            el.shiftOpts.innerHTML = '';
+            for (const key in SHIFTS) {
+                const s = SHIFTS[key];
+                const isNone = key === 'NONE';
+                el.shiftOpts.innerHTML += `
+                    <button onclick="selectShift('${key}')" class="w-full text-left p-3 sm:p-4 rounded-2xl border ${s.style} transition flex items-center justify-between group">
+                        <div class="flex items-center gap-3 sm:gap-4">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition">
+                                <i class="fas ${s.icon} ${s.iconColor} sm:text-lg"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm sm:text-base">${s.label}</div>
+                                ${s.sub ? `<div class="text-[11px] sm:text-xs font-medium opacity-80 mt-0.5">${s.sub}</div>` : ''}
+                            </div>
+                        </div>
+                        ${s.val > 0 ? `<div class="font-black text-lg sm:text-xl pr-2">+${s.val}</div>` : ''}
+                    </button>
+                `;
+            }
+        }
+
+        function openModal(day) {
+            activeSelectingDay = day;
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth() + 1;
+            
+            // Format Day
+            const dateObj = new Date(y, currentDate.getMonth(), day);
+            const daysArr = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+            el.modalDate.innerText = `${daysArr[dateObj.getDay()]}, ${day}/${m}/${y}`;
+            
+            // Load existing note
+            const dData = getDayData(day);
+            el.noteInput.value = dData.note || '';
+
+            el.sModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { el.sModalContent.classList.remove('translate-y-full', 'sm:scale-95'); }, 10);
+        }
+
+        function closeModal() {
+            el.sModalContent.classList.add('translate-y-full', 'sm:scale-95');
+            setTimeout(() => {
+                el.sModal.classList.add('opacity-0', 'pointer-events-none');
+                activeSelectingDay = null;
+            }, 300);
+        }
+
+        function openSettings() {
+            el.setModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { el.setContent.classList.remove('scale-95'); }, 10);
+        }
+        function closeSettings() {
+            el.setContent.classList.add('scale-95');
+            setTimeout(() => { el.setModal.classList.add('opacity-0', 'pointer-events-none'); }, 300);
+        }
+
+        function selectShift(shiftId) {
+            if (!activeSelectingDay) return;
+            const mk = getCurrentMonthKey();
+            if (!state.records[mk]) state.records[mk] = {};
+
+            const currentNote = el.noteInput.value;
+
+            if (shiftId === 'NONE') {
+                if(currentNote.trim() === '') {
+                     delete state.records[mk][String(activeSelectingDay)];
+                } else {
+                     state.records[mk][String(activeSelectingDay)] = { shift: 'NONE', note: currentNote };
+                }
+            } else {
+                state.records[mk][String(activeSelectingDay)] = { shift: shiftId, note: currentNote };
+            }
+
+            saveData();
+            renderCalendar();
+            closeModal();
+        }
+
+        function saveNoteOnly() {
+            if (!activeSelectingDay) return;
+            const mk = getCurrentMonthKey();
+            const dData = getDayData(activeSelectingDay);
+            
+            if (!state.records[mk]) state.records[mk] = {};
+            state.records[mk][String(activeSelectingDay)] = { shift: dData.shift, note: el.noteInput.value };
+            
+            saveData();
+            renderCalendar();
+            closeModal();
+            
+            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+            Toast.fire({ icon: 'success', title: 'Đã lưu ghi chú' });
+        }
+
+        // --- 6. CALCULATIONS & EXPORT ---
+
+        function updateDashboard() {
+            const mk = getCurrentMonthKey();
+            const mData = state.records[mk] || {};
+            
+            let tDays = 0, hc = 0, gc = 0, half = 0;
+
+            for (const day in mData) {
+                // Handle upgrade format inline
+                let shiftId = typeof mData[day] === 'string' ? mData[day] : mData[day].shift;
+                const s = SHIFTS[shiftId];
+                if (s) {
+                    tDays += s.val;
+                    if(s.type === 'HC') hc++;
+                    if(s.type === 'GC') gc++;
+                    if(s.type === 'HALF') half++;
+                }
+            }
+
+            el.totalDays.innerText = tDays;
+            el.statHC.innerText = hc;
+            el.statGC.innerText = gc;
+            el.statHalf.innerText = half;
+
+            const base = state.baseSalary || 0;
+            const bonus = state.bonus || 0;
+            const deduct = state.deduct || 0;
+            
+            const daily = base / STANDARD_WORK_DAYS;
+            const finalSal = (daily * tDays) + bonus - deduct;
+
+            const fmt = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+            el.totalSal.innerText = fmt.format(Math.max(0, finalSal));
+        }
+
+        function exportExcel() {
+            const mk = getCurrentMonthKey();
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            
+            // Build CSV Content
+            // \uFEFF is BOM to force Excel read UTF-8 properly
+            let csvContent = "\uFEFFNgày,Ca Làm Việc,Hệ Số Công,Ghi Chú\n";
+            let totalD = 0;
+
+            for(let d=1; d<=daysInMonth; d++) {
+                const data = getDayData(d);
+                const shift = SHIFTS[data.shift];
+                
+                let sName = shift.id === 'NONE' ? '' : shift.label;
+                let sVal = shift.id === 'NONE' ? 0 : shift.val;
+                let note = data.note ? `"${data.note.replace(/"/g, '""')}"` : ""; // escape quotes in csv
+
+                csvContent += `${d}/${m+1}/${y},${sName},${sVal},${note}\n`;
+                totalD += sVal;
+            }
+
+            csvContent += `\nTổng Công:,,${totalD},\n`;
+            csvContent += `Lương Cơ Bản:,,${state.baseSalary},\n`;
+            csvContent += `Thưởng:,,${state.bonus},\n`;
+            csvContent += `Khấu trừ:,,${state.deduct},\n`;
+            
+            const daily = (state.baseSalary || 0) / STANDARD_WORK_DAYS;
+            const finalSal = (daily * totalD) + (state.bonus || 0) - (state.deduct || 0);
+            csvContent += `THỰC NHẬN:,,${Math.max(0, finalSal)},\n`;
+
+            // Download trigger
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `BangCong_T${m+1}_${y}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Overlays click to close
+        [el.sModal, el.setModal].forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if(e.target === el.sModal) closeModal();
+                if(e.target === el.setModal) closeSettings();
+            });
+        });
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
