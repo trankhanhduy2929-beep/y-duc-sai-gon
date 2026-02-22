@@ -104,6 +104,8 @@
             const [file3Data, setFile3Data] = useState([]);
             const [fileName1, setFileName1] = useState("");
             const [fileName3, setFileName3] = useState("");
+            const [fileCCHNData, setFileCCHNData] = useState([]);
+            const [fileNameCCHN, setFileNameCCHN] = useState("");
             
             // Processing States
             const [errors, setErrors] = useState([]);
@@ -185,6 +187,27 @@
             };
 
             const processValidationAsync = async () => {
+                // 0. Indexing CCHN Map
+                addLog(`Đang trích xuất danh sách Bác sĩ (${fileCCHNData.length} bản ghi)...`);
+                const bsMap = new Map();
+                fileCCHNData.forEach(row => {
+                    let maCCHN = row['MA CCHN'] || row['MA_CCHN'];
+                    let tenBS = row['TEN BS'] || row['TEN_BS'] || row['TÊN BS'];
+                    
+                    if (!maCCHN) {
+                        const key = Object.keys(row).find(k => k.includes('CCHN') || k.includes('MA_BAC_SI'));
+                        if (key) maCCHN = row[key];
+                    }
+                    if (!tenBS) {
+                        const key = Object.keys(row).find(k => k.includes('TEN BS') || k.includes('TÊN BS') || k.includes('TEN_BS'));
+                        if (key) tenBS = row[key];
+                    }
+
+                    if (maCCHN && tenBS) {
+                        bsMap.set(String(maCCHN).trim(), String(tenBS).trim());
+                    }
+                });
+
                 // 1. Indexing Table 3 (Heavy Operation)
                 addLog(`Đang đánh chỉ mục bảng 3 (${file3Data.length} bản ghi)...`);
                 
@@ -215,11 +238,12 @@
                     // Validation Loop for this Chunk
                     for (let i = currentIndex; i < endIndex; i++) {
                         const patient = file1Data[i];
-                        const patientErrors = checkPatient(patient, table3Map);
+                        const { patientErrors, bsNames } = checkPatient(patient, table3Map, bsMap);
                         
                         if (patientErrors.length > 0) {
                             foundErrors.push({
                                 patientInfo: patient,
+                                bsNames: bsNames,
                                 detailErrors: patientErrors
                             });
                         }
@@ -248,7 +272,7 @@
                 setTimeout(processChunk, 0);
             };
 
-            const checkPatient = (patient, table3Map) => {
+            const checkPatient = (patient, table3Map, bsMap) => {
                 const patientErrors = [];
                 const maLk = patient.MA_LK;
                 
@@ -304,14 +328,20 @@
                 const services = table3Map.get(maLk) || [];
                 const age = calculateAge(patient.NGAY_SINH, patient.NGAY_VAO);
 
+                // Extract unique doctors for this patient
+                const doctors = [...new Set(services.map(s => s.MA_BAC_SI).filter(Boolean))];
+                const bsNames = doctors.map(ma => bsMap.get(String(ma).trim()) || ma).join(', ') || 'Không có BS';
+
                 services.forEach(svc => {
                     const tenDV = String(svc.TEN_DICH_VU || "").toLowerCase();
+                    const maBS = svc.MA_BAC_SI;
+                    const bsName = maBS ? (bsMap.get(String(maBS).trim()) || maBS) : 'Không rõ';
                     
                     if (age < 16 && tenDV.includes("khám nội")) {
                         patientErrors.push({
                             code: 'AGE_SERVICE_CONFLICT',
                             message: 'Dưới 16 tuổi sai dịch vụ',
-                            current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
+                            current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU} (BS: ${bsName})`,
                             fix: 'Xóa dịch vụ "Khám Nội" hoặc chuyển sang chuyên khoa Nhi.'
                         });
                     }
@@ -320,13 +350,13 @@
                         patientErrors.push({
                             code: 'AGE_SERVICE_CONFLICT',
                             message: 'Trên 16 tuổi sai dịch vụ',
-                            current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU}`,
+                            current: `Tuổi: ${age}, DV: ${svc.TEN_DICH_VU} (BS: ${bsName})`,
                             fix: 'Xóa dịch vụ "Khám Nhi".'
                         });
                     }
                 });
 
-                return patientErrors;
+                return { patientErrors, bsNames };
             };
 
             const finishValidation = (foundErrors) => {
@@ -392,7 +422,7 @@
                     </div>
 
                     {/* Controls Area */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         {/* File 1 Upload */}
                         <div className="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -419,6 +449,20 @@
                                 </label>
                             </div>
                             <div className="mt-2 text-xs text-right text-gray-400">{file3Data.length} dòng đã tải</div>
+                        </div>
+
+                        {/* File CCHN Upload */}
+                        <div className="bg-white dark:bg-darkCard p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                                <i className="fa-solid fa-user-doctor mr-2 text-purple-500"></i>DS CCHN (Bác sĩ)
+                            </label>
+                            <div className="relative">
+                                <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => handleFileUpload(e, setFileCCHNData, setFileNameCCHN, "DS CCHN")} className="hidden" id="fileCCHN" />
+                                <label htmlFor="fileCCHN" className="cursor-pointer flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-800 transition-all text-sm truncate">
+                                    {fileNameCCHN || "Chọn file..."}
+                                </label>
+                            </div>
+                            <div className="mt-2 text-xs text-right text-gray-400">{fileCCHNData.length} dòng đã tải</div>
                         </div>
 
                         {/* Action Button & Logs */}
@@ -492,6 +536,7 @@
                                                         <div className="text-sm text-gray-500 mt-1 space-y-1">
                                                             <p><i className="fa-regular fa-calendar-check mr-1 w-4"></i> Khám: {item.patientInfo.NGAY_VAO}</p>
                                                             <p><i className="fa-solid fa-venus-mars mr-1 w-4"></i> Giới: {item.patientInfo.GIOI_TINH == 1 ? 'Nam' : 'Nữ'}</p>
+                                                            <p><i className="fa-solid fa-user-doctor mr-1 w-4"></i> BS: <span className="font-medium text-purple-600 dark:text-purple-400">{item.bsNames}</span></p>
                                                         </div>
                                                         <button 
                                                             onClick={() => setSelectedPatient(item.patientInfo)}
