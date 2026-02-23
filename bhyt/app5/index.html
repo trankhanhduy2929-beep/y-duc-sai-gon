@@ -421,16 +421,16 @@
                             type: 'DICH_VU', maLk: r["MA_LK"],
                             patient: patientsMap[r["MA_LK"]]?.ten || "Không có tên",
                             content: r["TEN_DICH_VU"], time: String(r["NGAY_YL"] || ""),
-                            detail: `SL: ${r["SO_LUONG"]}`, role: 'Chỉ định', idx
+                            detail: `SL: ${r["SO_LUONG"]}`, role: 'Chỉ định', idx: idx + '_bs'
                         });
                     }
-                    if (th === selectedDoctorId && bs !== selectedDoctorId) {
+                    if (th === selectedDoctorId) {
                         acts.push({
                             type: 'DICH_VU', maLk: r["MA_LK"],
                             patient: patientsMap[r["MA_LK"]]?.ten || "Không có tên",
-                            content: r["TEN_DICH_VU"], time: String(r["NGAY_YL"] || ""), 
+                            content: r["TEN_DICH_VU"], time: String(r["NGAY_TH_YL"] || r["NGAY_YL"] || ""), 
                             timeResult: String(r["NGAY_KQ"] || ""),
-                            detail: `KQ: ${r["MO_TA"] || 'Có KQ'}`, role: 'Thực hiện', idx
+                            detail: `KQ: ${r["MO_TA"] || 'Có KQ'}`, role: 'Thực hiện', idx: idx + '_th'
                         });
                     }
                 });
