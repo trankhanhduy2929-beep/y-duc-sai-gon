@@ -20,7 +20,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -91,9 +91,10 @@
             ChevronDown: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="6 9 12 15 18 9"/></svg>,
             ChevronUp: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="18 15 12 9 6 15"/></svg>,
             Search: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Timer: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="14" x2="15" y2="11"/><circle cx="12" cy="14" r="8"/></svg>,
         };
 
-        const { Lock, Upload, FileSpreadsheet, FileText, User, Stethoscope, Pill, Activity, Clock, Trash2, CheckCircle, LogOut, Sun, Moon, ChevronDown, ChevronUp, Search } = Icons;
+        const { Lock, Upload, FileSpreadsheet, FileText, User, Stethoscope, Pill, Activity, Clock, Trash2, CheckCircle, LogOut, Sun, Moon, ChevronDown, ChevronUp, Search, Timer } = Icons;
 
         // --- UTILS ---
         const formatDateTime = (str) => {
@@ -187,7 +188,6 @@
             const [searchTerm, setSearchTerm] = useState("");
             const wrapperRef = useRef(null);
 
-            // Update search term when value changes externally or initially
             useEffect(() => {
                 const selected = options.find(o => o.id === value);
                 if (selected) {
@@ -197,12 +197,10 @@
                 }
             }, [value, options]);
 
-            // Close on click outside
             useEffect(() => {
                 function handleClickOutside(event) {
                     if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
                         setIsOpen(false);
-                        // Reset search term to currently selected value if user didn't select new one
                         const selected = options.find(o => o.id === value);
                         setSearchTerm(selected ? selected.name : "");
                     }
@@ -232,12 +230,7 @@
                                 setSearchTerm(e.target.value);
                                 setIsOpen(true);
                             }}
-                            onFocus={() => {
-                                setIsOpen(true);
-                                // Optional: Clear on focus to allow fresh search, 
-                                // or keep value. Keeping value is usually better for editing.
-                                // If user wants to clear, they can delete.
-                            }}
+                            onFocus={() => setIsOpen(true)}
                             onClick={() => setIsOpen(true)}
                         />
                         <div className="absolute right-3 top-2.5 pointer-events-none text-gray-400">
@@ -302,7 +295,7 @@
                             </div>
                             <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">Đăng nhập</button>
                         </form>
-                        <p className="text-center text-xs text-gray-400 mt-6">Phiên bản Pro Max v2.3</p>
+                        <p className="text-center text-xs text-gray-400 mt-6">Phiên bản Pro Max v2.4</p>
                     </div>
                 </div>
             );
@@ -477,17 +470,44 @@
             const stats = useMemo(() => {
                 const pts = new Set(filteredActs.map(a => a.maLk));
                 let min = "999999999999", max = "000000000000";
+                
                 filteredActs.forEach(a => {
                     if(a.time && a.time < min) min = a.time;
                     if(a.time && a.time > max) max = a.time;
                     if(a.timeResult && a.timeResult > max) max = a.timeResult;
                 });
+
+                // Calculate duration
+                let durationStr = "--";
+                if (min !== "999999999999" && max !== "000000000000" && min <= max) {
+                    const parseToDate = (str) => {
+                        const y = parseInt(str.substring(0, 4));
+                        const m = parseInt(str.substring(4, 6)) - 1;
+                        const d = parseInt(str.substring(6, 8));
+                        const h = parseInt(str.substring(8, 10));
+                        const mn = parseInt(str.substring(10, 12));
+                        return new Date(y, m, d, h, mn);
+                    };
+                    const dMin = parseToDate(min);
+                    const dMax = parseToDate(max);
+                    const diffMs = dMax - dMin;
+                    const totalMins = Math.floor(diffMs / 60000);
+                    const hrs = Math.floor(totalMins / 60);
+                    const mins = totalMins % 60;
+                    
+                    if (hrs > 0 && mins > 0) durationStr = `${hrs} giờ ${mins} phút`;
+                    else if (hrs > 0) durationStr = `${hrs} giờ`;
+                    else if (mins > 0) durationStr = `${mins} phút`;
+                    else durationStr = `0 phút`;
+                }
+
                 return {
                     pts: pts.size, thuoc: filteredActs.filter(a => a.type === 'THUOC').length,
                     dv: filteredActs.filter(a => a.type === 'DICH_VU').length,
                     kq: filteredActs.filter(a => a.type === 'KET_QUA').length,
                     start: min !== "999999999999" ? formatDateTime(min) : "--",
-                    end: max !== "000000000000" ? formatDateTime(max) : "--"
+                    end: max !== "000000000000" ? formatDateTime(max) : "--",
+                    duration: durationStr
                 };
             }, [filteredActs]);
 
@@ -518,7 +538,6 @@
                                 <div className="space-y-5">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Bác sĩ</label>
-                                        {/* NEW SEARCHABLE SELECT COMPONENT */}
                                         <SearchableSelect 
                                             options={doctorList} 
                                             value={selectedDoctorId} 
@@ -544,14 +563,36 @@
                                         <StatItem label="Hoạt động" value={filteredActs.length} color="text-gray-800" darkColor="dark:text-gray-200" />
                                         <StatItem label="Thuốc" value={stats.thuoc} color="text-blue-600" darkColor="dark:text-blue-400" />
                                         <StatItem label="Dịch vụ" value={stats.dv} color="text-emerald-600" darkColor="dark:text-emerald-400" />
-                                        <div className="col-span-2"><StatItem label="Kết quả CLS" value={stats.kq} color="text-purple-500" darkColor="dark:text-purple-300" /></div>
                                     </div>
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center mb-3"><div className="bg-orange-100 dark:bg-orange-900/40 p-1.5 rounded-md mr-2 text-orange-600 dark:text-orange-400"><Clock size={14}/></div><span className="text-sm font-bold text-gray-800 dark:text-gray-200">Time Log</span></div>
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-center text-sm"><span className="text-gray-500 dark:text-gray-400">Bắt đầu</span><span className="font-mono font-medium text-gray-800 dark:text-gray-100 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">{stats.start}</span></div>
-                                            <div className="w-full h-px bg-gray-100 dark:bg-gray-700"></div>
-                                            <div className="flex justify-between items-center text-sm"><span className="text-gray-500 dark:text-gray-400">Kết thúc</span><span className="font-mono font-medium text-gray-800 dark:text-gray-100 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">{stats.end}</span></div>
+                                    
+                                    {/* KHỐI ƯỚC TÍNH THỜI GIAN LÀM VIỆC NỔI BẬT */}
+                                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-slate-800 dark:to-slate-800 rounded-xl p-4 shadow-sm border border-orange-200 dark:border-gray-700 mb-6 relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 text-orange-200 dark:text-slate-700 opacity-50">
+                                            <Timer size={80} />
+                                        </div>
+                                        <div className="relative z-10">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center">
+                                                    <div className="bg-orange-500 text-white p-1.5 rounded-md mr-2 shadow-sm"><Clock size={16}/></div>
+                                                    <span className="text-sm font-bold text-orange-900 dark:text-orange-400">Thời gian làm việc</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex flex-col items-center justify-center bg-white dark:bg-slate-900/50 rounded-lg p-3 mb-4 shadow-inner border border-orange-100 dark:border-gray-700">
+                                                <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wide mb-1">Ước tính tổng thời gian</span>
+                                                <span className="text-2xl font-black text-orange-600 dark:text-orange-400">{stats.duration}</span>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">Bắt đầu</span>
+                                                    <span className="font-mono font-medium text-gray-800 dark:text-gray-200">{stats.start}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">Kết thúc</span>
+                                                    <span className="font-mono font-medium text-gray-800 dark:text-gray-200">{stats.end}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
