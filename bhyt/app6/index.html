@@ -450,7 +450,8 @@
 
             let errors = [];
             let isKham = tenDV.includes('khám') || tenDV.includes('kham') || 
-                         tenDV.includes('cấy chỉ') || tenDV.includes('cay chi');
+                         tenDV.includes('cấy chỉ') || tenDV.includes('cay chi') ||
+                         tenDV.includes('test');
 
             if (!isKham && (!maMay || !maMay3176)) {
                 errors.push({ type: 'missing_machine', text: 'Thiếu mã máy (MA_MAY hoặc MA_MAY_3176)' });
