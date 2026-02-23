@@ -457,21 +457,30 @@
 
                     if (dataB4.length > 0 && !b4Row) record.errors.push(`Không có kết quả ở Bảng 4.`);
 
-                    // Check Thời gian cá nhân
+                    // Check Thời gian cá nhân & TRÌNH TỰ THỜI GIAN
                     if (!record.tYL) record.errors.push("Thiếu giờ Y lệnh.");
                     if (!record.tTH) record.errors.push("Thiếu giờ Thực hiện.");
                     if (!record.tKQ) record.errors.push("Thiếu giờ Kết quả.");
 
-                    if (record.tYL && record.tTH) {
-                        let diffYlTh = (record.tTH - record.tYL) / 60000;
-                        if (diffYlTh < 0) record.errors.push(`Lỗi trình tự: Y lệnh đi sau Thực hiện (${Math.abs(diffYlTh)} phút).`);
-                        else if (diffYlTh < 1) record.errors.push(`Y lệnh -> Thực hiện: <b>${diffYlTh} phút</b> (Quy định: >= 1p).`);
-                    }
+                    // 1. Kiểm tra nghiêm ngặt trình tự thời gian (Bắt mọi trường hợp đi ngược)
+                    let hasSequenceError = false;
+                    if (record.tYL && record.tTH && record.tTH < record.tYL) hasSequenceError = true;
+                    if (record.tTH && record.tKQ && record.tKQ < record.tTH) hasSequenceError = true;
+                    if (record.tYL && record.tKQ && record.tKQ < record.tYL) hasSequenceError = true; // Bổ sung bắt lỗi Kết quả < Y lệnh
 
-                    if (record.tTH && record.tKQ) {
-                        let diffThKq = (record.tKQ - record.tTH) / 60000;
-                        if (diffThKq < 0) record.errors.push(`Lỗi trình tự: KQ có trước Thực hiện (${Math.abs(diffThKq)} phút).`);
-                        else if (diffThKq !== 7) record.errors.push(`Thực hiện -> KQ: <b>${diffThKq} phút</b> (Quy định: Đúng 7p).`);
+                    if (hasSequenceError) {
+                        record.errors.push(`<span class="text-red-700 font-bold uppercase"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Lỗi Trình Tự Thời Gian:</span> Thời gian bị ngược (YL: ${formatTime(record.tYL)} ➔ TH: ${formatTime(record.tTH)} ➔ KQ: ${formatTime(record.tKQ)})`);
+                    } else {
+                        // 2. Kiểm tra quy định khoảng cách thời gian (chỉ xét nếu trình tự xuôi chiều)
+                        if (record.tYL && record.tTH) {
+                            let diffYlTh = (record.tTH - record.tYL) / 60000;
+                            if (diffYlTh >= 0 && diffYlTh < 1) record.errors.push(`Y lệnh -> Thực hiện: <b>${diffYlTh} phút</b> (Quy định: >= 1p).`);
+                        }
+
+                        if (record.tTH && record.tKQ) {
+                            let diffThKq = (record.tKQ - record.tTH) / 60000;
+                            if (diffThKq >= 0 && diffThKq !== 7) record.errors.push(`Thực hiện -> KQ: <b>${diffThKq} phút</b> (Quy định: Đúng 7p).`);
+                        }
                     }
 
                     xrayRecords.push(record);
