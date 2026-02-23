@@ -493,7 +493,10 @@
         let errorCount = 0;
         preliminaryRecords.forEach(rec => {
             if (rec.maMay && rec.ngayThucHien) {
-                let usersAtSameTime = machineUsage[rec.maMay][rec.ngayThucHien];
+                // FIX LỖI "TypeError: Cannot read properties of undefined":
+                // Sử dụng optional chaining (?.) để kiểm tra xem machineUsage[rec.maMay] có tồn tại không trước khi truy cập ngayThucHien
+                let usersAtSameTime = machineUsage[rec.maMay]?.[rec.ngayThucHien];
+                
                 if (usersAtSameTime) {
                     let uniquePatientsList = [...new Set(usersAtSameTime)];
                     if (uniquePatientsList.length > 1) {
