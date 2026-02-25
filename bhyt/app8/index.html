@@ -260,12 +260,19 @@ function Dashboard({ onLogout }) {
               // Cùng 1 bệnh nhân
               // Lọc ra các hành động là "Thực hiện" dịch vụ (không tính công Khám)
               const thucHienKhongPhaiKham = evts.filter(e => e.action === 'Thực hiện' && !e.isKham);
+              const hasKham = evts.some(e => e.isKham);
+              const hasThuoc = evts.some(e => e.action === 'Kê đơn');
 
               // NGUYÊN TẮC: Cùng 1 BN, được phép Chỉ định nhiều CLS, Kê nhiều thuốc, Đọc nhiều KQ cùng lúc.
-              // CHỈ LỖI KHI: "Thực hiện" từ 2 dịch vụ Cận lâm sàng / Thủ thuật trở lên tại cùng 1 phút.
+              // CHỈ LỖI KHI: 
+              // 1. "Thực hiện" từ 2 dịch vụ Cận lâm sàng / Thủ thuật trở lên tại cùng 1 phút.
+              // 2. Trùng giờ Công khám và Kê thuốc
               if (thucHienKhongPhaiKham.length > 1) {
                 isConflict = true;
                 reason = `Thực hiện ${thucHienKhongPhaiKham.length} dịch vụ Cận lâm sàng / Thủ thuật cùng một phút.`;
+              } else if (hasKham && hasThuoc) {
+                isConflict = true;
+                reason = `Trùng giờ: Vừa thực hiện Công khám vừa Kê đơn thuốc tại cùng một phút (Thuốc phải kê sau khám).`;
               }
             }
 
@@ -326,19 +333,37 @@ function Dashboard({ onLogout }) {
 
           let hasKhamError = false;
 
-          // 2.1. Luôn phải kê thuốc sau Khám >= 1 phút (áp dụng cho mọi trường hợp)
-          if (khamOfDoc && diffMinutes(thuoc.time, khamOfDoc.time) < 1) {
-            errors.push({
-              type: 'Kê đơn quá nhanh',
-              desc: `Chuyên khoa BS ${doctorMap[docId] || docId}: Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) thực hiện trước hoặc chưa đủ 1 phút sau thời gian Khám (${formatTime(khamOfDoc.time)}).`
-            });
-            hasKhamError = true;
-          } else if (!khamOfDoc && globalEarliestKham && diffMinutes(thuoc.time, globalEarliestKham.time) < 1) {
-            errors.push({
-              type: 'Kê đơn quá nhanh',
-              desc: `Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) thực hiện trước hoặc chưa đủ 1 phút sau thời gian Khám (${formatTime(globalEarliestKham.time)}).`
-            });
-            hasKhamError = true;
+          // 2.1. Kiểm tra mốc Công Khám (Thuốc phải sau Khám)
+          if (khamOfDoc) {
+            const diffKham = diffMinutes(thuoc.time, khamOfDoc.time);
+            if (diffKham === 0) {
+               errors.push({
+                 type: 'Trùng giờ Khám - Thuốc',
+                 desc: `Chuyên khoa BS ${doctorMap[docId] || docId}: Kê đơn "${thuoc.name}" trùng giờ chính xác với Công khám (${formatTime(thuoc.time)}).`
+               });
+               hasKhamError = true;
+            } else if (diffKham < 0) {
+               errors.push({
+                 type: 'Kê đơn trước Khám',
+                 desc: `Chuyên khoa BS ${doctorMap[docId] || docId}: Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) thực hiện trước thời gian Khám (${formatTime(khamOfDoc.time)}).`
+               });
+               hasKhamError = true;
+            }
+          } else if (!khamOfDoc && globalEarliestKham) {
+            const diffKham = diffMinutes(thuoc.time, globalEarliestKham.time);
+            if (diffKham === 0) {
+               errors.push({
+                 type: 'Trùng giờ Khám - Thuốc',
+                 desc: `Kê đơn "${thuoc.name}" trùng giờ chính xác với Công khám (${formatTime(thuoc.time)}).`
+               });
+               hasKhamError = true;
+            } else if (diffKham < 0) {
+               errors.push({
+                 type: 'Kê đơn trước Khám',
+                 desc: `Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) thực hiện trước thời gian Khám (${formatTime(globalEarliestKham.time)}).`
+               });
+               hasKhamError = true;
+            }
           }
 
           // 2.2. NẾU CÓ CLS: Giờ kê thuốc bắt buộc phải sau Kết quả CLS tối thiểu 1 phút
