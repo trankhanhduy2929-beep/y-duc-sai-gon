@@ -3,829 +3,666 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BHYT Smart Checker Pro</title>
+    <title>BHYT Inspector Pro</title>
+
+    <!-- Tailwind CSS (Giao diện) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- SheetJS (Đọc file Excel) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- React & ReactDOM -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel Standalone (Trình biên dịch JSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.3/babel.min.js"></script>
+
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-            min-height: 100vh;
-        }
-        
-        /* Glassmorphism Effect */
-        .glass {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        }
-
-        .glass-card {
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .glass-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Login Screen Animation */
-        #loginScreen {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            transition: opacity 0.5s ease-out, visibility 0.5s;
-        }
-
-        .shake {
-            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
-
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-
-        .fade-in-up {
-            animation: fadeInUp 0.6s ease-out forwards;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        @keyframes fadeInUp {
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            border-radius: 0.75rem;
-            border: 2px dashed #e2e8f0;
-            transition: all 0.3s;
-        }
-        .file-input-wrapper:hover {
-            border-color: #3b82f6;
-            background-color: #eff6ff;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
     </style>
 </head>
-<body class="text-slate-800 antialiased overflow-x-hidden">
+<body class="bg-slate-50">
+    <div id="root"></div>
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="fixed inset-0 z-[100] flex items-center justify-center">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 text-center transform transition-all duration-300 scale-100">
-            <div class="mb-6">
-                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                    <i class="fa-solid fa-user-shield text-3xl"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800">Đăng Nhập</h2>
-                <p class="text-gray-500 text-sm mt-1">Hệ thống giám định BHYT</p>
-            </div>
-            
-            <div class="relative mb-6">
-                <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." 
-                    class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    onkeypress="if(event.key === 'Enter') checkLogin()">
-                <button onclick="checkLogin()" class="absolute right-2 top-2 p-1 text-gray-400 hover:text-blue-600">
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
+    <script type="text/babel">
+        // 1. Lấy hàm từ React
+        const { useState, useEffect, useMemo, useRef } = React;
 
-            <button onclick="checkLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
-                Truy cập hệ thống
-            </button>
-            <p id="loginError" class="text-red-500 text-sm mt-3 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Mật khẩu không đúng</p>
-        </div>
-    </div>
+        // 2. KHẮC PHỤC LỖI TRẮNG MÀN HÌNH: Tích hợp trực tiếp Icon bằng SVG
+        const SvgIcon = ({ children, className }) => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            {children}
+          </svg>
+        );
 
-    <!-- MAIN APP -->
-    <div id="mainApp" class="hidden opacity-0 transition-opacity duration-700">
-        
-        <!-- Header -->
-        <header class="glass sticky top-0 z-40 border-b border-white/20">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="bg-gradient-to-r from-blue-600 to-cyan-500 text-white p-2 rounded-lg shadow-lg">
-                        <i class="fa-solid fa-stethoscope text-xl"></i>
+        const Lock = (p) => <SvgIcon {...p}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></SvgIcon>;
+        const UploadCloud = (p) => <SvgIcon {...p}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m16 16-4-4-4 4"></path></SvgIcon>;
+        const FileSpreadsheet = (p) => <SvgIcon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></SvgIcon>;
+        const CheckCircle = (p) => <SvgIcon {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></SvgIcon>;
+        const User = (p) => <SvgIcon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></SvgIcon>;
+        const Clock = (p) => <SvgIcon {...p}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></SvgIcon>;
+        const Activity = (p) => <SvgIcon {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></SvgIcon>;
+        const ChevronRight = (p) => <SvgIcon {...p}><polyline points="9 18 15 12 9 6"></polyline></SvgIcon>;
+        const ActivitySquare = (p) => <SvgIcon {...p}><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M17 12h-2l-2 5-2-10-2 5H7"></path></SvgIcon>;
+        const Filter = (p) => <SvgIcon {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></SvgIcon>;
+        const ShieldAlert = (p) => <SvgIcon {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></SvgIcon>;
+        const LogOut = (p) => <SvgIcon {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></SvgIcon>;
+        const FileSearch = (p) => <SvgIcon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="11.5" cy="14.5" r="2.5"></circle><path d="M13.25 16.25 15 18"></path></SvgIcon>;
+        const Stethoscope = (p) => <SvgIcon {...p}><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path><circle cx="20" cy="10" r="2"></circle></SvgIcon>;
+        const XCircle = (p) => <SvgIcon {...p}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></SvgIcon>;
+
+        // --- THUẬT TOÁN ĐỌC CSV ---
+        const parseCSV = (strData) => {
+          const objPattern = new RegExp(("(\\,|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\\,\\r\\n]*))"), "gi");
+          let arrData = [[]];
+          let arrMatches = null;
+          while ((arrMatches = objPattern.exec(strData))) {
+            let strMatchedDelimiter = arrMatches[1];
+            if (strMatchedDelimiter.length && strMatchedDelimiter !== ",") arrData.push([]);
+            let strMatchedValue;
+            if (arrMatches[2]) {
+              strMatchedValue = arrMatches[2].replace(new RegExp("\"\"", "g"), "\"");
+            } else {
+              strMatchedValue = arrMatches[3];
+            }
+            arrData[arrData.length - 1].push(strMatchedValue);
+          }
+          const headers = arrData[0].map(h => h ? h.trim() : '');
+          const result = [];
+          for (let i = 1; i < arrData.length; i++) {
+            if (arrData[i].length <= 1 && !arrData[i][0]) continue;
+            let obj = {};
+            for (let j = 0; j < headers.length; j++) {
+              obj[headers[j]] = arrData[i][j] ? arrData[i][j].trim() : '';
+            }
+            result.push(obj);
+          }
+          return result;
+        };
+
+        // --- XỬ LÝ THỜI GIAN ---
+        const formatTime = (val) => {
+          if (!val) return val;
+          const timeStr = String(val);
+          if (timeStr.length < 12) return timeStr;
+          const y = timeStr.slice(0, 4), m = timeStr.slice(4, 6), d = timeStr.slice(6, 8);
+          const h = timeStr.slice(8, 10), min = timeStr.slice(10, 12);
+          return `${h}:${min} - ${d}/${m}/${y}`;
+        };
+
+        const getTs = (val) => {
+          if (!val) return 0;
+          const str = String(val);
+          if (str.length < 12) return 0;
+          return new Date(
+            parseInt(str.slice(0, 4)), parseInt(str.slice(4, 6)) - 1, parseInt(str.slice(6, 8)),
+            parseInt(str.slice(8, 10)), parseInt(str.slice(10, 12))
+          ).getTime();
+        };
+
+        const diffMinutes = (strA, strB) => (getTs(strA) - getTs(strB)) / 60000;
+
+        // --- COMPONENT CHÍNH ---
+        function App() {
+          const [isAuthenticated, setIsAuthenticated] = useState(false);
+          const [password, setPassword] = useState('');
+          const [loginError, setLoginError] = useState('');
+
+          const handleLogin = (e) => {
+            e.preventDefault();
+            if (password === '1402') setIsAuthenticated(true);
+            else setLoginError('Mật khẩu không chính xác. Vui lòng thử lại.');
+          };
+
+          if (!isAuthenticated) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4 font-sans text-slate-100">
+                <div className="bg-slate-800/50 p-8 rounded-3xl shadow-2xl backdrop-blur-xl border border-slate-700/50 w-full max-w-md transform transition-all hover:scale-105 duration-500">
+                  <div className="flex justify-center mb-6">
+                    <div className="bg-blue-500/20 p-4 rounded-full border border-blue-500/30">
+                      <ShieldAlert className="w-12 h-12 text-blue-400" />
                     </div>
+                  </div>
+                  <h1 className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">BHYT Inspector Pro</h1>
+                  <p className="text-slate-400 text-center mb-8">Hệ thống dò lỗi Y lệnh & Xung đột thời gian</p>
+                  
+                  <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <h1 class="text-xl font-bold text-slate-800 tracking-tight">Giám Định Trùng Giờ BHYT</h1>
-                        <div class="text-xs text-slate-500 font-medium bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                            <i class="fa-solid fa-shield-halved mr-1"></i>Secure Local Processing
-                        </div>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input
+                          type="password" value={password} onChange={(e) => {setPassword(e.target.value); setLoginError('');}}
+                          placeholder="Nhập mật khẩu truy cập..."
+                          className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        />
+                      </div>
+                      {loginError && <p className="text-red-400 text-sm mt-2 ml-1 animate-pulse">{loginError}</p>}
                     </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="location.reload()" class="text-slate-500 hover:text-red-500 transition-colors" title="Đăng xuất">
-                        <i class="fa-solid fa-power-off text-lg"></i>
+                    <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2">
+                      Đăng Nhập <ChevronRight className="w-5 h-5" />
                     </button>
+                  </form>
                 </div>
-            </div>
-        </header>
+              </div>
+            );
+          }
 
-        <main class="container mx-auto px-6 py-8 pb-20">
+          return <Dashboard onLogout={() => setIsAuthenticated(false)} />;
+        }
+
+        function Dashboard({ onLogout }) {
+          const [data, setData] = useState({ bang1: [], bang2: [], bang3: [], bang4: [], dsbs: [] });
+          const [analyzing, setAnalyzing] = useState(false);
+          const [results, setResults] = useState(null);
+          
+          const [activeTab, setActiveTab] = useState('DOCTOR');
+          const [selectedFilterId, setSelectedFilterId] = useState('ALL');
+
+          const fileInputs = {
+            bang1: useRef(null), bang2: useRef(null), bang3: useRef(null), bang4: useRef(null), dsbs: useRef(null)
+          };
+
+          const handleFileUpload = async (type, e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
             
-            <!-- Input Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10 fade-in-up" style="animation-delay: 0.1s;">
-                
-                <!-- CCHN -->
-                <div class="glass-card p-5 border-l-4 border-blue-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="text-blue-600 font-bold bg-blue-50 p-2 rounded-lg">
-                            <i class="fa-solid fa-user-doctor"></i>
-                        </div>
-                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-cchn"></i>
-                    </div>
-                    <h3 class="font-bold text-gray-700 mb-1">DS Chứng Chỉ HN</h3>
-                    <p class="text-xs text-gray-400 mb-4">Cột: MA CCHN, TEN BS, <span class="text-red-500 font-bold">PHÒNG KHÁM</span></p>
-                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
-                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-cchn">Chọn file...</span>
-                        <input type="file" id="fileCCHN" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-cchn', 'check-cchn')"/>
-                    </label>
-                </div>
-
-                <!-- Bang 1 -->
-                <div class="glass-card p-5 border-l-4 border-green-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="text-green-600 font-bold bg-green-50 p-2 rounded-lg">
-                            <i class="fa-solid fa-hospital-user"></i>
-                        </div>
-                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-bang1"></i>
-                    </div>
-                    <h3 class="font-bold text-gray-700 mb-1">Bảng 1 (BN)</h3>
-                    <p class="text-xs text-gray-400 mb-4">File chứa Mã LK, Họ tên BN, <span class="text-red-500 font-bold">NGAY_RA</span></p>
-                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
-                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-bang1">Chọn file...</span>
-                        <input type="file" id="fileBang1" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-bang1', 'check-bang1')"/>
-                    </label>
-                </div>
-
-                <!-- Bang 2 -->
-                <div class="glass-card p-5 border-l-4 border-purple-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="text-purple-600 font-bold bg-purple-50 p-2 rounded-lg">
-                            <i class="fa-solid fa-pills"></i>
-                        </div>
-                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-bang2"></i>
-                    </div>
-                    <h3 class="font-bold text-gray-700 mb-1">Bảng 2 (Thuốc)</h3>
-                    <p class="text-xs text-gray-400 mb-4">Chỉ xét NGAY_YL (Bỏ NGAY_TH)</p>
-                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
-                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-bang2">Chọn file...</span>
-                        <input type="file" id="fileBang2" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-bang2', 'check-bang2')"/>
-                    </label>
-                </div>
-
-                <!-- Bang 3 -->
-                <div class="glass-card p-5 border-l-4 border-orange-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="text-orange-600 font-bold bg-orange-50 p-2 rounded-lg">
-                            <i class="fa-solid fa-microscope"></i>
-                        </div>
-                        <i class="fa-solid fa-check-circle text-gray-200 check-icon" id="check-bang3"></i>
-                    </div>
-                    <h3 class="font-bold text-gray-700 mb-1">Bảng 3 (Dịch Vụ)</h3>
-                    <p class="text-xs text-gray-400 mb-4">Tất cả Khám & CLS (NGAY_YL)</p>
-                    <label class="file-input-wrapper flex flex-col items-center justify-center p-4 cursor-pointer bg-gray-50 text-center h-24">
-                        <span class="text-xs text-gray-500 font-medium overflow-hidden text-ellipsis w-full" id="name-bang3">Chọn file...</span>
-                        <input type="file" id="fileBang3" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName(this, 'name-bang3', 'check-bang3')"/>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Action Button -->
-            <div class="flex justify-center mb-12 fade-in-up" style="animation-delay: 0.2s;">
-                <button onclick="processFiles()" class="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-blue-600 font-lg rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 hover:bg-blue-700 hover:shadow-2xl hover:-translate-y-1">
-                    <span class="absolute inset-0 w-full h-full -mt-1 rounded-full opacity-30 bg-gradient-to-b from-transparent via-transparent to-black"></span>
-                    <span class="relative flex items-center gap-3">
-                        <i class="fa-solid fa-bolt text-yellow-300 animate-pulse"></i>
-                        Quét Toàn Diện
-                    </span>
-                </button>
-            </div>
-
-            <!-- Results Section -->
-            <div id="resultSection" class="hidden fade-in-up">
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                    <!-- Header Result -->
-                    <div class="bg-gray-50 px-8 py-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <span class="bg-red-100 text-red-600 p-2 rounded-lg"><i class="fa-solid fa-bug"></i></span>
-                                Kết Quả Phân Tích
-                            </h2>
-                            <p class="text-sm text-gray-500 mt-1 ml-11">Tìm thấy <span id="errorCount" class="font-bold text-red-600 text-lg">0</span> trường hợp lỗi.</p>
-                        </div>
-                        <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg shadow-md transition-all flex items-center gap-2 hover:-translate-y-0.5 font-medium">
-                            <i class="fa-solid fa-file-excel"></i> Xuất Báo Cáo
-                        </button>
-                    </div>
-
-                    <!-- Table -->
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider font-semibold">
-                                    <!-- Đã điều chỉnh width gọn lại -->
-                                    <th class="px-6 py-4 border-b border-gray-100 w-[180px]">Đối Tượng (BS / BN)</th>
-                                    <th class="px-6 py-4 border-b border-gray-100 w-[140px]">Thời Gian</th>
-                                    <th class="px-6 py-4 border-b border-gray-100">Chi Tiết Lỗi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="resultTableBody" class="text-sm divide-y divide-gray-100">
-                                <!-- Data will be injected here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="bg-gray-50 px-8 py-4 text-center border-t border-gray-200">
-                        <span class="text-xs text-gray-400 font-medium">Hệ thống hiển thị tối đa 100 kết quả đầu tiên để tối ưu hiệu năng. Vui lòng xuất Excel để xem toàn bộ.</span>
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 z-50 hidden flex flex-col justify-center items-center backdrop-blur-sm">
-        <div class="relative w-24 h-24">
-            <div class="absolute inset-0 rounded-full border-4 border-gray-100"></div>
-            <div class="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-                <i class="fa-solid fa-user-doctor text-2xl text-blue-600"></i>
-            </div>
-        </div>
-        <h3 class="mt-6 text-xl font-bold text-gray-800" id="loadingTitle">Đang xử lý</h3>
-        <p class="text-gray-500 mt-2 animate-pulse" id="loadingStatus">Vui lòng đợi trong giây lát...</p>
-    </div>
-
-    <script>
-        // --- AUTHENTICATION ---
-        function checkLogin() {
-            const pass = document.getElementById('passwordInput').value;
-            const screen = document.getElementById('loginScreen');
-            const app = document.getElementById('mainApp');
-            const error = document.getElementById('loginError');
-
-            if (pass === '1402') {
-                // Success
-                screen.style.opacity = '0';
-                setTimeout(() => {
-                    screen.style.display = 'none';
-                    app.classList.remove('hidden');
-                    // Trigger fade in
-                    setTimeout(() => app.classList.remove('opacity-0'), 50);
-                }, 500);
+            if (file.name.endsWith('.csv')) {
+              reader.onload = (evt) => {
+                const parsed = parseCSV(evt.target.result);
+                setData(prev => ({ ...prev, [type]: parsed }));
+              };
+              reader.readAsText(file);
+            } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+              reader.onload = (evt) => {
+                if (!window.XLSX) return alert("Thư viện đọc Excel chưa tải xong, vui lòng thử lại sau vài giây.");
+                const workbook = window.XLSX.read(evt.target.result, { type: 'binary' });
+                const sheetName = workbook.SheetNames[0];
+                const parsed = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+                setData(prev => ({ ...prev, [type]: parsed }));
+              };
+              reader.readAsBinaryString(file);
             } else {
-                // Fail
-                error.classList.remove('hidden');
-                // Remove animation class to reset it
-                const container = screen.querySelector('div');
-                container.classList.remove('shake');
-                void container.offsetWidth; // trigger reflow
-                container.classList.add('shake');
-                document.getElementById('passwordInput').value = '';
-                document.getElementById('passwordInput').focus();
+              alert("Định dạng file không hỗ trợ. Vui lòng chọn file .csv hoặc .xlsx");
             }
-        }
+          };
 
-        // --- UI HELPERS ---
-        function updateFileName(input, nameId, iconId) {
-            const label = document.getElementById(nameId);
-            const icon = document.getElementById(iconId);
+          const isDataReady = data.bang1.length > 0 && data.dsbs.length > 0 && 
+                             (data.bang2.length > 0 || data.bang3.length > 0 || data.bang4.length > 0);
+
+          const analyzeData = () => {
+            setAnalyzing(true);
             
-            if (input.files && input.files[0]) {
-                label.innerText = input.files[0].name;
-                label.classList.add('text-blue-600', 'font-semibold');
-                icon.classList.remove('text-gray-200');
-                icon.classList.add('text-green-500');
-                // Animation for valid input
-                icon.classList.add('scale-110');
-                setTimeout(() => icon.classList.remove('scale-110'), 200);
-            } else {
-                label.innerText = "Chọn file...";
-                label.classList.remove('text-blue-600', 'font-semibold');
-                icon.classList.add('text-gray-200');
-                icon.classList.remove('text-green-500');
-            }
-        }
+            setTimeout(() => {
+              const patients = {};
+              data.bang1.forEach(row => {
+                if (row.MA_LK) {
+                  patients[row.MA_LK] = {
+                    maLK: row.MA_LK,
+                    name: row.HO_TEN || 'Không rõ tên',
+                    ngayRa: row.NGAY_RA,
+                    khamList: [],
+                    clsList: [],
+                    thuocList: [],
+                    kqList: []
+                  };
+                }
+              });
 
-        function showLoading(show, msg = "") {
-            const overlay = document.getElementById('loadingOverlay');
-            const status = document.getElementById('loadingStatus');
-            if (show) {
-                overlay.classList.remove('hidden');
-                status.innerText = msg;
-            } else {
-                overlay.classList.add('hidden');
-            }
-        }
+              const doctorMap = {};
+              data.dsbs.forEach(row => {
+                const ma = row['MA CCHN'] || row['MÃ CCHN'];
+                const ten = row['TEN BS'] || row['TÊN BS'];
+                if (ma) doctorMap[ma] = ten;
+              });
 
-        // --- DATA PROCESSING LOGIC ---
-        let doctorsMap = {}; 
-        let patientsMap = {}; 
-        let conflictList = [];
+              const doctorEvents = [];
 
-        // Updated keywords for Rule 2 & 3
-        const examKeywords = ['khám', 'nội', 'ngoại', 'tai mũi họng', 'tmh', 'sản', 'nhi', 'rhm', 'mắt', 'da liễu'];
-        // YHCT excluded in logic loop
+              data.bang3.forEach(row => {
+                const maLK = row.MA_LK;
+                const patientName = patients[maLK]?.name || maLK;
+                const isKham = row.TEN_DICH_VU && row.TEN_DICH_VU.toLowerCase().includes('khám');
 
-        function checkIsExam(serviceName) {
-            if (!serviceName) return false;
-            const lower = serviceName.toLowerCase();
-            return examKeywords.some(kw => lower.includes(kw));
-        }
+                if (row.MA_BAC_SI && row.NGAY_YL) {
+                  doctorEvents.push({ maBS: row.MA_BAC_SI, time: row.NGAY_YL, action: 'Chỉ định', detail: row.TEN_DICH_VU, maLK, patientName, source: 'Bảng 3 (CĐ)', isKham });
+                  if (patients[maLK]) {
+                    if (isKham) patients[maLK].khamList.push({ time: row.NGAY_YL, name: row.TEN_DICH_VU, maBS: row.MA_BAC_SI });
+                    else patients[maLK].clsList.push({ time: row.NGAY_YL, kqTime: row.NGAY_KQ, name: row.TEN_DICH_VU, maBS: row.MA_BAC_SI });
+                  }
+                }
+                if (row.NGUOI_THUC_HIEN && row.NGAY_TH_YL) {
+                  doctorEvents.push({ maBS: row.NGUOI_THUC_HIEN, time: row.NGAY_TH_YL, action: 'Thực hiện', detail: row.TEN_DICH_VU, maLK, patientName, source: 'Bảng 3 (TH)', isKham });
+                }
+              });
 
-        function readFile(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const data = e.target.result;
-                    const ext = file.name.split('.').pop().toLowerCase();
-                    
-                    if (ext === 'csv') {
-                        Papa.parse(file, {
-                            header: true,
-                            skipEmptyLines: true,
-                            complete: function(results) { resolve(results.data); },
-                            error: function(err) { reject(err); }
-                        });
-                    } else if (['xls', 'xlsx'].includes(ext)) {
-                        const workbook = XLSX.read(data, { type: 'binary' });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName]);
-                        resolve(jsonData);
+              data.bang4.forEach(row => {
+                const maLK = row.MA_LK;
+                if (row.MA_BS_DOC_KQ && row.NGAY_KQ) {
+                  doctorEvents.push({ maBS: row.MA_BS_DOC_KQ, time: row.NGAY_KQ, action: 'Đọc KQ', detail: row.TEN_CHI_SO || 'Kết quả CLS', maLK, patientName: patients[maLK]?.name || maLK, source: 'Bảng 4' });
+                  if (patients[maLK]) patients[maLK].kqList.push({ time: row.NGAY_KQ, name: row.TEN_CHI_SO || 'Kết quả CLS', maBS: row.MA_BS_DOC_KQ });
+                }
+              });
+
+              data.bang2.forEach(row => {
+                const maLK = row.MA_LK;
+                if (row.MA_BAC_SI && row.NGAY_YL) {
+                  doctorEvents.push({ maBS: row.MA_BAC_SI, time: row.NGAY_YL, action: 'Kê đơn', detail: row.TEN_THUOC, maLK, patientName: patients[maLK]?.name || maLK, source: 'Bảng 2' });
+                  if (patients[maLK]) patients[maLK].thuocList.push({ time: row.NGAY_YL, name: row.TEN_THUOC, maBS: row.MA_BAC_SI });
+                }
+              });
+
+              // --- PHÂN TÍCH LỖI 1: BÁC SĨ ---
+              const docConflicts = [];
+              const eventsByDoctor = {};
+              doctorEvents.forEach(ev => {
+                if (!eventsByDoctor[ev.maBS]) eventsByDoctor[ev.maBS] = {};
+                if (!eventsByDoctor[ev.maBS][ev.time]) eventsByDoctor[ev.maBS][ev.time] = [];
+                eventsByDoctor[ev.maBS][ev.time].push(ev);
+              });
+
+              Object.keys(eventsByDoctor).forEach(bsID => {
+                Object.keys(eventsByDoctor[bsID]).forEach(time => {
+                  const evts = eventsByDoctor[bsID][time];
+                  if (evts.length > 1) {
+                    const uniquePatients = new Set(evts.map(e => e.maLK));
+                    let isConflict = false;
+                    let reason = '';
+
+                    if (uniquePatients.size > 1) {
+                      isConflict = true;
+                      reason = `Thực hiện ${evts.length} hành động trên ${uniquePatients.size} bệnh nhân khác nhau.`;
                     } else {
-                        reject("Định dạng file không hỗ trợ");
+                      const thucHienKhongPhaiKham = evts.filter(e => e.action === 'Thực hiện' && !e.isKham);
+                      const hasKham = evts.some(e => e.isKham);
+                      const hasThuoc = evts.some(e => e.action === 'Kê đơn');
+
+                      if (thucHienKhongPhaiKham.length > 1) {
+                        isConflict = true;
+                        reason = `Thực hiện ${thucHienKhongPhaiKham.length} dịch vụ Cận lâm sàng / Thủ thuật cùng một phút.`;
+                      } else if (hasKham && hasThuoc) {
+                        isConflict = true;
+                        reason = `Trùng giờ: Vừa thực hiện Công khám vừa Kê đơn thuốc tại cùng một phút (Thuốc phải kê sau khám).`;
+                      }
                     }
-                };
-                reader.onerror = reject;
-                if (file.name.endsWith('.csv')) reader.readAsText(file);
-                else reader.readAsBinaryString(file);
-            });
-        }
 
-        function parseTime(str) {
-            if (!str) return null;
-            const s = String(str).trim();
-            if (s.length < 12) return null;
-            const y = parseInt(s.substring(0,4));
-            const m = parseInt(s.substring(4,6)) - 1;
-            const d = parseInt(s.substring(6,8));
-            const h = parseInt(s.substring(8,10));
-            const min = parseInt(s.substring(10,12));
-            return new Date(y, m, d, h, min).getTime();
-        }
-
-        async function processFiles() {
-            const fCCHN = document.getElementById('fileCCHN').files[0];
-            const fBang1 = document.getElementById('fileBang1').files[0];
-            const fBang2 = document.getElementById('fileBang2').files[0];
-            const fBang3 = document.getElementById('fileBang3').files[0];
-
-            if (!fCCHN || !fBang1 || !fBang2 || !fBang3) {
-                alert("Vui lòng chọn đủ 4 file dữ liệu!");
-                return;
-            }
-
-            showLoading(true, "Đang khởi tạo...");
-            conflictList = [];
-            
-            try {
-                // 1. Load CCHN
-                showLoading(true, "Đang đọc danh sách bác sĩ...");
-                const dataCCHN = await readFile(fCCHN);
-                doctorsMap = {};
-                dataCCHN.forEach(row => {
-                    const code = row['MA CCHN'] || row['MA_CCHN'];
-                    const name = row['TEN BS'] || row['TEN_BS'];
-                    const pk = row['PHÒNG KHÁM'] || row['PHONG_KHAM'] || row['KHOA'] || "";
-                    if (code) {
-                        doctorsMap[code.trim()] = {
-                            name: name || "Không tên",
-                            dept: pk
-                        };
+                    if (isConflict) {
+                      docConflicts.push({ id: bsID, maBS: bsID, tenBS: doctorMap[bsID] || 'Bác sĩ ngoài danh sách', time: time, events: evts, conflictReason: reason });
                     }
+                  }
                 });
+              });
+              docConflicts.sort((a, b) => b.time.localeCompare(a.time));
 
-                // 2. Load Bang 1 (Patients)
-                showLoading(true, "Đang đọc thông tin bệnh nhân...");
-                const dataBang1 = await readFile(fBang1);
-                patientsMap = {};
-                // Also need to store Discharge Date (NGAY_RA) for each patient visit
-                // Since MA_LK is unique per visit
-                let patientDischargeMap = {}; 
+              // --- PHÂN TÍCH LỖI 2: QUY TRÌNH BỆNH NHÂN ---
+              const patConflicts = [];
+              
+              Object.values(patients).forEach(pat => {
+                let errors = [];
 
-                dataBang1.forEach(row => {
-                    const malk = row['MA_LK'];
-                    const hoten = row['HO_TEN'];
-                    const ngayRa = row['NGAY_RA'];
-                    if (malk) {
-                        patientsMap[malk] = hoten || "Không tên";
-                        if (ngayRa) {
-                            patientDischargeMap[malk] = {
-                                raw: String(ngayRa).trim(),
-                                val: parseTime(String(ngayRa).trim())
-                            };
-                        }
-                    }
+                const khamByDoc = {};
+                pat.khamList.forEach(k => {
+                   if (!khamByDoc[k.maBS] || getTs(k.time) < getTs(khamByDoc[k.maBS].time)) {
+                      khamByDoc[k.maBS] = k; 
+                   }
                 });
-
-                // --- DATA PREPARATION ---
-                let doctorSchedule = {}; // Logic 1: Doctor Time
-                let patientTimeline = {}; // Logic 2 & 3: Patient Logic
-
-                const initPatient = (malk) => {
-                    if (!patientTimeline[malk]) {
-                        patientTimeline[malk] = {
-                            t2_yl: new Set(), // Set of drug times strings
-                            t3_kq: [], // Array of {time, name} for Rule 1
-                            t3_yl_exam: [], // Array of {time, name, dept} for Rule 2
-                            // New collections for Rule 3 (Time Duration)
-                            t3_exams_list: []  // Array {timeVal, timeStr, bs, sv}
-                        };
-                    }
-                };
-
-                const addEventDoctor = (bsCode, malk, timeRaw, source, type, desc) => {
-                    if (!bsCode || !timeRaw || !malk) return;
-                    const bs = bsCode.trim();
-                    if (!doctorSchedule[bs]) doctorSchedule[bs] = [];
-                    let timeStr = timeRaw.toString().trim();
-                    if (timeStr.length < 12) return; 
-
-                    doctorSchedule[bs].push({
-                        time: timeStr,
-                        malk: malk.toString(),
-                        source: source,
-                        type: type,
-                        desc: desc
-                    });
-                };
-
-                // --- PARSE BANG 2 ---
-                showLoading(true, "Đang xử lý Bảng 2 (Thuốc)...");
-                const dataBang2 = await readFile(fBang2);
-                dataBang2.forEach(row => {
-                    const bs = row['MA_BAC_SI'];
-                    const malk = row['MA_LK'];
-                    const tenThuoc = row['TEN_THUOC'] || "Thuốc";
-                    const ngayYL = row['NGAY_YL'];
-
-                    if (ngayYL) {
-                        // For Doctor Check
-                        addEventDoctor(bs, malk, ngayYL, 'Bảng 2', 'Y Lệnh Thuốc', tenThuoc);
-                        
-                        // For Patient Logic Check
-                        if (malk) {
-                            initPatient(malk);
-                            let timeStr = ngayYL.toString().trim();
-                            if (timeStr.length >= 12) {
-                                patientTimeline[malk].t2_yl.add(timeStr);
-                            }
-                        }
-                    }
-                });
-
-                // --- PARSE BANG 3 ---
-                showLoading(true, "Đang xử lý Bảng 3 (Dịch vụ)...");
-                const dataBang3 = await readFile(fBang3);
-                dataBang3.forEach(row => {
-                    const bs = row['MA_BAC_SI'];
-                    const malk = row['MA_LK'];
-                    const tenDV = row['TEN_DICH_VU'] || "";
-                    const ngayYL = row['NGAY_YL'];
-                    const ngayKQ = row['NGAY_KQ'];
-                    
-                    let deptName = "";
-                    if(bs && doctorsMap[bs.trim()]) {
-                        deptName = doctorsMap[bs.trim()].dept;
-                    }
-
-                    // --- DOCTOR LOGIC (Old) ---
-                    if (ngayYL) {
-                        let label = 'Dịch Vụ (CLS)';
-                        const tenLower = tenDV.toLowerCase();
-                        if (tenLower.includes('khám')) label = 'Công Khám';
-                        else if (tenLower.includes('giường')) label = 'Giường';
-                        addEventDoctor(bs, malk, ngayYL, 'Bảng 3', label, tenDV);
-                    }
-                    if (tenDV.toLowerCase().includes("điện tim") && ngayKQ) {
-                        addEventDoctor(bs, malk, ngayKQ, 'Bảng 3', 'KQ Điện tim', tenDV);
-                    }
-
-                    // --- PATIENT LOGIC (New) ---
-                    if (malk) {
-                        initPatient(malk);
-                        
-                        // Rule 1 Data: NGAY_KQ
-                        if (ngayKQ) {
-                            let timeKQ = ngayKQ.toString().trim();
-                            if (timeKQ.length >= 12) {
-                                patientTimeline[malk].t3_kq.push({time: timeKQ, sv: tenDV});
-                            }
-                        }
-
-                        // Rule 2 Data: NGAY_YL (Only for Exams)
-                        if (ngayYL && checkIsExam(tenDV)) {
-                            let timeYL = ngayYL.toString().trim();
-                            if (timeYL.length >= 12) {
-                                patientTimeline[malk].t3_yl_exam.push({
-                                    time: timeYL, 
-                                    sv: tenDV,
-                                    dept: deptName
-                                });
-                                
-                                // For Rule 3
-                                patientTimeline[malk].t3_exams_list.push({
-                                    bs: bs ? bs.trim() : "",
-                                    sv: tenDV,
-                                    timeVal: parseTime(timeYL),
-                                    timeStr: formatTime(timeYL)
-                                });
-                            }
-                        }
-                    }
-                });
-
-                // 4. DETECT CONFLICTS
-                showLoading(true, "Đang dò tìm lỗi...");
-
-                // --- 4.1 Check DOCTOR Conflicts (Existing) ---
-                for (const [bsCode, events] of Object.entries(doctorSchedule)) {
-                    const eventsByTime = {};
-                    events.forEach(evt => {
-                        if (!eventsByTime[evt.time]) eventsByTime[evt.time] = [];
-                        eventsByTime[evt.time].push(evt);
-                    });
-
-                    for (const [time, timeEvents] of Object.entries(eventsByTime)) {
-                        const uniquePatients = [...new Set(timeEvents.map(e => e.malk))];
-                        if (uniquePatients.length > 1) {
-                            const bsInfo = doctorsMap[bsCode] || { name: bsCode, dept: "" };
-                            const bsDisplayName = bsInfo.dept ? `${bsInfo.name} (${bsInfo.dept})` : bsInfo.name;
-
-                            let details = [];
-                            uniquePatients.forEach(pid => {
-                                const pName = patientsMap[pid] || pid;
-                                const pEvents = timeEvents.filter(e => e.malk === pid);
-                                
-                                // New Logic for compact display
-                                let groups = {};
-                                pEvents.forEach(e => {
-                                    if (!groups[e.type]) groups[e.type] = [];
-                                    if (!groups[e.type].includes(e.desc)) {
-                                         groups[e.type].push(e.desc);
-                                    }
-                                });
-
-                                let compactDesc = Object.entries(groups).map(([type, items]) => {
-                                     let colorClass = "text-gray-700 font-medium";
-                                     if(type === 'Công Khám') colorClass = "text-red-600 font-bold";
-                                     if(type.includes('Dịch Vụ') || type.includes('CLS')) colorClass = "text-blue-600 font-medium";
-                                     return `<div class="mb-1"><span class="${colorClass}">${type}:</span> <span class="text-gray-600">${items.join(', ')}</span></div>`;
-                                }).join('');
-
-                                details.push(`<div class="mb-3 border-b border-gray-100 pb-2 last:border-0 last:pb-0"><div class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i class="fa-solid fa-user-tag text-xs text-gray-400"></i> ${pName}</div><div class="pl-2">${compactDesc}</div></div>`);
-                            });
-
-                            conflictList.push({
-                                type: 'DOCTOR',
-                                subCode: bsCode,
-                                subName: bsDisplayName,
-                                time: formatTime(time),
-                                rawTime: time,
-                                count: uniquePatients.length,
-                                detailsRaw: details.map(d => d.replace(/<[^>]*>?/gm, ' ')),
-                                detailsHTML: details
-                            });
-                        }
-                    }
-                }
-
-                // --- 4.2 Check PATIENT Logic Conflicts ---
-                for (const [malk, data] of Object.entries(patientTimeline)) {
-                    const pName = patientsMap[malk] || "Không tên";
-
-                    // Rule 1 & 2 Logic (Existing)
-                    if (data.t2_yl.size > 0) {
-                        data.t3_kq.forEach(kqItem => {
-                            if (data.t2_yl.has(kqItem.time)) {
-                                 conflictList.push({
-                                    type: 'PATIENT_LOGIC',
-                                    subCode: malk,
-                                    subName: pName,
-                                    time: formatTime(kqItem.time),
-                                    rawTime: kqItem.time,
-                                    count: 1,
-                                    detailsRaw: [`Ngày KQ Dịch vụ (${kqItem.sv}) trùng giờ Y lệnh Thuốc`],
-                                    detailsHTML: [`<div class="text-orange-700 font-semibold mb-1">Lỗi Logic Quy Trình:</div><div><span class="text-gray-600">Ngày KQ:</span> <span class="font-bold text-blue-600">${kqItem.sv}</span> trùng với giờ kê đơn thuốc.</div>`]
-                                });
-                            }
-                        });
-
-                        data.t3_yl_exam.forEach(exItem => {
-                             if (data.t2_yl.has(exItem.time)) {
-                                 let deptStr = exItem.dept ? ` - <span class="text-purple-600 font-bold">${exItem.dept}</span>` : "";
-                                 conflictList.push({
-                                    type: 'PATIENT_LOGIC',
-                                    subCode: malk,
-                                    subName: pName,
-                                    time: formatTime(exItem.time),
-                                    rawTime: exItem.time,
-                                    count: 1,
-                                    detailsRaw: [`Giờ YL Khám (${exItem.sv}${exItem.dept ? ' - ' + exItem.dept : ''}) trùng giờ Y lệnh Thuốc`],
-                                    detailsHTML: [`<div class="text-orange-700 font-semibold mb-1">Trùng Giờ Khám - Thuốc:</div><div><span class="text-gray-600">Công khám:</span> <span class="font-bold text-red-600">${exItem.sv}</span>${deptStr} trùng với giờ kê đơn thuốc.</div>`]
-                                });
-                            }
-                        });
-                    }
-
-                    // --- Rule 3: TIME DURATION (MODIFIED LOGIC: Exam vs Discharge) ---
-                    // Rule: Bang 1 NGAY_RA (Discharge) - Bang 3 NGAY_YL (Exam) must be >= 6 minutes
-                    // Exclude "Khám Y học cổ truyền"
-                    
-                    const exams = data.t3_exams_list || [];
-                    const dischargeInfo = patientDischargeMap[malk];
-
-                    if (dischargeInfo && dischargeInfo.val) {
-                        exams.forEach(exam => {
-                            // EXCEPTION: Skip Traditional Medicine
-                            if (exam.sv.toLowerCase().includes('y học cổ truyền')) return;
-
-                            if (exam.timeVal) {
-                                // Calculate difference: Discharge Time - Exam Time
-                                const diffMs = dischargeInfo.val - exam.timeVal;
-                                const diffMins = diffMs / 60000;
-
-                                // If Discharge is BEFORE exam (negative diff, logic error) OR 
-                                // Discharge is LESS THAN 6 mins after exam start
-                                if (diffMins < 6) {
-                                    
-                                    // Get Department info for display
-                                    let deptInfo = "";
-                                    if (exam.bs && doctorsMap[exam.bs]) {
-                                        deptInfo = doctorsMap[exam.bs].dept;
-                                    }
-                                    const deptDisplay = deptInfo ? `(${deptInfo})` : "";
-
-                                    conflictList.push({
-                                        type: 'TIME_DURATION',
-                                        subCode: malk,
-                                        subName: pName,
-                                        time: `${exam.timeStr}`,
-                                        rawTime: exam.timeStr,
-                                        count: 1,
-                                        detailsRaw: [`BS ${exam.bs} khám ${exam.sv} lúc ${exam.timeStr}, Ra viện lúc ${formatTime(dischargeInfo.raw)} (chỉ ${Math.round(diffMins)} phút)`],
-                                        detailsHTML: [`<div class="text-purple-700 font-semibold mb-1">Thiếu Thời Gian Khám (< 6p):</div>
-                                            <div class="text-gray-700">
-                                            <div class="mb-1"><span class="font-medium">BS:</span> <span class="font-bold">${exam.bs}</span> ${deptDisplay}</div>
-                                            <div class="mb-1"><span class="font-medium">Khám:</span> <span class="text-blue-600 font-bold">${exam.sv}</span></div>
-                                            <div class="mb-1"><span class="font-medium">Ra viện:</span> ${formatTime(dischargeInfo.raw)}</div>
-                                            <div><span class="font-medium">Thời gian:</span> <span class="font-bold text-red-600 bg-red-50 px-1 rounded">${diffMins.toFixed(1)} phút</span></div>
-                                            </div>`]
-                                    });
-                                }
-                            }
-                        });
-                    }
-                }
-
-                renderResults();
-                showLoading(false);
-
-            } catch (error) {
-                console.error(error);
-                showLoading(false);
-                alert("Đã xảy ra lỗi: " + error.message);
-            }
-        }
-
-        function formatTime(str) {
-            if (!str) return "";
-            const s = String(str).trim();
-            if (s.length < 12) return s;
-            const y = s.substring(0,4);
-            const m = s.substring(4,6);
-            const d = s.substring(6,8);
-            const h = s.substring(8,10);
-            const min = s.substring(10,12);
-            return `${h}:${min} - ${d}/${m}/${y}`;
-        }
-
-        function renderResults() {
-            const container = document.getElementById('resultSection');
-            const tbody = document.getElementById('resultTableBody');
-            const countSpan = document.getElementById('errorCount');
-
-            container.classList.remove('hidden');
-            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            countSpan.innerText = conflictList.length;
-            tbody.innerHTML = '';
-
-            const limit = Math.min(conflictList.length, 100);
-            
-            if (conflictList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-green-600 font-bold bg-green-50/30 rounded-lg"><i class="fa-solid fa-check-circle text-4xl mb-2 block"></i>Không tìm thấy lỗi nào!</td></tr>`;
-                return;
-            }
-
-            for (let i = 0; i < limit; i++) {
-                const item = conflictList[i];
-                const row = document.createElement('tr');
-                row.className = 'group hover:bg-red-50/50 transition-colors border-b border-gray-100 last:border-0';
                 
-                const detailHTML = item.detailsHTML.map(d => 
-                    `<div class="mb-3 pl-3 border-l-2 ${item.type === 'DOCTOR' ? 'border-blue-200' : (item.type === 'TIME_DURATION' ? 'border-purple-300' : 'border-orange-300')} text-sm leading-relaxed">${d}</div>`
-                ).join('');
+                const globalEarliestKham = pat.khamList.length > 0 
+                  ? pat.khamList.reduce((min, k) => getTs(k.time) < getTs(min.time) ? k : min) 
+                  : null;
 
-                // Icon and label based on type
-                let iconHtml = '';
-                let typeLabel = '';
-                if (item.type === 'DOCTOR') {
-                    iconHtml = '<div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs shadow-sm">' + getInitials(item.subName.split('(')[0]) + '</div>';
-                    typeLabel = '<span class="text-[10px] bg-red-100 text-red-600 px-1 rounded border border-red-200 ml-2">Trùng Giờ BS</span>';
-                } else if (item.type === 'TIME_DURATION') {
-                    iconHtml = '<div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg shadow-sm"><i class="fa-solid fa-hourglass-half"></i></div>';
-                    typeLabel = '<span class="text-[10px] bg-purple-100 text-purple-600 px-1 rounded border border-purple-200 ml-2">Thiếu Giờ Khám</span>';
-                } else {
-                    iconHtml = '<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg shadow-sm"><i class="fa-solid fa-hospital-user"></i></div>';
-                    typeLabel = '<span class="text-[10px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200 ml-2">Lỗi Quy Trình</span>';
+                // 1. CLS phải >= Khám
+                pat.clsList.forEach(cls => {
+                  const khamOfDoc = khamByDoc[cls.maBS];
+                  if (khamOfDoc && diffMinutes(cls.time, khamOfDoc.time) < 0) {
+                    errors.push({ type: 'CĐ Cận lâm sàng sớm', desc: `Chuyên khoa BS ${doctorMap[cls.maBS] || cls.maBS}: Chỉ định "${cls.name}" (${formatTime(cls.time)}) trước thời gian Khám (${formatTime(khamOfDoc.time)}).` });
+                  } else if (!khamOfDoc && globalEarliestKham && diffMinutes(cls.time, globalEarliestKham.time) < 0) {
+                    errors.push({ type: 'CĐ Cận lâm sàng sớm', desc: `Chỉ định "${cls.name}" (${formatTime(cls.time)}) trước thời gian Khám đầu tiên (${formatTime(globalEarliestKham.time)}).` });
+                  }
+                });
+
+                // 2. Kiểm tra giờ Thuốc ĐỘC LẬP TỪNG CHUYÊN KHOA
+                pat.thuocList.forEach(thuoc => {
+                  const docId = thuoc.maBS;
+                  const khamOfDoc = khamByDoc[docId];
+                  const clsOfDoc = pat.clsList.filter(c => c.maBS === docId);
+
+                  let hasKhamError = false;
+
+                  if (khamOfDoc) {
+                    const diffKham = diffMinutes(thuoc.time, khamOfDoc.time);
+                    if (diffKham === 0) {
+                       errors.push({ type: 'Trùng giờ Khám - Thuốc', desc: `Chuyên khoa BS ${doctorMap[docId] || docId}: Kê đơn "${thuoc.name}" trùng giờ chính xác với Công khám (${formatTime(thuoc.time)}).` });
+                       hasKhamError = true;
+                    } else if (diffKham < 0) {
+                       errors.push({ type: 'Kê đơn trước Khám', desc: `Chuyên khoa BS ${doctorMap[docId] || docId}: Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) thực hiện trước thời gian Khám (${formatTime(khamOfDoc.time)}).` });
+                       hasKhamError = true;
+                    }
+                  } else if (!khamOfDoc && globalEarliestKham) {
+                    const diffKham = diffMinutes(thuoc.time, globalEarliestKham.time);
+                    if (diffKham === 0) {
+                       errors.push({ type: 'Trùng giờ Khám - Thuốc', desc: `Kê đơn "${thuoc.name}" trùng giờ chính xác với Công khám (${formatTime(thuoc.time)}).` });
+                       hasKhamError = true;
+                    } else if (diffKham < 0) {
+                       errors.push({ type: 'Kê đơn trước Khám', desc: `Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) thực hiện trước thời gian Khám (${formatTime(globalEarliestKham.time)}).` });
+                       hasKhamError = true;
+                    }
+                  }
+
+                  if (!hasKhamError && clsOfDoc.length > 0) {
+                    let kqTimesForThisDoc = clsOfDoc.filter(c => c.kqTime).map(c => ({ time: c.kqTime, name: c.name }));
+                    if (kqTimesForThisDoc.length === 0 && pat.kqList.length > 0 && khamOfDoc) {
+                       kqTimesForThisDoc = pat.kqList.filter(kq => getTs(kq.time) >= getTs(khamOfDoc.time));
+                    }
+                    if (kqTimesForThisDoc.length > 0) {
+                      const conflictingKq = kqTimesForThisDoc.filter(kq => diffMinutes(thuoc.time, kq.time) < 1);
+                      if (conflictingKq.length > 0) {
+                        const kqNames = conflictingKq.map(kq => `[${kq.name} lúc ${formatTime(kq.time)}]`).join(', ');
+                        errors.push({ type: 'Kê đơn trước Kết quả CLS', desc: `Chuyên khoa BS ${doctorMap[docId] || docId}: Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) không hợp lệ do kê TRƯỚC khi có kết quả CLS: ${kqNames}. Vui lòng sửa giờ thuốc sau các KQ này tối thiểu 1 phút.` });
+                      }
+                    }
+                  }
+
+                  if (pat.ngayRa && diffMinutes(thuoc.time, pat.ngayRa) > 0) {
+                    errors.push({ type: 'Kê đơn sau Ra viện', desc: `Kê đơn "${thuoc.name}" (${formatTime(thuoc.time)}) thực hiện sau thời gian Ra viện (${formatTime(pat.ngayRa)}).` });
+                  }
+                });
+
+                // 4. KIỂM TRA TỔNG THỜI GIAN KHÁM BỆNH
+                if (pat.ngayRa && globalEarliestKham && diffMinutes(pat.ngayRa, globalEarliestKham.time) < 6) {
+                    errors.push({ type: 'Thời gian khám quá ngắn', desc: `Tổng thời gian từ lúc y lệnh Khám (${formatTime(globalEarliestKham.time)}) đến lúc Ra viện (${formatTime(pat.ngayRa)}) chưa đủ 6 phút.` });
                 }
 
-                row.innerHTML = `
-                    <td class="px-6 py-5 align-top w-[250px] whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            ${iconHtml}
-                            <div>
-                                <div class="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors flex flex-col">
-                                    <span>${item.subName}</span>
-                                    <span class="mt-1">${typeLabel}</span>
-                                </div>
-                                <div class="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1 w-fit">${item.subCode}</div>
+                if (errors.length > 0) {
+                  patConflicts.push({ id: pat.maLK, maLK: pat.maLK, patientName: pat.name, errors: errors });
+                }
+              });
+
+              setResults({ doctorConflicts: docConflicts, patientConflicts: patConflicts, doctorMap });
+              setAnalyzing(false);
+              setSelectedFilterId('ALL');
+            }, 800);
+          };
+
+          const activeSidebarList = useMemo(() => {
+            if (!results) return [];
+            if (activeTab === 'DOCTOR') {
+              const bsSet = new Set(results.doctorConflicts.map(c => c.maBS));
+              return Array.from(bsSet).map(id => ({ id, name: results.doctorMap[id] || id, count: results.doctorConflicts.filter(c => c.maBS === id).length })).sort((a, b) => b.count - a.count);
+            } else {
+              return results.patientConflicts.map(p => ({ id: p.maLK, name: p.patientName, count: p.errors.length, subtitle: p.maLK })).sort((a, b) => b.count - a.count);
+            }
+          }, [results, activeTab]);
+
+          const displayedConflicts = useMemo(() => {
+            if (!results) return [];
+            if (activeTab === 'DOCTOR') {
+              return selectedFilterId === 'ALL' ? results.doctorConflicts : results.doctorConflicts.filter(c => c.maBS === selectedFilterId);
+            } else {
+              return selectedFilterId === 'ALL' ? results.patientConflicts : results.patientConflicts.filter(c => c.maLK === selectedFilterId);
+            }
+          }, [results, activeTab, selectedFilterId]);
+
+
+          return (
+            <div className="min-h-screen font-sans text-slate-800 flex flex-col">
+              <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-gradient-to-br from-blue-600 to-emerald-500 p-2 rounded-lg text-white">
+                      <ActivitySquare className="w-6 h-6" />
+                    </div>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent">
+                      BHYT Inspector Pro
+                    </h1>
+                  </div>
+                  <button onClick={onLogout} className="flex items-center gap-2 text-slate-500 hover:text-red-500 transition-colors text-sm font-medium">
+                    <LogOut className="w-4 h-4" /> Đăng xuất
+                  </button>
+                </div>
+              </header>
+
+              <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
+                
+                <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                  <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <UploadCloud className="w-5 h-5 text-blue-500" /> Tải lên dữ liệu CSV / Excel (.xlsx)
+                  </h2>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {[
+                      { id: 'bang1', label: 'Bảng 1 (BN)', color: 'blue' },
+                      { id: 'bang2', label: 'Bảng 2 (Thuốc)', color: 'emerald' },
+                      { id: 'bang3', label: 'Bảng 3 (Khám/CLS)', color: 'purple' },
+                      { id: 'bang4', label: 'Bảng 4 (Kết quả)', color: 'orange' },
+                      { id: 'dsbs', label: 'DS Bác sĩ', color: 'slate' }
+                    ].map(file => {
+                      const hasData = data[file.id].length > 0;
+                      return (
+                        <div key={file.id} 
+                          className={`relative overflow-hidden rounded-xl border-2 border-dashed transition-all duration-300 ${hasData ? `border-${file.color}-400 bg-${file.color}-50` : 'border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-blue-50'} flex flex-col items-center justify-center p-4 cursor-pointer`}
+                          onClick={() => fileInputs[file.id].current.click()}
+                        >
+                          <input type="file" ref={fileInputs[file.id]} onChange={(e) => handleFileUpload(file.id, e)} accept=".csv,.xlsx,.xls" className="hidden" />
+                          {hasData ? (
+                            <div className="flex flex-col items-center text-center">
+                              <CheckCircle className={`w-8 h-8 text-${file.color}-500 mb-2`} />
+                              <span className={`text-sm font-bold text-${file.color}-700`}>{file.label}</span>
+                              <span className="text-xs text-slate-500 mt-1">{data[file.id].length} dòng</span>
                             </div>
+                          ) : (
+                            <div className="flex flex-col items-center text-center text-slate-400">
+                              <FileSpreadsheet className="w-8 h-8 mb-2 opacity-50" />
+                              <span className="text-sm font-medium">{file.label}</span>
+                            </div>
+                          )}
                         </div>
-                    </td>
-                    <td class="px-6 py-5 align-top w-[180px] whitespace-nowrap">
-                        <span class="px-3 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-700 border border-gray-300 inline-flex items-center gap-1">
-                            <i class="fa-regular fa-clock"></i> ${item.time}
-                        </span>
-                    </td>
-                    <td class="px-6 py-5 text-sm align-top">
-                        <div class="${item.type === 'DOCTOR' ? 'bg-white/60' : 'bg-orange-50'} rounded-lg p-4 border border-gray-100 shadow-sm">
-                            ${detailHTML}
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-6 flex justify-end">
+                    <button 
+                      onClick={analyzeData} disabled={!isDataReady || analyzing}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold shadow-lg transition-all ${isDataReady && !analyzing ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:shadow-blue-500/30' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                    >
+                      {analyzing ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Phân tích...</> : <><FileSearch className="w-5 h-5" /> Bắt đầu kiểm tra lỗi</>}
+                    </button>
+                  </div>
+                </section>
+
+                {results && (
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div className="lg:col-span-1 flex flex-col gap-4">
+                      <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-100 flex gap-2">
+                        <button onClick={() => {setActiveTab('DOCTOR'); setSelectedFilterId('ALL')}} 
+                          className={`flex-1 py-2 px-3 rounded-xl text-sm font-bold flex flex-col items-center gap-1 transition-all ${activeTab === 'DOCTOR' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-slate-500 hover:bg-slate-50'}`}>
+                          <Stethoscope className="w-5 h-5" /> Lỗi Bác sĩ
+                        </button>
+                        <button onClick={() => {setActiveTab('PATIENT'); setSelectedFilterId('ALL')}} 
+                          className={`flex-1 py-2 px-3 rounded-xl text-sm font-bold flex flex-col items-center gap-1 transition-all ${activeTab === 'PATIENT' ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-slate-500 hover:bg-slate-50'}`}>
+                          <Activity className="w-5 h-5" /> Lỗi Bệnh nhân
+                        </button>
+                      </div>
+
+                      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 sticky top-24">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                          <Filter className="w-4 h-4 text-slate-400" /> Chọn đối tượng
+                        </h3>
+                        
+                        <div className="space-y-2">
+                          <button onClick={() => setSelectedFilterId('ALL')}
+                            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex justify-between items-center ${selectedFilterId === 'ALL' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+                          >
+                            Tất cả danh sách
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${selectedFilterId === 'ALL' ? 'bg-white/20' : 'bg-red-100 text-red-600 font-bold'}`}>
+                              {activeTab === 'DOCTOR' ? results.doctorConflicts.length : results.patientConflicts.length} lỗi
+                            </span>
+                          </button>
+
+                          <div className="h-px bg-slate-100 my-2"></div>
+
+                          <div className="max-h-[450px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                            {activeSidebarList.map(item => (
+                              <button key={item.id} onClick={() => setSelectedFilterId(item.id)}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all flex flex-col gap-1 border ${selectedFilterId === item.id ? (activeTab === 'DOCTOR' ? 'bg-blue-50 border-blue-200' : 'bg-emerald-50 border-emerald-200') : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'}`}
+                              >
+                                <span className={`font-semibold line-clamp-1 ${selectedFilterId === item.id ? (activeTab==='DOCTOR'?'text-blue-700':'text-emerald-700') : 'text-slate-700'}`}>{item.name}</span>
+                                <div className="flex justify-between items-center w-full text-xs">
+                                  <span className="text-slate-400 font-mono truncate mr-2">{item.subtitle || item.id.split('/')[0]}</span>
+                                  <span className="bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded border border-red-100 whitespace-nowrap">
+                                    {item.count} lỗi
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                            {activeSidebarList.length === 0 && (
+                              <div className="text-center py-8 text-emerald-500 font-medium">
+                                <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-50" /> Không có lỗi nào
+                              </div>
+                            )}
+                          </div>
                         </div>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            }
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-3 space-y-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-xl font-bold text-slate-800">
+                          {activeTab === 'DOCTOR' ? 'Chi tiết Bác sĩ trùng giờ' : 'Chi tiết sai lệch quy trình Y lệnh'}
+                        </h2>
+                        <span className="text-sm font-medium text-slate-500">Hiển thị {displayedConflicts.length} trường hợp</span>
+                      </div>
+
+                      {activeTab === 'DOCTOR' && displayedConflicts.map((conflict, idx) => {
+                        const groupedEvents = conflict.events.reduce((acc, ev) => {
+                          if (!acc[ev.maLK]) {
+                            acc[ev.maLK] = {
+                              patientName: ev.patientName,
+                              maLK: ev.maLK,
+                              kham: [],
+                              cls: [],
+                              thuoc: [],
+                              kq: []
+                            };
+                          }
+                          if (ev.source === 'Bảng 2') acc[ev.maLK].thuoc.push(ev.detail);
+                          else if (ev.isKham) acc[ev.maLK].kham.push(`[${ev.action}] ${ev.detail}`);
+                          else if (ev.source.includes('Bảng 3')) acc[ev.maLK].cls.push(`[${ev.action}] ${ev.detail}`);
+                          else if (ev.source === 'Bảng 4') acc[ev.maLK].kq.push(`[Đọc KQ] ${ev.detail}`);
+                          return acc;
+                        }, {});
+
+                        return (
+                          <div key={idx} className="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden hover:shadow-md transition-shadow">
+                            <div className="bg-red-50/50 border-b border-red-100 p-4 flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-red-100 p-2 rounded-lg text-red-600"><Clock className="w-5 h-5" /></div>
+                                <div>
+                                  <p className="text-xs font-bold text-red-500 uppercase tracking-wider">Thời điểm vi phạm</p>
+                                  <p className="text-lg font-bold text-slate-800">{formatTime(conflict.time)}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg">
+                                <User className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm font-semibold text-blue-700">{conflict.tenBS}</span>
+                              </div>
+                            </div>
+                            <div className="p-4 bg-slate-50/30">
+                              <p className="text-sm text-red-600 font-medium mb-3">Lỗi: {conflict.conflictReason}</p>
+                              <div className="space-y-4">
+                                {Object.values(groupedEvents).map((patGroup, pIdx) => (
+                                  <div key={pIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                                    <div className="flex items-center gap-2 mb-3 pl-2 border-b border-slate-100 pb-2">
+                                      <Activity className="w-5 h-5 text-blue-500" />
+                                      <div>
+                                        <span className="font-bold text-slate-700">{patGroup.patientName}</span>
+                                        <span className="text-xs text-slate-400 font-mono ml-2">({patGroup.maLK})</span>
+                                      </div>
+                                    </div>
+                                    <div className="pl-2 space-y-2 text-sm">
+                                      {patGroup.kham.length > 0 && (
+                                        <div className="flex items-start gap-2">
+                                          <span className="font-semibold text-purple-700 whitespace-nowrap min-w-[105px]">• Công khám:</span>
+                                          <span className="text-slate-600 font-medium">{patGroup.kham.join('; ')}</span>
+                                        </div>
+                                      )}
+                                      {patGroup.cls.length > 0 && (
+                                        <div className="flex items-start gap-2">
+                                          <span className="font-semibold text-orange-600 whitespace-nowrap min-w-[105px]">• Cận lâm sàng:</span>
+                                          <span className="text-slate-600 font-medium">{patGroup.cls.join('; ')}</span>
+                                        </div>
+                                      )}
+                                      {patGroup.thuoc.length > 0 && (
+                                        <div className="flex items-start gap-2">
+                                          <span className="font-semibold text-emerald-600 whitespace-nowrap min-w-[105px]">• Thuốc:</span>
+                                          <span className="text-slate-600 font-medium">{patGroup.thuoc.join('; ')}</span>
+                                        </div>
+                                      )}
+                                      {patGroup.kq.length > 0 && (
+                                        <div className="flex items-start gap-2">
+                                          <span className="font-semibold text-blue-600 whitespace-nowrap min-w-[105px]">• Đọc KQ:</span>
+                                          <span className="text-slate-600 font-medium">{patGroup.kq.join('; ')}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {activeTab === 'PATIENT' && displayedConflicts.map((pat, idx) => (
+                        <div key={idx} className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-md transition-shadow">
+                          <div className="bg-orange-50/50 border-b border-orange-100 p-4 flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-orange-100 p-2 rounded-lg text-orange-600"><Activity className="w-5 h-5" /></div>
+                              <div>
+                                <p className="text-xs font-bold text-orange-500 uppercase tracking-wider">Hồ sơ bệnh nhân</p>
+                                <p className="text-lg font-bold text-slate-800">{pat.patientName}</p>
+                                <p className="text-xs font-mono text-slate-500">Mã: {pat.maLK}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-4 bg-slate-50/30">
+                            <div className="space-y-3">
+                              {pat.errors.map((err, eIdx) => (
+                                <div key={eIdx} className="flex gap-3 bg-white p-3 rounded-xl border border-red-100 shadow-sm items-start">
+                                  <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <span className="inline-block bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded mb-1">{err.type}</span>
+                                    <p className="text-sm text-slate-700 leading-relaxed">{err.desc}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {displayedConflicts.length === 0 && (
+                        <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+                          <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-bold text-slate-700">Tuyệt vời!</h3>
+                          <p className="text-slate-500">Không tìm thấy lỗi cho lựa chọn này.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </main>
+            </div>
+          );
         }
 
-        function getInitials(name) {
-            if(!name) return '??';
-            return name.split(' ').map(n => n[0]).join('').slice(-2).toUpperCase();
-        }
-
-        function exportToExcel() {
-            if (conflictList.length === 0) {
-                alert("Không có dữ liệu để xuất!");
-                return;
-            }
-
-            const exportData = conflictList.map(item => ({
-                "Loại Lỗi": item.type === 'DOCTOR' ? 'Trùng Giờ Bác Sĩ' : (item.type === 'TIME_DURATION' ? 'Thời Gian Khám < 6p' : 'Lỗi Quy Trình Bệnh Nhân'),
-                "Mã Đối Tượng (CCHN/BN)": item.subCode,
-                "Tên Đối Tượng": item.subName,
-                "Thời gian trùng": item.time,
-                "Thời gian gốc": item.rawTime,
-                "Số lượng trùng": item.count,
-                "Chi tiết lỗi": item.detailsRaw.join(' | ')
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(exportData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Ket_Qua_Giam_Dinh");
-            
-            const now = new Date();
-            const fileName = `KetQua_GiamDinh_${now.getDate()}${now.getMonth()+1}_${now.getHours()}h${now.getMinutes()}.xlsx`;
-            
-            XLSX.writeFile(wb, fileName);
-        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
