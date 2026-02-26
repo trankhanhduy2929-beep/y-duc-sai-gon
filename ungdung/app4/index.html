@@ -3,813 +3,1139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ophim Premium V2 - Xem Phim Đỉnh Cao</title>
+    <title>NetPhim - Trải nghiệm điện ảnh đỉnh cao</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- HLS.js for m3u8 streaming -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
                         primary: '#E50914',
                         dark: '#141414',
-                        darker: '#0B0B0B',
-                        grayish: '#2A2A2A'
+                        darker: '#000000',
+                        light: '#E5E5E5'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- HLS.js cho Video Player -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
     <style>
-        body { background-color: #141414; color: #fff; overflow-x: hidden; }
+        body {
+            background-color: #141414;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141414;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #E50914;
+        }
+
+        /* Ẩn thanh cuộn cho các slider */
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Slider Animations */
+        .movie-card {
+            transition: transform 0.3s ease, z-index 0.3s ease;
+        }
+        .movie-card:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        /* Gradient cho banner */
+        .banner-gradient {
+            background: linear-gradient(to right, rgba(20,20,20,1) 0%, rgba(20,20,20,0.4) 50%, rgba(20,20,20,0) 100%);
+        }
+        .banner-bottom-gradient {
+            background: linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,0) 100%);
+        }
+
+        /* Custom Video Player Range Inputs */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #141414; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #E50914; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Gradients & Utilities */
-        .hero-gradient { background: linear-gradient(to top, #141414 0%, transparent 60%, rgba(20,20,20,0.8) 100%); }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Live Search Popup */
-        .search-results {
-            max-height: 400px; overflow-y: auto;
-            background: rgba(20, 20, 20, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid #333;
+        .progress-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+        .progress-filled {
+            height: 100%;
+            background: #E50914;
+            border-radius: 2px;
+            width: 0%;
+            position: relative;
+        }
+        .progress-filled::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -4px;
+            width: 12px;
+            height: 12px;
+            background: #E50914;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .progress-bar:hover .progress-filled::after {
+            opacity: 1;
         }
 
-        /* Nav Dropdowns */
-        .nav-item .dropdown-menu {
-            display: none; opacity: 0;
-            transform: translateY(10px); transition: all 0.2s ease;
+        #player-controls {
+            transition: opacity 0.3s ease;
         }
-        .nav-item:hover .dropdown-menu {
-            display: grid; opacity: 1; transform: translateY(0);
+        .video-container:hover #player-controls, .video-container.paused #player-controls {
+            opacity: 1;
         }
 
-        /* Movie Row Sliders */
-        .movie-row { scroll-behavior: smooth; }
-        .slider-btn {
-            background: rgba(0,0,0,0.5); border: none; color: white;
-            font-size: 24px; cursor: pointer; opacity: 0; transition: 0.3s;
-        }
-        .row-container:hover .slider-btn { opacity: 1; }
-        .slider-btn:hover { background: rgba(0,0,0,0.8); color: #E50914; transform: scale(1.1); }
-
-        /* Loader */
+        /* Loading Spinner */
         .loader {
-            border: 4px solid rgba(255, 255, 255, 0.1); width: 40px; height: 40px;
-            border-radius: 50%; border-left-color: #E50914; animation: spin 1s linear infinite;
+            border: 4px solid rgba(255,255,255,0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: #E50914;
+            animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Custom Video Player (From V1) */
-        .video-container { position: relative; width: 100%; background: #000; display: flex; justify-content: center; align-items: center; }
-        video { width: 100%; height: auto; max-height: 80vh; }
-        .video-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); padding: 20px 20px 10px; opacity: 0; transition: opacity 0.3s ease; display: flex; flex-direction: column; gap: 10px; }
-        .video-container:hover .video-controls, .video-container.paused .video-controls { opacity: 1; }
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #E50914; cursor: pointer; margin-top: -5px; box-shadow: 0 0 5px rgba(229, 9, 20, 0.5); }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255, 255, 255, 0.3); border-radius: 2px; }
-        .progress-bar { position: relative; cursor: pointer; }
-        .progress-filled { position: absolute; top: 0; left: 0; height: 4px; background: #E50914; border-radius: 2px; pointer-events: none; }
-        .quality-menu { display: none; position: absolute; bottom: 40px; right: 10px; background: rgba(20,20,20,0.95); border-radius: 5px; padding: 5px 0; min-width: 100px; }
-        .quality-menu.show { display: block; }
-        .quality-btn:hover, .quality-btn.active { background: rgba(255,255,255,0.1); color: #E50914; }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="antialiased">
 
-    <!-- Navbar -->
-    <nav class="fixed w-full z-50 transition-all duration-300 bg-gradient-to-b from-black/90 to-transparent py-4" id="navbar">
-        <div class="container mx-auto px-4 md:px-8 flex flex-wrap justify-between items-center gap-4">
-            <!-- Logo & Desktop Menu -->
+    <!-- Header / Navbar -->
+    <header class="fixed w-full z-50 transition-colors duration-300" id="navbar">
+        <div class="px-4 md:px-12 py-4 flex items-center justify-between">
             <div class="flex items-center gap-8">
-                <h1 class="text-3xl font-bold text-primary tracking-tighter cursor-pointer" onclick="app.goHome()">OPHIM<span class="text-white">PRO</span></h1>
-                
-                <div class="hidden lg:flex gap-6 text-sm font-medium items-center">
-                    <a href="#" class="hover:text-primary transition" onclick="app.goHome()">Trang Chủ</a>
+                <a href="#" class="text-primary text-3xl font-bold tracking-tighter" onclick="showHome()">NetPhim</a>
+                <nav class="hidden md:flex gap-5 text-sm font-medium">
+                    <a href="#" onclick="showHome()" class="hover:text-gray-300 transition">Trang chủ</a>
+                    <a href="#" onclick="loadCategory('phim-le', 'Phim Lẻ')" class="hover:text-gray-300 transition">Phim lẻ</a>
+                    <a href="#" onclick="loadCategory('phim-bo', 'Phim Bộ')" class="hover:text-gray-300 transition">Phim bộ</a>
+                    <a href="#" onclick="loadCategory('hoat-hinh', 'Hoạt Hình')" class="hover:text-gray-300 transition">Hoạt hình</a>
+                    <a href="#" onclick="toggleFilter()" class="hover:text-gray-300 transition text-gray-400"><i class="fas fa-filter mr-1"></i>Lọc phim</a>
+                </nav>
+            </div>
+
+            <!-- Tìm kiếm -->
+            <div class="flex items-center gap-4 relative">
+                <div class="relative group hidden sm:block">
+                    <div class="flex items-center bg-black/60 border border-gray-600 rounded px-3 py-1.5 focus-within:border-white transition">
+                        <i class="fas fa-search text-gray-400"></i>
+                        <input type="text" id="searchInput" placeholder="Tìm kiếm phim..." class="bg-transparent border-none text-white text-sm outline-none w-0 md:w-48 lg:w-64 ml-2 focus:w-48 md:focus:w-64 transition-all duration-300">
+                    </div>
+                    <!-- Live Search Results -->
+                    <div id="searchResults" class="absolute top-full right-0 mt-2 w-72 bg-dark border border-gray-800 rounded shadow-xl hidden max-h-[400px] overflow-y-auto z-50">
+                        <!-- Items inject qua JS -->
+                    </div>
+                </div>
+                <button class="md:hidden text-xl" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden bg-black/95 absolute w-full left-0 top-full flex flex-col px-4 py-4 space-y-4 border-b border-gray-800">
+            <div class="relative w-full mb-2">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" id="mobileSearchInput" placeholder="Tìm kiếm phim..." class="w-full bg-gray-900 border border-gray-700 rounded py-2 pl-10 pr-3 text-white outline-none">
+            </div>
+            <a href="#" onclick="showHome(); toggleMobileMenu()" class="font-medium">Trang chủ</a>
+            <a href="#" onclick="loadCategory('phim-le', 'Phim Lẻ'); toggleMobileMenu()" class="font-medium">Phim lẻ</a>
+            <a href="#" onclick="loadCategory('phim-bo', 'Phim Bộ'); toggleMobileMenu()" class="font-medium">Phim bộ</a>
+            <a href="#" onclick="loadCategory('hoat-hinh', 'Hoạt Hình'); toggleMobileMenu()" class="font-medium">Hoạt hình</a>
+            <a href="#" onclick="toggleFilter(); toggleMobileMenu()" class="font-medium text-gray-400"><i class="fas fa-filter mr-2"></i>Bộ lọc nâng cao</a>
+        </div>
+    </header>
+
+    <!-- App Content -->
+    <main id="appContent" class="min-h-screen pb-10">
+        <!-- Vùng Hiển Thị Chính (Home / Danh sách / Lọc) -->
+        <div id="mainView">
+            
+            <!-- Filter Section (Hidden by default) -->
+            <div id="filterSection" class="hidden pt-24 px-4 md:px-12 mb-8 bg-black/50 border-b border-gray-800 pb-6">
+                <h2 class="text-2xl font-bold mb-4">Lọc Phim Nâng Cao</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <select id="filterType" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none">
+                        <option value="">Loại Phim</option>
+                        <option value="phim-le">Phim Lẻ</option>
+                        <option value="phim-bo">Phim Bộ</option>
+                        <option value="hoat-hinh">Hoạt Hình</option>
+                        <option value="tv-shows">TV Shows</option>
+                    </select>
+                    <select id="filterGenre" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none">
+                        <option value="">Thể Loại</option>
+                        <option value="hanh-dong">Hành Động</option>
+                        <option value="tinh-cam">Tình Cảm</option>
+                        <option value="hai-huoc">Hài Hước</option>
+                        <option value="kinh-di">Kinh Dị</option>
+                        <option value="khoa-hoc-vien-tuong">Viễn Tưởng</option>
+                    </select>
+                    <select id="filterCountry" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none">
+                        <option value="">Quốc Gia</option>
+                        <option value="viet-nam">Việt Nam</option>
+                        <option value="han-quoc">Hàn Quốc</option>
+                        <option value="trung-quoc">Trung Quốc</option>
+                        <option value="au-my">Âu Mỹ</option>
+                        <option value="nhat-ban">Nhật Bản</option>
+                    </select>
+                    <button onclick="applyFilter()" class="bg-primary hover:bg-red-700 text-white font-bold py-2 rounded transition">Lọc Kết Quả</button>
+                </div>
+            </div>
+
+            <!-- Loading Full Page -->
+            <div id="pageLoader" class="flex justify-center items-center h-screen hidden">
+                <div class="loader"></div>
+            </div>
+
+            <div id="homeContent">
+                <!-- Hero Banner Carousel -->
+                <section id="heroCarousel" class="relative w-full h-[60vh] md:h-[85vh] overflow-hidden">
+                    <!-- Slides injected via JS -->
+                    <div id="heroSlides" class="w-full h-full relative"></div>
                     
-                    <!-- Dropdown: Danh sách -->
-                    <div class="nav-item relative py-2 cursor-pointer">
-                        <span class="hover:text-gray-300 transition flex items-center gap-1">Phim <i class="fas fa-chevron-down text-[10px]"></i></span>
-                        <div class="dropdown-menu absolute top-full left-0 w-40 bg-darker/95 backdrop-blur border border-gray-800 rounded-md p-2 shadow-xl grid-cols-1 gap-1 z-50">
-                            <a href="#" class="p-2 hover:bg-gray-800 hover:text-primary rounded transition" onclick="app.loadCategory('danh-sach', 'phim-le', 'Phim Lẻ')">Phim Lẻ</a>
-                            <a href="#" class="p-2 hover:bg-gray-800 hover:text-primary rounded transition" onclick="app.loadCategory('danh-sach', 'phim-bo', 'Phim Bộ')">Phim Bộ</a>
-                            <a href="#" class="p-2 hover:bg-gray-800 hover:text-primary rounded transition" onclick="app.loadCategory('danh-sach', 'hoat-hinh', 'Phim Hoạt Hình')">Hoạt Hình</a>
-                            <a href="#" class="p-2 hover:bg-gray-800 hover:text-primary rounded transition" onclick="app.loadCategory('danh-sach', 'tv-shows', 'TV Shows')">TV Shows</a>
-                        </div>
-                    </div>
+                    <!-- Carousel Controls -->
+                    <button onclick="prevSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-4xl text-white/50 hover:text-white"><i class="fas fa-chevron-left"></i></button>
+                    <button onclick="nextSlide()" class="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-4xl text-white/50 hover:text-white"><i class="fas fa-chevron-right"></i></button>
+                    <div class="absolute bottom-8 left-0 w-full flex justify-center gap-2 z-20" id="carouselIndicators"></div>
+                </section>
 
-                    <!-- Dropdown: Thể loại -->
-                    <div class="nav-item relative py-2 cursor-pointer">
-                        <span class="hover:text-gray-300 transition flex items-center gap-1">Thể Loại <i class="fas fa-chevron-down text-[10px]"></i></span>
-                        <div class="dropdown-menu absolute top-full left-0 w-[400px] bg-darker/95 backdrop-blur border border-gray-800 rounded-md p-4 shadow-xl grid-cols-3 gap-2 z-50">
-                            <!-- Categories generated by JS -->
-                            <script>
-                                const genres = [
-                                    {slug: 'hanh-dong', name: 'Hành Động'}, {slug: 'tinh-cam', name: 'Tình Cảm'},
-                                    {slug: 'hai-huoc', name: 'Hài Hước'}, {slug: 'co-trang', name: 'Cổ Trang'},
-                                    {slug: 'tam-ly', name: 'Tâm Lý'}, {slug: 'hinh-su', name: 'Hình Sự'},
-                                    {slug: 'chien-tranh', name: 'Chiến Tranh'}, {slug: 'the-thao', name: 'Thể Thao'},
-                                    {slug: 'kinh-di', name: 'Kinh Dị'}, {slug: 'khoa-hoc-vien-tuong', name: 'Viễn Tưởng'},
-                                    {slug: 'phieu-luu', name: 'Phiêu Lưu'}, {slug: 'am-nhac', name: 'Âm Nhạc'}
-                                ];
-                                genres.forEach(g => document.write(`<a href="#" class="p-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary rounded transition" onclick="app.loadCategory('the-loai', '${g.slug}', 'Thể loại: ${g.name}')">${g.name}</a>`));
-                            </script>
-                        </div>
-                    </div>
+                <!-- Movie Rows -->
+                <div class="px-4 md:px-12 -mt-10 md:-mt-24 relative z-20" id="movieRows">
+                    <!-- Rows injected via JS -->
+                </div>
+            </div>
 
-                    <!-- Dropdown: Quốc gia -->
-                    <div class="nav-item relative py-2 cursor-pointer">
-                        <span class="hover:text-gray-300 transition flex items-center gap-1">Quốc Gia <i class="fas fa-chevron-down text-[10px]"></i></span>
-                        <div class="dropdown-menu absolute top-full left-0 w-[300px] bg-darker/95 backdrop-blur border border-gray-800 rounded-md p-4 shadow-xl grid-cols-2 gap-2 z-50">
-                            <script>
-                                const countries = [
-                                    {slug: 'han-quoc', name: 'Hàn Quốc'}, {slug: 'trung-quoc', name: 'Trung Quốc'},
-                                    {slug: 'viet-nam', name: 'Việt Nam'}, {slug: 'au-my', name: 'Âu Mỹ'},
-                                    {slug: 'nhat-ban', name: 'Nhật Bản'}, {slug: 'thai-lan', name: 'Thái Lan'}
-                                ];
-                                countries.forEach(c => document.write(`<a href="#" class="p-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary rounded transition" onclick="app.loadCategory('quoc-gia', '${c.slug}', 'Quốc gia: ${c.name}')">${c.name}</a>`));
-                            </script>
+            <div id="categoryContent" class="hidden pt-24 px-4 md:px-12">
+                <h2 id="categoryTitle" class="text-3xl font-bold mb-6 flex items-center gap-3">Danh sách phim</h2>
+                <div id="categoryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <!-- Grid items injected here -->
+                </div>
+                <div class="flex justify-center mt-8">
+                    <button id="loadMoreBtn" class="px-6 py-2 border border-gray-600 rounded hover:bg-gray-800 transition hidden">Tải thêm</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Trình Phát Video (Player View) -->
+        <div id="playerView" class="hidden fixed inset-0 bg-black z-[60] flex flex-col lg:flex-row">
+            <!-- Back Button -->
+            <button onclick="closePlayer()" class="absolute top-4 left-4 z-50 text-white hover:text-primary text-xl flex items-center gap-2 bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                <i class="fas fa-arrow-left"></i> Trở về
+            </button>
+
+            <!-- Main Video Area -->
+            <div class="w-full lg:w-3/4 h-[40vh] lg:h-full relative video-container group bg-black flex flex-col justify-center">
+                <video id="mainVideo" class="w-full max-h-full aspect-video" playsinline></video>
+                
+                <!-- Loading Overlay Video -->
+                <div id="videoLoader" class="absolute inset-0 flex items-center justify-center bg-black/80 hidden z-40">
+                    <div class="loader"></div>
+                </div>
+
+                <!-- Custom Controls -->
+                <div id="player-controls" class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-4 px-4 opacity-0 z-40">
+                    <!-- Tiến trình -->
+                    <div class="progress-bar mb-4" id="progressBarContainer">
+                        <div class="progress-filled" id="progressBar"></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <button id="playPauseBtn" class="text-white hover:text-primary text-2xl w-8"><i class="fas fa-play"></i></button>
+                            <button id="rewindBtn" class="text-white hover:text-gray-300 text-xl"><i class="fas fa-backward-10"></i></button>
+                            <button id="forwardBtn" class="text-white hover:text-gray-300 text-xl"><i class="fas fa-forward-10"></i></button>
+                            
+                            <!-- Âm lượng -->
+                            <div class="flex items-center gap-2 group/vol">
+                                <button id="muteBtn" class="text-white hover:text-gray-300 text-xl w-6"><i class="fas fa-volume-up"></i></button>
+                                <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" class="w-0 group-hover/vol:w-20 transition-all duration-300 opacity-0 group-hover/vol:opacity-100 h-1 bg-gray-600 rounded">
+                            </div>
+
+                            <span id="timeDisplay" class="text-sm font-medium ml-2">00:00 / 00:00</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-4">
+                            <!-- Chuyển đổi chất lượng -->
+                            <div class="relative group/quality">
+                                <button class="text-white hover:text-gray-300 text-sm font-semibold flex items-center gap-1">
+                                    <i class="fas fa-cog"></i> <span id="currentQuality">Auto</span>
+                                </button>
+                                <div id="qualityMenu" class="absolute bottom-full right-0 mb-2 w-24 bg-black/90 border border-gray-700 rounded hidden flex-col overflow-hidden">
+                                    <!-- Injected via JS -->
+                                </div>
+                            </div>
+                            
+                            <!-- Phụ đề Toggle -->
+                            <button id="subBtn" class="text-white hover:text-primary text-xl relative" title="Bật/Tắt Phụ Đề">
+                                <i class="fas fa-closed-captioning"></i>
+                            </button>
+
+                            <button id="fullscreenBtn" class="text-white hover:text-gray-300 text-xl w-6"><i class="fas fa-expand"></i></button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Search & User -->
-            <div class="flex items-center gap-3 md:gap-6 flex-1 lg:flex-none justify-end">
-                <!-- Live Search Box -->
-                <div class="relative w-full max-w-[250px] md:max-w-[300px]">
-                    <div class="relative flex items-center text-gray-400 focus-within:text-white">
-                        <i class="fas fa-search absolute left-3 pointer-events-none"></i>
-                        <input type="text" id="search-input" placeholder="Tìm tên phim, diễn viên..." autocomplete="off"
-                               class="w-full bg-black/50 border border-gray-700 rounded-full py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-primary focus:bg-black/80 transition-all placeholder-gray-500">
-                        <button id="clear-search" class="absolute right-3 hidden hover:text-primary"><i class="fas fa-times"></i></button>
-                    </div>
-                    
-                    <!-- Search Results Dropdown -->
-                    <div id="search-results" class="search-results absolute top-full mt-2 w-full md:w-[350px] right-0 rounded-lg shadow-2xl hidden flex-col z-50">
-                        <!-- Injected by JS -->
+            <!-- Sidebar Tập Phim & Thông Tin -->
+            <div class="w-full lg:w-1/4 h-[60vh] lg:h-full bg-darker border-l border-gray-800 flex flex-col overflow-hidden">
+                <div class="p-4 border-b border-gray-800">
+                    <h2 id="playerMovieTitle" class="text-xl font-bold mb-1">Tên Phim</h2>
+                    <p id="playerMovieSub" class="text-sm text-gray-400 mb-3">Tập đang phát</p>
+                    <div id="serverSelectContainer" class="hidden">
+                        <label class="text-xs text-gray-500 mb-1 block">Chọn Server:</label>
+                        <select id="serverSelect" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm outline-none">
+                        </select>
                     </div>
                 </div>
-
-                <div class="w-8 h-8 md:w-9 md:h-9 rounded-md bg-gray-600 overflow-hidden cursor-pointer flex-shrink-0 border border-gray-700 hover:border-primary transition">
-                    <img src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/1bdc9a33850498.56ba69ac2ba5b.png" alt="Avatar" class="w-full h-full object-cover">
+                
+                <div class="flex-1 overflow-y-auto p-4 hide-scroll" id="episodeListContainer">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Danh sách tập</h3>
+                    <div id="episodeGrid" class="grid grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                        <!-- Eps injected via JS -->
+                    </div>
                 </div>
             </div>
         </div>
-    </nav>
 
-    <!-- Main Content Area -->
-    <main id="app-content" class="min-h-screen">
-        <!-- Views will be injected here -->
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-darker py-10 mt-10 border-t border-gray-800">
-        <div class="container mx-auto px-4 md:px-8 text-center text-gray-500 text-sm">
-            <h2 class="text-2xl font-bold text-gray-400 mb-4">OPHIM<span class="text-primary">PRO</span> V2</h2>
-            <p>&copy; 2026 Ophim Premium. Nguồn dữ liệu API tự do.</p>
-            <p class="mt-2">Hệ thống phân loại phim, Live Search, Player tùy chỉnh mượt mà.</p>
+    <!-- Modal Chi Tiết Phim -->
+    <div id="movieModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 lg:p-0 overflow-y-auto pt-20 lg:pt-0">
+        <div class="bg-dark border border-gray-800 rounded-lg w-full max-w-4xl relative overflow-hidden shadow-2xl animate-fade-in my-auto">
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-20 w-10 h-10 bg-black/60 rounded-full flex items-center justify-center hover:bg-white hover:text-black transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <div id="modalContent" class="relative">
+                <!-- Nội dung inject via JS -->
+                <div class="h-64 flex items-center justify-center"><div class="loader"></div></div>
+            </div>
         </div>
-    </footer>
+    </div>
 
+    <!-- Thông báo nổi (Toast) -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg z-[100] transition-opacity duration-300 opacity-0 pointer-events-none">
+        Thông báo
+    </div>
+
+    <!-- Script Logic -->
     <script>
-        // Utilities
-        const debounce = (func, delay) => {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => func.apply(null, args), delay);
-            };
-        };
+        // API Configuration (Sử dụng PhimAPI.com chuẩn KKPhim)
+        const API_BASE = 'https://phimapi.com';
+        const IMG_URL = 'https://phimimg.com/';
+        
+        let heroCarouselInterval;
+        let currentSlideIndex = 0;
+        let homeData = [];
+        
+        // Video Player State
+        let hlsPlayer = null;
+        let currentMovieData = null;
+        let currentEpisodeInfo = null;
 
-        // App Core
-        const app = {
-            api: {
-                base: 'https://ophim1.com',
-                v1: 'https://ophim1.com/v1/api'
-            },
-            state: {
-                heroMovies: [],
-                homeData: {}, // { updated: [], movies: [], series: [], cartoons: [] }
-                currentMovie: null,
-                currentEpisodes: [],
-                hls: null,
-                heroInterval: null
-            },
-            dom: {
-                content: document.getElementById('app-content'),
-                searchInput: document.getElementById('search-input'),
-                searchResults: document.getElementById('search-results'),
-                clearSearch: document.getElementById('clear-search'),
-                navbar: document.getElementById('navbar')
-            },
+        // --- KHỞI TẠO ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            setupNavbarScroll();
+            setupSearch();
+            setupVideoControls();
+        });
 
-            init() {
-                this.handleScroll();
-                this.setupSearch();
-                this.loadHomeData();
-            },
+        async function initApp() {
+            showPageLoader(true);
+            try {
+                // Fetch danh sách phim mới nhất cho Hero Carousel
+                const newRes = await fetch(`${API_BASE}/danh-sach/phim-moi-cap-nhat?page=1`);
+                const newData = await newRes.json();
+                
+                // Fetch các danh mục phổ biến cho các Row
+                const [phimLe, phimBo, hoatHinh] = await Promise.all([
+                    fetch(`${API_BASE}/v1/api/danh-sach/phim-le?limit=12`).then(r => r.json()),
+                    fetch(`${API_BASE}/v1/api/danh-sach/phim-bo?limit=12`).then(r => r.json()),
+                    fetch(`${API_BASE}/v1/api/danh-sach/hoat-hinh?limit=12`).then(r => r.json())
+                ]);
 
-            // --- UI Interactions ---
-            handleScroll() {
-                window.addEventListener('scroll', () => {
-                    if (window.scrollY > 50) {
-                        this.dom.navbar.classList.add('bg-darker', 'shadow-xl');
-                        this.dom.navbar.classList.remove('bg-gradient-to-b', 'from-black/90', 'to-transparent');
-                    } else {
-                        this.dom.navbar.classList.remove('bg-darker', 'shadow-xl');
-                        this.dom.navbar.classList.add('bg-gradient-to-b', 'from-black/90', 'to-transparent');
-                    }
+                renderHeroCarousel(newData.items.slice(0, 5));
+                
+                const rowsHTML = `
+                    ${createMovieRow('Phim Lẻ Mới Cập Nhật', phimLe.data.items, 'phim-le')}
+                    ${createMovieRow('Phim Bộ Thịnh Hành', phimBo.data.items, 'phim-bo')}
+                    ${createMovieRow('Hoạt Hình Đặc Sắc', hoatHinh.data.items, 'hoat-hinh')}
+                `;
+                document.getElementById('movieRows').innerHTML = rowsHTML;
+
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu trang chủ:", error);
+                showToast("Lỗi kết nối máy chủ dữ liệu phim!");
+            }
+            showPageLoader(false);
+        }
+
+        // --- UI UTILS ---
+        function showPageLoader(show) {
+            document.getElementById('pageLoader').classList.toggle('hidden', !show);
+            document.getElementById('homeContent').classList.toggle('hidden', show);
+        }
+
+        function getImgUrl(path) {
+            return path.includes('http') ? path : `${IMG_URL}${path}`;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+
+        function setupNavbarScroll() {
+            const nav = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    nav.classList.add('bg-dark', 'shadow-lg');
+                    nav.classList.remove('bg-transparent');
+                } else {
+                    nav.classList.remove('bg-dark', 'shadow-lg');
+                    nav.classList.add('bg-transparent');
+                }
+            });
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        function toggleFilter() {
+            const filter = document.getElementById('filterSection');
+            filter.classList.toggle('hidden');
+        }
+
+        // --- CHUYỂN TRANG ---
+        function showHome() {
+            document.getElementById('mainView').classList.remove('hidden');
+            document.getElementById('homeContent').classList.remove('hidden');
+            document.getElementById('categoryContent').classList.add('hidden');
+            document.getElementById('playerView').classList.add('hidden');
+            document.getElementById('filterSection').classList.add('hidden');
+            window.scrollTo(0,0);
+        }
+
+        async function loadCategory(slug, title, page = 1) {
+            document.getElementById('homeContent').classList.add('hidden');
+            const catContent = document.getElementById('categoryContent');
+            catContent.classList.remove('hidden');
+            document.getElementById('categoryTitle').innerHTML = `${title} <span class="text-sm font-normal text-gray-400 ml-4">Đang tải...</span>`;
+            document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
+            document.getElementById('loadMoreBtn').classList.add('hidden');
+
+            try {
+                const res = await fetch(`${API_BASE}/v1/api/danh-sach/${slug}?page=${page}&limit=24`);
+                const data = await res.json();
+                
+                document.getElementById('categoryTitle').textContent = data.data.titlePage || title;
+                
+                let html = '';
+                data.data.items.forEach(movie => {
+                    html += createMovieCard(movie);
                 });
-            },
+                
+                document.getElementById('categoryGrid').innerHTML = html;
+                
+                // Logic load more (giả lập)
+                if(data.data.params.pagination.totalItems > page * 24) {
+                    const btn = document.getElementById('loadMoreBtn');
+                    btn.classList.remove('hidden');
+                    btn.onclick = () => alert('Chức năng tải thêm trang trong demo'); // Có thể dev thêm logic fetch append html
+                }
 
-            scrollRow(rowId, direction) {
-            const row = document.getElementById(rowId);
-            if(row) {
-                const scrollAmount = window.innerWidth * 0.7; // Scroll 70% of screen width
-                row.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+            } catch(e) {
+                document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
             }
-        },
+        }
 
-        // --- Data Fetching Logic ---
-        // Helper to handle Ophim API inconsistencies between root and v1 endpoints
-        extractMovies(rawData, isV1 = false) {
-            const getFullUrl = (domain, path) => {
-                if (!path) return '';
-                if (path.startsWith('http')) return path;
-                // Xử lý nối chuỗi domain và path an toàn, tránh bị double slash //
-                return `${domain}/${path}`.replace(/([^:]\/)\/+/g, "$1");
-            };
+        async function applyFilter() {
+            const type = document.getElementById('filterType').value || 'phim-moi-cap-nhat'; // Default fallback
+            const genre = document.getElementById('filterGenre').value;
+            const country = document.getElementById('filterCountry').value;
+            
+            // API công khai thường không hỗ trợ lọc chéo nhiều điều kiện phức tạp qua URL trực tiếp dễ dàng
+            // Ở đây demo lọc theo loại hoặc thể loại
+            let endpoint = '';
+            let title = 'Kết Quả Lọc';
 
-            if (isV1) {
-                const domain = rawData.data?.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live/uploads/movies';
-                const items = rawData.data?.items || [];
-                return items.map(m => ({
-                    ...m,
-                    poster_url: getFullUrl(domain, m.poster_url || m.thumb_url),
-                    thumb_url: getFullUrl(domain, m.thumb_url || m.poster_url)
-                }));
+            if (genre) {
+                endpoint = `${API_BASE}/v1/api/the-loai/${genre}`;
+            } else if (country) {
+                endpoint = `${API_BASE}/v1/api/quoc-gia/${country}`;
             } else {
-                const domain = rawData.pathImage || 'https://img.ophim.live/uploads/movies';
-                const items = rawData.items || [];
-                return items.map(m => ({
-                    ...m,
-                    poster_url: getFullUrl(domain, m.poster_url || m.thumb_url),
-                    thumb_url: getFullUrl(domain, m.thumb_url || m.poster_url)
-                }));
+                endpoint = type === 'phim-moi-cap-nhat' ? `${API_BASE}/danh-sach/phim-moi-cap-nhat` : `${API_BASE}/v1/api/danh-sach/${type}`;
             }
-        },
 
-        async loadHomeData() {
-                this.dom.content.innerHTML = '<div class="h-screen flex justify-center items-center"><div class="loader"></div></div>';
-                try {
-                    // Fetch multiple sections concurrently for Homepage rows
-                    const [resUpdated, resMovies, resSeries, resCartoon] = await Promise.all([
-                        fetch(`${this.api.base}/danh-sach/phim-moi-cap-nhat?page=1`),
-                        fetch(`${this.api.v1}/danh-sach/phim-le?page=1`),
-                        fetch(`${this.api.v1}/danh-sach/phim-bo?page=1`),
-                        fetch(`${this.api.v1}/danh-sach/hoat-hinh?page=1`)
-                    ]);
+            loadCategoryByUrl(endpoint, title);
+        }
 
-                    const [dataUpdated, dataMovies, dataSeries, dataCartoon] = await Promise.all([
-                        resUpdated.json(), resMovies.json(), resSeries.json(), resCartoon.json()
-                    ]);
+        async function loadCategoryByUrl(url, title) {
+            document.getElementById('homeContent').classList.add('hidden');
+            document.getElementById('categoryContent').classList.remove('hidden');
+            document.getElementById('categoryTitle').textContent = title;
+            document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
+            
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                let items = data.data ? data.data.items : data.items; // Xử lý khác biệt format API
+                
+                let html = '';
+                if(items && items.length > 0) {
+                    items.forEach(movie => { html += createMovieCard(movie); });
+                } else {
+                    html = '<p class="col-span-full text-center text-gray-400">Không tìm thấy phim phù hợp.</p>';
+                }
+                document.getElementById('categoryGrid').innerHTML = html;
+            } catch(e) {
+                document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
+            }
+        }
 
-                    this.state.homeData = {
-                        updated: this.extractMovies(dataUpdated, false),
-                        movies: this.extractMovies(dataMovies, true),
-                        series: this.extractMovies(dataSeries, true),
-                        cartoons: this.extractMovies(dataCartoon, true)
-                    };
+        // --- RENDER COMPONENTS ---
+        function renderHeroCarousel(movies) {
+            const slidesContainer = document.getElementById('heroSlides');
+            const indicatorsContainer = document.getElementById('carouselIndicators');
+            let slidesHtml = '';
+            let indsHtml = '';
+
+            movies.forEach((movie, index) => {
+                const isActive = index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0';
+                const bgUrl = getImgUrl(movie.poster_url || movie.thumb_url);
+                
+                slidesHtml += `
+                    <div class="absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive} hero-slide" id="slide-${index}">
+                        <img src="${bgUrl}" class="w-full h-full object-cover" alt="${movie.name}">
+                        <div class="absolute inset-0 banner-gradient"></div>
+                        <div class="absolute inset-0 banner-bottom-gradient"></div>
+                        <div class="absolute bottom-[10%] md:bottom-[20%] left-4 md:left-12 w-full md:w-1/2 z-20">
+                            <h1 class="text-3xl md:text-6xl font-bold mb-2 md:mb-4 text-white drop-shadow-lg">${movie.name}</h1>
+                            <p class="text-sm md:text-lg text-gray-300 mb-4 drop-shadow font-medium">${movie.origin_name || ''} ${movie.year ? `(${movie.year})` : ''}</p>
+                            <div class="flex gap-3">
+                                <button onclick="openMovieDetails('${movie.slug}')" class="bg-white text-black px-6 md:px-8 py-2 md:py-3 rounded font-bold hover:bg-gray-300 transition flex items-center gap-2">
+                                    <i class="fas fa-play"></i> Xem Ngay
+                                </button>
+                                <button onclick="openMovieDetails('${movie.slug}')" class="bg-gray-500/50 text-white px-6 md:px-8 py-2 md:py-3 rounded font-bold hover:bg-gray-500/80 transition flex items-center gap-2 backdrop-blur-sm">
+                                    <i class="fas fa-info-circle"></i> Chi tiết
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                indsHtml += `<div class="w-2 h-2 rounded-full cursor-pointer transition-colors duration-300 ${index === 0 ? 'bg-white' : 'bg-gray-600'}" onclick="goToSlide(${index})"></div>`;
+            });
+
+            slidesContainer.innerHTML = slidesHtml;
+            indicatorsContainer.innerHTML = indsHtml;
+
+            // Auto slide
+            if(heroCarouselInterval) clearInterval(heroCarouselInterval);
+            heroCarouselInterval = setInterval(nextSlide, 6000);
+        }
+
+        function nextSlide() {
+            const slides = document.querySelectorAll('.hero-slide');
+            goToSlide((currentSlideIndex + 1) % slides.length);
+        }
+        function prevSlide() {
+            const slides = document.querySelectorAll('.hero-slide');
+            goToSlide((currentSlideIndex - 1 + slides.length) % slides.length);
+        }
+        function goToSlide(index) {
+            const slides = document.querySelectorAll('.hero-slide');
+            const inds = document.getElementById('carouselIndicators').children;
+            if(slides.length === 0) return;
+
+            slides[currentSlideIndex].classList.remove('opacity-100', 'z-10');
+            slides[currentSlideIndex].classList.add('opacity-0', 'z-0');
+            inds[currentSlideIndex].classList.remove('bg-white');
+            inds[currentSlideIndex].classList.add('bg-gray-600');
+
+            currentSlideIndex = index;
+
+            slides[currentSlideIndex].classList.remove('opacity-0', 'z-0');
+            slides[currentSlideIndex].classList.add('opacity-100', 'z-10');
+            inds[currentSlideIndex].classList.remove('bg-gray-600');
+            inds[currentSlideIndex].classList.add('bg-white');
+            
+            // Reset interval
+            clearInterval(heroCarouselInterval);
+            heroCarouselInterval = setInterval(nextSlide, 6000);
+        }
+
+        function createMovieRow(title, movies, typeSlug) {
+            if(!movies || movies.length === 0) return '';
+            
+            let cardsHtml = movies.map(m => createMovieCard(m)).join('');
+            
+            return `
+                <div class="mb-8">
+                    <div class="flex justify-between items-end mb-3">
+                        <h2 class="text-xl md:text-2xl font-bold">${title}</h2>
+                        <a href="#" onclick="loadCategory('${typeSlug}', '${title}')" class="text-sm text-gray-400 hover:text-white transition">Xem tất cả <i class="fas fa-chevron-right text-xs ml-1"></i></a>
+                    </div>
+                    <div class="flex gap-4 overflow-x-auto hide-scroll pb-4 -mx-4 px-4 md:-mx-12 md:px-12 relative group/row snap-x">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createMovieCard(movie) {
+            const thumbUrl = getImgUrl(movie.thumb_url);
+            const isFinished = movie.episode_current === 'Full' || movie.episode_current === movie.episode_total;
+            const badge = movie.episode_current ? `<div class="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded z-10 shadow">${movie.episode_current}</div>` : '';
+            
+            return `
+                <div class="min-w-[140px] md:min-w-[200px] max-w-[140px] md:max-w-[200px] relative rounded overflow-hidden movie-card cursor-pointer snap-start flex-shrink-0" onclick="openMovieDetails('${movie.slug}')">
+                    ${badge}
+                    <div class="aspect-[2/3] w-full relative group">
+                        <img src="${thumbUrl}" alt="${movie.name}" class="w-full h-full object-cover rounded bg-gray-900" loading="lazy">
+                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <i class="fas fa-play-circle text-4xl text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <h3 class="text-white font-medium text-sm md:text-base truncate" title="${movie.name}">${movie.name}</h3>
+                        <p class="text-gray-400 text-xs truncate">${movie.origin_name || ''}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- TÌM KIẾM (SEARCH LIVE) ---
+        function setupSearch() {
+            const inputs = [document.getElementById('searchInput'), document.getElementById('mobileSearchInput')];
+            let debounceTimer;
+
+            inputs.forEach(input => {
+                input.addEventListener('input', (e) => {
+                    clearTimeout(debounceTimer);
+                    const query = e.target.value.trim();
+                    const resultsContainer = document.getElementById('searchResults');
                     
-                    this.state.heroMovies = this.state.homeData.updated.slice(0, 5);
-                    this.renderHome();
-                } catch (error) {
-                    console.error("Home Load Error:", error);
-                    this.dom.content.innerHTML = '<div class="text-center mt-32 text-red-500">Lỗi kết nối API! Vui lòng thử lại.</div>';
-                }
-            },
-
-            async loadCategory(type, slug, title) {
-                // type: 'the-loai', 'quoc-gia', 'danh-sach'
-                this.dom.content.innerHTML = '<div class="h-screen flex justify-center items-center"><div class="loader"></div></div>';
-                window.scrollTo(0,0);
-                try {
-                    const res = await fetch(`${this.api.v1}/${type}/${slug}?page=1`);
-                    const data = await res.json();
-                    const movies = this.extractMovies(data, true);
-                    this.renderGrid(title, movies);
-                } catch (error) {
-                    console.error("Category Load Error:", error);
-                    this.dom.content.innerHTML = '<div class="text-center mt-32 text-white">Không tải được danh sách hoặc chuyên mục trống.</div>';
-                }
-            },
-
-            async loadMovieDetails(slug) {
-                this.dom.content.innerHTML = '<div class="h-screen flex justify-center items-center"><div class="loader"></div></div>';
-                window.scrollTo(0, 0);
-                try {
-                    const res = await fetch(`${this.api.base}/phim/${slug}`);
-                    const data = await res.json();
-                    this.state.currentMovie = data.movie;
-                    this.state.currentEpisodes = data.episodes;
-                    this.renderDetails();
-                } catch (error) {
-                    console.error("Detail Fetch Error:", error);
-                }
-            },
-
-            // --- Live Search Logic ---
-            setupSearch() {
-                const handleInput = debounce(async (e) => {
-                    const keyword = e.target.value.trim();
-                    if (keyword.length === 0) {
-                        this.dom.searchResults.classList.add('hidden');
-                        this.dom.clearSearch.classList.add('hidden');
+                    if (query.length < 2) {
+                        resultsContainer.classList.add('hidden');
                         return;
                     }
-                    this.dom.clearSearch.classList.remove('hidden');
-                    
-                    // Show loading state in dropdown
-                    this.dom.searchResults.innerHTML = '<div class="p-4 text-center text-sm text-gray-400"><i class="fas fa-spinner fa-spin"></i> Đang tìm...</div>';
-                    this.dom.searchResults.classList.remove('hidden');
 
-                    try {
-                        const res = await fetch(`${this.api.v1}/tim-kiem?keyword=${encodeURIComponent(keyword)}`);
-                        const data = await res.json();
-                        const movies = this.extractMovies(data, true).slice(0, 8); // Take top 8
-
-                        if (movies.length === 0) {
-                            this.dom.searchResults.innerHTML = '<div class="p-4 text-center text-sm text-gray-400">Không tìm thấy phim nào.</div>';
-                        } else {
-                            this.dom.searchResults.innerHTML = movies.map(m => `
-                                <div class="flex gap-3 p-3 hover:bg-gray-800 cursor-pointer border-b border-gray-800 last:border-0 transition" onclick="app.loadMovieDetails('${m.slug}'); document.getElementById('search-results').classList.add('hidden')">
-                                    <img src="${m.thumb_url}" class="w-12 h-16 object-cover rounded" alt="${m.name}">
-                                    <div class="flex-1 flex flex-col justify-center">
-                                        <h4 class="text-sm font-bold text-white line-clamp-1">${m.name}</h4>
-                                        <p class="text-xs text-gray-400 mt-1">${m.origin_name || ''} &bull; ${m.year || 'N/A'}</p>
-                                    </div>
-                                    <div class="flex items-center text-primary"><i class="fas fa-play-circle text-xl"></i></div>
-                                </div>
-                            `).join('') + `
-                                <button onclick="app.loadCategory('tim-kiem', '?keyword=${encodeURIComponent(keyword)}', 'Kết quả: ${keyword}')" class="w-full p-3 text-center text-sm font-semibold text-white bg-primary hover:bg-red-700 transition">
-                                    Xem tất cả kết quả
-                                </button>
-                            `;
-                        }
-                    } catch (err) {
-                        this.dom.searchResults.innerHTML = '<div class="p-4 text-center text-sm text-red-500">Lỗi tìm kiếm.</div>';
-                    }
-                }, 500);
-
-                this.dom.searchInput.addEventListener('input', handleInput);
-                
-                this.dom.clearSearch.addEventListener('click', () => {
-                    this.dom.searchInput.value = '';
-                    this.dom.searchResults.classList.add('hidden');
-                    this.dom.clearSearch.classList.add('hidden');
-                    this.dom.searchInput.focus();
-                });
-
-                // Hide search when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!this.dom.searchInput.contains(e.target) && !this.dom.searchResults.contains(e.target)) {
-                        this.dom.searchResults.classList.add('hidden');
+                    // Chỉ hiển thị dropdown search trên Desktop, mobile thì ấn nút Go (giả lập đơn giản)
+                    if(e.target.id === 'searchInput') {
+                        resultsContainer.classList.remove('hidden');
+                        resultsContainer.innerHTML = '<div class="p-4 text-center text-sm text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tìm...</div>';
+                        
+                        debounceTimer = setTimeout(() => fetchSearch(query, resultsContainer), 500);
+                    } else {
+                        // Mobile Enter event
+                        debounceTimer = setTimeout(() => {
+                            if(query.length >= 2) loadCategoryByUrl(`${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&limit=24`, `Tìm kiếm: ${query}`);
+                            toggleMobileMenu();
+                        }, 800);
                     }
                 });
-            },
+            });
 
-            // --- Rendering Views ---
-            goHome() {
-                if(this.state.homeData.updated) {
-                    this.renderHome();
-                    window.scrollTo(0, 0);
-                } else {
-                    this.loadHomeData();
+            // Ẩn search khi click ngoài
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.group')) {
+                    document.getElementById('searchResults').classList.add('hidden');
                 }
-            },
+            });
+        }
 
-            renderHome() {
-                if(this.state.heroInterval) clearInterval(this.state.heroInterval);
+        async function fetchSearch(keyword, container) {
+            try {
+                const res = await fetch(`${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=5`);
+                const data = await res.json();
                 
-                // Hero Slider HTML
-                let html = `
-                    <div id="hero-slider" class="relative w-full h-[60vh] md:h-[85vh] overflow-hidden fade-in">
-                        ${this.state.heroMovies.map((m, index) => `
-                            <div class="hero-slide absolute inset-0 transition-opacity duration-1000 ${index === 0 ? 'opacity-100' : 'opacity-0'}" data-index="${index}">
-                                <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('${m.poster_url}');"></div>
-                                <div class="absolute inset-0 hero-gradient"></div>
-                                <div class="absolute bottom-0 left-0 w-full p-6 md:p-16 container mx-auto flex flex-col justify-end h-full z-10">
-                                    <h2 class="text-4xl md:text-7xl font-extrabold mb-2 md:mb-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">${m.name}</h2>
-                                    <p class="text-gray-300 text-sm md:text-xl font-medium mb-6 drop-shadow-md flex items-center gap-3">
-                                        <span class="bg-primary/90 px-2 py-0.5 rounded text-white text-xs font-bold uppercase">${m.quality || 'HD'}</span>
-                                        <span>${m.year}</span>
-                                        <span>${m.origin_name}</span>
-                                    </p>
-                                    <div class="flex gap-4">
-                                        <button onclick="app.loadMovieDetails('${m.slug}')" class="bg-white text-black px-6 py-2 md:px-8 md:py-3 rounded font-bold hover:bg-gray-200 transition flex items-center gap-2 transform hover:scale-105 shadow-xl">
-                                            <i class="fas fa-play"></i> Xem Ngay
-                                        </button>
-                                        <button onclick="app.loadMovieDetails('${m.slug}')" class="bg-gray-600/60 backdrop-blur-sm text-white px-6 py-2 md:px-8 md:py-3 rounded font-bold hover:bg-gray-600/80 transition flex items-center gap-2">
-                                            <i class="fas fa-info-circle"></i> Chi tiết
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-
-                // Render Rows function
-                const renderRow = (title, movies, rowId) => `
-                    <div class="container mx-auto px-4 md:px-8 mt-10 md:mt-12 row-container relative group">
-                        <div class="flex justify-between items-end mb-4">
-                            <h3 class="text-xl md:text-2xl font-bold border-l-4 border-primary pl-3">${title}</h3>
-                        </div>
-                        <div class="relative">
-                            <!-- Left Arrow -->
-                            <button class="slider-btn absolute left-0 top-0 h-full w-12 z-20 hidden md:flex items-center justify-center bg-gradient-to-r from-black via-black/80 to-transparent rounded-l-md" onclick="app.scrollRow('${rowId}', -1)">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            
-                            <!-- Slider Track -->
-                            <div id="${rowId}" class="movie-row flex overflow-x-auto gap-4 md:gap-5 pb-4 hide-scrollbar snap-x snap-mandatory">
-                                ${movies.map(m => `
-                                    <div class="snap-start flex-none w-[140px] md:w-[200px] lg:w-[240px] group/card relative cursor-pointer overflow-hidden rounded-md transition duration-300" onclick="app.loadMovieDetails('${m.slug}')">
-                                        <div class="aspect-[2/3] w-full relative overflow-hidden rounded-md">
-                                            <img src="${m.thumb_url}" alt="${m.name}" class="w-full h-full object-cover transform group-hover/card:scale-110 transition duration-500" loading="lazy">
-                                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover/card:opacity-100 transition duration-300 flex flex-col justify-center items-center">
-                                                <i class="fas fa-play-circle text-5xl text-white/90 shadow-lg drop-shadow-2xl mb-2 transform scale-75 group-hover/card:scale-100 transition-all"></i>
-                                            </div>
-                                            <!-- Episode Badge -->
-                                            ${m.episode_current ? `<div class="absolute top-2 right-2 bg-primary text-white text-[10px] md:text-xs font-bold px-2 py-1 rounded shadow">${m.episode_current}</div>` : ''}
-                                        </div>
-                                        <div class="mt-2">
-                                            <h4 class="font-semibold text-sm md:text-base truncate group-hover/card:text-primary transition">${m.name}</h4>
-                                            <p class="text-xs text-gray-400 mt-0.5">${m.year || ''}</p>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            
-                            <!-- Right Arrow -->
-                            <button class="slider-btn absolute right-0 top-0 h-full w-12 z-20 hidden md:flex items-center justify-center bg-gradient-to-l from-black via-black/80 to-transparent rounded-r-md" onclick="app.scrollRow('${rowId}', 1)">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-
-                html += `<div class="relative z-10 -mt-20 md:-mt-32 pb-20 fade-in bg-gradient-to-t from-[#141414] via-[#141414]/90 to-transparent pt-32">`;
-                html += renderRow("Phim Mới Cập Nhật", this.state.homeData.updated, 'row-updated');
-                html += renderRow("Phim Lẻ Đỉnh Cao", this.state.homeData.movies, 'row-movies');
-                html += renderRow("Phim Bộ Hot", this.state.homeData.series, 'row-series');
-                html += renderRow("Thế Giới Hoạt Hình", this.state.homeData.cartoons, 'row-cartoons');
-                html += `</div>`;
-
-                this.dom.content.innerHTML = html;
-                this.startHeroSlider();
-            },
-
-            renderGrid(title, movies) {
-                if(this.state.heroInterval) clearInterval(this.state.heroInterval);
-                
-                let html = `
-                    <div class="container mx-auto px-4 md:px-8 pt-28 pb-16 fade-in min-h-screen">
-                        <div class="flex items-center justify-between mb-8 border-b border-gray-800 pb-4">
-                            <h2 class="text-2xl md:text-3xl font-bold border-l-4 border-primary pl-4">${title}</h2>
-                            <span class="text-gray-400 text-sm">${movies.length} kết quả</span>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                            ${movies.map(m => `
-                                <div class="group relative cursor-pointer rounded-md transition duration-300" onclick="app.loadMovieDetails('${m.slug}')">
-                                    <div class="aspect-[2/3] w-full relative overflow-hidden rounded-md shadow-lg group-hover:shadow-primary/20 group-hover:ring-2 ring-primary transition-all">
-                                        <img src="${m.thumb_url}" alt="${m.name}" class="w-full h-full object-cover" loading="lazy">
-                                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
-                                            <i class="fas fa-play text-3xl text-white"></i>
-                                        </div>
-                                        ${m.episode_current ? `<div class="absolute top-2 left-2 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">${m.episode_current}</div>` : ''}
-                                        ${m.quality ? `<div class="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">${m.quality}</div>` : ''}
-                                    </div>
-                                    <div class="mt-3">
-                                        <h4 class="font-semibold text-sm truncate group-hover:text-primary transition">${m.name}</h4>
-                                        <p class="text-xs text-gray-500 truncate">${m.origin_name || m.year}</p>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                this.dom.content.innerHTML = html;
-            },
-
-            startHeroSlider() {
-            const slides = document.querySelectorAll('.hero-slide');
-            if(!slides.length) return;
-            let currentIndex = 0;
-            
-            this.state.heroInterval = setInterval(() => {
-                slides[currentIndex].classList.remove('opacity-100');
-                slides[currentIndex].classList.add('opacity-0');
-                
-                currentIndex = (currentIndex + 1) % slides.length;
-                
-                slides[currentIndex].classList.remove('opacity-0');
-                slides[currentIndex].classList.add('opacity-100');
-            }, 6000);
-        },
-
-        renderDetails() {
-            if(this.state.heroInterval) clearInterval(this.state.heroInterval);
-            const m = this.state.currentMovie;
-            const e = this.state.currentEpisodes;
-            // Correct domain for details view (often returned without domain in old ophim API)
-            const poster = m.poster_url || m.thumb_url || '';
-            const thumb = m.thumb_url || m.poster_url || '';
-            const posterUrl = poster.includes('http') ? poster : `https://img.ophim.live/uploads/movies/${poster}`.replace(/([^:]\/)\/+/g, "$1");
-            const thumbUrl = thumb.includes('http') ? thumb : `https://img.ophim.live/uploads/movies/${thumb}`.replace(/([^:]\/)\/+/g, "$1");
-
-            let firstEpisode = (e && e.length > 0 && e[0].server_data.length > 0) ? e[0].server_data[0] : null;
-
-            let html = `
-                <div class="relative w-full min-h-[70vh] fade-in bg-[#141414]">
-                        <!-- Background Cover -->
-                        <div class="absolute inset-0 w-full h-full pointer-events-none">
-                            <div class="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 filter blur-sm" style="background-image: url('${posterUrl}');"></div>
-                            <div class="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/90 to-transparent"></div>
-                            <div class="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/60 to-transparent"></div>
-                        </div>
-
-                        <!-- Content Info -->
-                        <div class="relative z-10 container mx-auto px-4 md:px-8 pt-32 pb-12 flex flex-col md:flex-row gap-8 lg:gap-12">
-                            <!-- Thumb -->
-                            <div class="w-[200px] md:w-[250px] lg:w-[300px] mx-auto md:mx-0 flex-shrink-0 group">
-                                <div class="rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] border border-gray-800 relative">
-                                    <img src="${thumbUrl}" class="w-full h-auto" alt="${m.name}">
-                                    ${firstEpisode ? `
-                                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 cursor-pointer" onclick="app.playEpisode(0, 0)">
-                                            <i class="fas fa-play-circle text-6xl text-white hover:text-primary hover:scale-110 transition drop-shadow-lg"></i>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            
-                            <!-- Texts -->
-                            <div class="flex-1 mt-4 md:mt-10 text-center md:text-left">
-                                <h1 class="text-4xl md:text-5xl lg:text-6xl font-black mb-2 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">${m.name}</h1>
-                                <h2 class="text-xl lg:text-2xl text-gray-400 mb-6 font-medium">${m.origin_name} (${m.year})</h2>
-                                
-                                <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm mb-6 font-medium">
-                                    <span class="bg-primary/20 text-primary border border-primary/50 px-3 py-1 rounded shadow">${m.quality || 'HD'}</span>
-                                    <span class="bg-gray-800 text-gray-200 px-3 py-1 rounded border border-gray-700">${m.lang || 'Vietsub'}</span>
-                                    <span class="text-gray-300 bg-gray-900 px-3 py-1 rounded border border-gray-800"><i class="far fa-clock text-primary mr-1"></i> ${m.time || 'N/A'}</span>
-                                    ${m.episode_current ? `<span class="text-gray-300 bg-gray-900 px-3 py-1 rounded border border-gray-800"><i class="fas fa-film text-primary mr-1"></i> ${m.episode_current}</span>` : ''}
-                                </div>
-
-                                <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-6">
-                                    ${(m.category || []).map(cat => `<span class="text-xs text-gray-400 hover:text-white cursor-pointer bg-grayish px-2 py-1 rounded-full transition">#${cat.name}</span>`).join('')}
-                                </div>
-
-                                <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-8 max-w-4xl opacity-90 text-justify">
-                                    ${m.content ? m.content.replace(/(<([^>]+)>)/gi, "") : 'Chưa có thông tin tóm tắt.'}
-                                </p>
-
-                                <div class="flex flex-wrap gap-4 justify-center md:justify-start">
-                                    ${firstEpisode ? `
-                                        <button onclick="app.playEpisode(0, 0)" class="bg-primary text-white px-8 py-3 rounded font-bold text-lg hover:bg-red-700 transition flex items-center gap-2 shadow-[0_0_20px_rgba(229,9,20,0.4)] transform hover:-translate-y-1">
-                                            <i class="fas fa-play"></i> Xem Phim
-                                        </button>
-                                    ` : '<p class="text-primary font-bold bg-primary/10 px-6 py-3 rounded">Đang cập nhật...</p>'}
-                                    <button class="bg-gray-800 hover:bg-gray-700 text-white px-6 py-3 rounded font-bold transition flex items-center gap-2 border border-gray-700">
-                                        <i class="fas fa-plus"></i> Danh sách phát
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Player Container (Hidden initially) -->
-                    <div id="player-wrapper" class="hidden bg-[#0A0A0A] border-t border-gray-800 pt-8 pb-16">
-                        <div id="player-container" class="container mx-auto px-4 md:px-8 max-w-6xl"></div>
-                    </div>
-
-                    <!-- Episode Selector (Show initially if it's a series) -->
-                    ${(e && e.length > 0 && e[0].server_data.length > 1) ? `
-                        <div class="container mx-auto px-4 md:px-8 py-10" id="episode-section">
-                            <h3 class="text-2xl font-bold mb-6 flex items-center gap-2"><i class="fas fa-list text-primary"></i> Danh sách tập</h3>
-                            <div class="bg-dark p-6 rounded-lg border border-gray-800">
-                                ${e.map((server, sIdx) => `
-                                    <div class="mb-4 last:mb-0">
-                                        <h4 class="text-gray-400 mb-3 text-xs uppercase tracking-widest font-bold">${server.server_name}</h4>
-                                        <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2">
-                                            ${server.server_data.map((ep, eIdx) => `
-                                                <button onclick="app.playEpisode(${sIdx}, ${eIdx})" class="px-2 py-2 bg-grayish hover:bg-primary text-white rounded transition text-sm font-medium border border-gray-700 hover:border-primary truncate">
-                                                    ${ep.name}
-                                                </button>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                `;
-
-                this.dom.content.innerHTML = html;
-            },
-
-            // --- Player Logic (Retained & Optimized) ---
-            playEpisode(serverIndex, episodeIndex) {
-                const ep = this.state.currentEpisodes[serverIndex].server_data[episodeIndex];
-                const wrapper = document.getElementById('player-wrapper');
-                const playerContainer = document.getElementById('player-container');
-                const episodeSection = document.getElementById('episode-section');
-                
-                if(episodeSection) episodeSection.style.display = 'none'; // Hide episode list, show it below player
-                wrapper.classList.remove('hidden');
-                wrapper.classList.add('fade-in');
-                
-                playerContainer.innerHTML = `
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                        <h3 class="text-2xl font-bold text-white"><span class="text-primary mr-2">Đang phát:</span> Tập ${ep.name}</h3>
-                        <button onclick="app.renderDetails()" class="text-gray-400 hover:text-white transition flex items-center gap-2 bg-gray-800 px-4 py-2 rounded-full text-sm">
-                            <i class="fas fa-times"></i> Đóng Video
-                        </button>
-                    </div>
-                    
-                    <div class="video-container group rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.8)] border border-gray-800" id="custom-video-container">
-                        <video id="main-video" class="w-full bg-black aspect-video" playsinline></video>
-                        
-                        <!-- Custom Controls UI -->
-                        <div class="video-controls">
-                            <div class="progress-bar w-full h-1.5 bg-gray-600/50 rounded cursor-pointer relative group/prog" id="progress-bar">
-                                <div class="progress-filled group-hover/prog:h-2 transition-all" id="progress-filled"></div>
-                            </div>
-                            
-                            <div class="flex justify-between items-center mt-3">
-                                <div class="flex items-center gap-5">
-                                    <button class="text-white hover:text-primary text-2xl transition transform hover:scale-110" id="play-pause-btn"><i class="fas fa-play"></i></button>
-                                    <div class="flex items-center gap-2 group/vol">
-                                        <button class="text-white hover:text-primary text-lg transition" id="mute-btn"><i class="fas fa-volume-up"></i></button>
-                                        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" class="w-0 opacity-0 group-hover/vol:w-20 group-hover/vol:opacity-100 transition-all duration-300 origin-left">
-                                    </div>
-                                    <div class="text-sm text-gray-300 font-mono hidden sm:block"><span id="current-time">00:00</span> / <span id="duration">00:00</span></div>
-                                </div>
-                                
-                                <div class="flex items-center gap-5 relative">
-                                    <div class="relative">
-                                        <button class="text-white hover:text-primary transition text-lg" id="quality-toggle" title="Chất lượng"><i class="fas fa-cog"></i></button>
-                                        <div class="quality-menu shadow-2xl border border-gray-700 text-sm overflow-hidden" id="quality-menu">
-                                            <div class="px-4 py-2 text-gray-400 bg-gray-900 border-b border-gray-700 text-xs font-bold uppercase tracking-wider">Chất lượng</div>
-                                            <div id="quality-options" class="py-1">
-                                                <button class="w-full text-left px-4 py-2 quality-btn active font-medium" data-level="-1">Tự động (Auto)</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button class="text-white hover:text-primary text-lg transition" id="fullscreen-btn"><i class="fas fa-expand"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Episode List Below Player -->
-                    ${this.state.currentEpisodes[serverIndex].server_data.length > 1 ? `
-                        <div class="mt-8">
-                            <h4 class="text-lg font-bold mb-4 text-gray-300 uppercase tracking-wide text-sm">Chọn Tập Phim</h4>
-                            <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-                                ${this.state.currentEpisodes[serverIndex].server_data.map((epItem, idx) => `
-                                    <button onclick="app.playEpisode(${serverIndex}, ${idx})" 
-                                        class="px-2 py-2 rounded text-sm font-bold transition border ${idx === episodeIndex ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(229,9,20,0.5)]' : 'bg-gray-900 text-gray-400 border-gray-800 hover:border-gray-500 hover:text-white'} truncate">
-                                        ${epItem.name}
-                                    </button>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                `;
-
-                // Auto Scroll to player
-                setTimeout(() => {
-                    document.getElementById('player-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    this.initVideoPlayer(ep.link_m3u8, ep.link_embed);
-                }, 50);
-            },
-
-            initVideoPlayer(m3u8Url, embedUrl) {
-                const video = document.getElementById('main-video');
-                const container = document.getElementById('custom-video-container');
-                
-                if (this.state.hls) this.state.hls.destroy();
-
-                if (Hls.isSupported() && m3u8Url) {
-                    this.state.hls = new Hls({ debug: false });
-                    this.state.hls.loadSource(m3u8Url);
-                    this.state.hls.attachMedia(video);
-                    
-                    this.state.hls.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
-                        video.play().catch(() => console.log("Auto-play prevented"));
-                        this.setupQualityOptions(data.levels);
-                    });
-
-                    this.state.hls.on(Hls.Events.ERROR, (e, data) => {
-                        if (data.fatal) container.innerHTML = `<iframe src="${embedUrl}" width="100%" height="100%" class="aspect-video" frameborder="0" allowfullscreen></iframe>`;
-                    });
-                } else if (video.canPlayType('application/vnd.apple.mpegurl') && m3u8Url) {
-                    video.src = m3u8Url;
-                    video.addEventListener('loadedmetadata', () => video.play().catch(e=>e));
-                } else {
-                    container.innerHTML = `<iframe src="${embedUrl}" width="100%" height="100%" class="aspect-video" frameborder="0" allowfullscreen></iframe>`;
+                if (data.data.items.length === 0) {
+                    container.innerHTML = '<div class="p-4 text-sm text-gray-400 text-center">Không tìm thấy phim.</div>';
                     return;
                 }
 
-                this.setupPlayerControls(video, container);
-            },
-
-            setupQualityOptions(levels) {
-                const qo = document.getElementById('quality-options');
-                if(!qo || !levels || levels.length === 0) return;
-                let html = `<button class="w-full text-left px-4 py-2 quality-btn active font-medium" data-level="-1">Tự động (Auto)</button>`;
-                const sorted = levels.map((l, i) => ({...l, index: i})).sort((a,b) => b.height - a.height);
-                sorted.forEach(l => { html += `<button class="w-full text-left px-4 py-2 quality-btn font-medium" data-level="${l.index}">${l.height}p</button>`; });
-                qo.innerHTML = html;
-
-                const btns = qo.querySelectorAll('.quality-btn');
-                btns.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        this.state.hls.currentLevel = parseInt(e.target.dataset.level);
-                        btns.forEach(b => b.classList.remove('active', 'text-primary', 'bg-gray-800'));
-                        e.target.classList.add('active', 'text-primary', 'bg-gray-800');
-                        document.getElementById('quality-menu').classList.remove('show');
-                    });
+                let html = '';
+                data.data.items.forEach(m => {
+                    html += `
+                        <div class="flex gap-3 p-2 hover:bg-gray-800 cursor-pointer transition border-b border-gray-800 last:border-0" onclick="openMovieDetails('${m.slug}'); document.getElementById('searchResults').classList.add('hidden');">
+                            <img src="${getImgUrl(m.thumb_url)}" class="w-12 h-16 object-cover rounded">
+                            <div class="flex-1 overflow-hidden">
+                                <h4 class="text-sm font-bold text-white truncate">${m.name}</h4>
+                                <p class="text-xs text-gray-400 truncate">${m.origin_name}</p>
+                                <p class="text-xs text-primary mt-1">${m.year}</p>
+                            </div>
+                        </div>
+                    `;
                 });
-            },
-
-            setupPlayerControls(video, container) {
-                const $ = id => document.getElementById(id);
-                const playBtn = $('play-pause-btn'), muteBtn = $('mute-btn'), volSlider = $('volume-slider'),
-                      fsBtn = $('fullscreen-btn'), curTime = $('current-time'), durTime = $('duration'),
-                      progBar = $('progress-bar'), progFilled = $('progress-filled'),
-                      qToggle = $('quality-toggle'), qMenu = $('quality-menu');
-
-                // Play/Pause
-                const togglePlay = () => { video.paused ? (video.play(), container.classList.remove('paused')) : (video.pause(), container.classList.add('paused')); };
-                playBtn.onclick = togglePlay; video.onclick = togglePlay;
-                video.onplay = () => playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                video.onpause = () => playBtn.innerHTML = '<i class="fas fa-play"></i>';
-
-                // Time Helpers
-                const fmt = s => { if(isNaN(s)) return "00:00"; const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m<10?'0':''}${m}:${sec<10?'0':''}${sec}`; };
-                video.ontimeupdate = () => { curTime.textContent = fmt(video.currentTime); progFilled.style.width = `${(video.currentTime/video.duration)*100}%`; };
-                video.onloadedmetadata = () => durTime.textContent = fmt(video.duration);
-                progBar.onclick = e => video.currentTime = ((e.clientX - progBar.getBoundingClientRect().left) / progBar.offsetWidth) * video.duration;
-
-                // Volume
-                const updateMute = () => muteBtn.innerHTML = (video.muted || video.volume === 0) ? '<i class="fas fa-volume-mute text-red-500"></i>' : (video.volume < 0.5 ? '<i class="fas fa-volume-down"></i>' : '<i class="fas fa-volume-up"></i>');
-                volSlider.oninput = e => { video.volume = e.target.value; video.muted = video.volume == 0; updateMute(); };
-                muteBtn.onclick = () => { video.muted = !video.muted; volSlider.value = video.muted ? 0 : (video.volume||1); updateMute(); };
-
-                // UI Menus
-                qToggle.onclick = e => { e.stopPropagation(); qMenu.classList.toggle('show'); };
-                document.addEventListener('click', () => qMenu.classList.remove('show'));
-
-                // Fullscreen
-                fsBtn.onclick = () => {
-                    if (!document.fullscreenElement) (container.requestFullscreen || container.webkitRequestFullscreen || container.msRequestFullscreen).call(container);
-                    else document.exitFullscreen();
-                };
-
-                // Idle hide
-                let timeout;
-                container.onmousemove = () => {
-                    container.style.cursor = 'default';
-                    container.querySelector('.video-controls').style.opacity = '1';
-                    clearTimeout(timeout);
-                    if (!video.paused) timeout = setTimeout(() => { container.querySelector('.video-controls').style.opacity = '0'; container.style.cursor = 'none'; }, 2500);
-                };
-                container.onmouseleave = () => { if (!video.paused) container.querySelector('.video-controls').style.opacity = '0'; };
+                // Thêm nút xem tất cả
+                html += `
+                    <div class="p-2 text-center bg-gray-900 hover:bg-gray-800 cursor-pointer text-sm text-white" 
+                         onclick="loadCategoryByUrl('${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=24', 'Tìm kiếm: ${keyword}'); document.getElementById('searchResults').classList.add('hidden');">
+                        Xem tất cả kết quả
+                    </div>
+                `;
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="p-4 text-sm text-red-500 text-center">Lỗi tìm kiếm.</div>';
             }
-        };
+        }
 
-        // Boot
-        document.addEventListener('DOMContentLoaded', () => app.init());
+        // --- CHI TIẾT PHIM (MODAL) ---
+        async function openMovieDetails(slug) {
+            const modal = document.getElementById('movieModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Ngăn cuộn body
+            content.innerHTML = '<div class="h-[60vh] flex items-center justify-center"><div class="loader"></div></div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/phim/${slug}`);
+                const data = await res.json();
+                
+                if(!data.status) throw new Error("Không tìm thấy phim");
+                
+                currentMovieData = data; // Lưu để dùng cho Player
+                const movie = data.movie;
+                const episodes = data.episodes;
+                
+                const bgUrl = getImgUrl(movie.poster_url || movie.thumb_url);
+                const thumbUrl = getImgUrl(movie.thumb_url);
+                const genres = movie.category ? movie.category.map(c => c.name).join(', ') : 'Đang cập nhật';
+                const cast = movie.actor ? movie.actor.join(', ') : 'Đang cập nhật';
+                
+                // Lấy link tập 1
+                let firstEpLink = '';
+                let firstEpData = null;
+                if(episodes && episodes.length > 0 && episodes[0].server_data.length > 0) {
+                    firstEpData = episodes[0].server_data[0];
+                    firstEpLink = firstEpData.link_m3u8;
+                }
+
+                let actionBtn = firstEpLink 
+                    ? `<button onclick="startPlayFirst()" class="bg-primary text-white px-8 py-3 rounded font-bold hover:bg-red-700 transition flex items-center gap-2 text-lg shadow-lg shadow-red-500/30">
+                           <i class="fas fa-play"></i> Xem Phim
+                       </button>`
+                    : `<button class="bg-gray-600 text-white px-8 py-3 rounded font-bold cursor-not-allowed text-lg">Phim sắp chiếu</button>`;
+
+                content.innerHTML = `
+                    <div class="relative h-64 md:h-96 w-full">
+                        <img src="${bgUrl}" class="w-full h-full object-cover" alt="Banner">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/60 to-transparent"></div>
+                    </div>
+                    
+                    <div class="px-6 md:px-10 pb-10 -mt-20 md:-mt-32 relative z-10 flex flex-col md:flex-row gap-6 md:gap-8">
+                        <div class="hidden md:block w-48 shrink-0 rounded overflow-hidden shadow-2xl border border-gray-700">
+                            <img src="${thumbUrl}" class="w-full h-auto object-cover">
+                        </div>
+                        
+                        <div class="flex-1">
+                            <h2 class="text-3xl md:text-4xl font-bold mb-1">${movie.name}</h2>
+                            <p class="text-lg text-gray-300 mb-4 italic">${movie.origin_name || ''} (${movie.year || 'N/A'})</p>
+                            
+                            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-300 mb-6">
+                                <span class="bg-gray-800 px-2 py-1 rounded border border-gray-600">${movie.quality} - ${movie.lang}</span>
+                                <span><i class="far fa-clock mr-1"></i>${movie.time}</span>
+                                <span><i class="fas fa-star text-yellow-500 mr-1"></i>9.5</span>
+                            </div>
+
+                            <div class="mb-6 flex gap-4">
+                                ${actionBtn}
+                            </div>
+
+                            <p class="text-gray-300 leading-relaxed text-sm md:text-base mb-6 line-clamp-3 hover:line-clamp-none transition-all">${movie.content.replace(/<[^>]*>?/gm, '')}</p>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm border-t border-gray-800 pt-4">
+                                <div><span class="text-gray-500">Đạo diễn:</span> <span class="text-gray-200">${movie.director ? movie.director.join(', ') : 'Đang cập nhật'}</span></div>
+                                <div><span class="text-gray-500">Quốc gia:</span> <span class="text-gray-200">${movie.country ? movie.country.map(c => c.name).join(', ') : 'Đang cập nhật'}</span></div>
+                                <div class="col-span-1 sm:col-span-2"><span class="text-gray-500">Diễn viên:</span> <span class="text-gray-200">${cast}</span></div>
+                                <div class="col-span-1 sm:col-span-2"><span class="text-gray-500">Thể loại:</span> <span class="text-gray-200">${genres}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                content.innerHTML = '<div class="p-10 text-center text-red-500"><i class="fas fa-exclamation-triangle text-3xl mb-3 block"></i> Lỗi khi tải chi tiết phim.</div>';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('movieModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('modalContent').innerHTML = '';
+        }
+
+        // --- TRÌNH PHÁT VIDEO (HLS PLAYER) ---
+        function startPlayFirst() {
+            closeModal();
+            if(currentMovieData && currentMovieData.episodes && currentMovieData.episodes.length > 0) {
+                const firstServer = currentMovieData.episodes[0];
+                const firstEp = firstServer.server_data[0];
+                openPlayer(firstEp.link_m3u8, firstEp, firstServer.server_name);
+            }
+        }
+
+        function openPlayer(m3u8Url, epData, serverName) {
+            document.getElementById('mainView').classList.add('hidden');
+            document.getElementById('playerView').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            window.scrollTo(0,0);
+
+            const movie = currentMovieData.movie;
+            document.getElementById('playerMovieTitle').textContent = movie.name;
+            document.getElementById('playerMovieSub').textContent = `Tập ${epData.name} - ${serverName}`;
+            
+            currentEpisodeInfo = { url: m3u8Url, data: epData, server: serverName };
+
+            // Render Server Select
+            renderServerSelect();
+            // Render Episode List
+            renderEpisodeList(serverName);
+            
+            // Init Video
+            initVideoPlayer(m3u8Url);
+        }
+
+        function closePlayer() {
+            if(hlsPlayer) {
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+            }
+            const video = document.getElementById('mainVideo');
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+            
+            document.getElementById('playerView').classList.add('hidden');
+            document.getElementById('mainView').classList.remove('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function renderServerSelect() {
+            const container = document.getElementById('serverSelectContainer');
+            const select = document.getElementById('serverSelect');
+            const eps = currentMovieData.episodes;
+            
+            if(eps.length > 1) {
+                container.classList.remove('hidden');
+                let html = '';
+                eps.forEach((srv, idx) => {
+                    html += `<option value="${idx}" ${srv.server_name === currentEpisodeInfo.server ? 'selected' : ''}>${srv.server_name}</option>`;
+                });
+                select.innerHTML = html;
+                
+                select.onchange = (e) => {
+                    const serverIdx = e.target.value;
+                    const serverData = eps[serverIdx];
+                    // Play tập đầu của server mới
+                    const ep = serverData.server_data[0];
+                    openPlayer(ep.link_m3u8, ep, serverData.server_name);
+                };
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function renderEpisodeList(serverName) {
+            const grid = document.getElementById('episodeGrid');
+            const server = currentMovieData.episodes.find(s => s.server_name === serverName);
+            
+            if(!server || !server.server_data) return;
+
+            let html = '';
+            server.server_data.forEach(ep => {
+                const isActive = ep.slug === currentEpisodeInfo.data.slug;
+                const btnClass = isActive 
+                    ? 'bg-primary text-white border-primary' 
+                    : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700 hover:text-white';
+                
+                // Chuỗi link base64 lưu tạm tránh dấu phẩy, nháy
+                html += `
+                    <button onclick="changeEpisode('${ep.link_m3u8}', '${ep.slug}', '${serverName}')" 
+                            class="${btnClass} border py-2 px-1 rounded text-sm font-medium transition text-center truncate" title="${ep.name}">
+                        ${ep.name}
+                    </button>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function changeEpisode(url, slug, serverName) {
+            const server = currentMovieData.episodes.find(s => s.server_name === serverName);
+            const epData = server.server_data.find(e => e.slug === slug);
+            if(epData) openPlayer(url, epData, serverName);
+        }
+
+        // --- Custom Video Player Logic ---
+        function initVideoPlayer(url) {
+            const video = document.getElementById('mainVideo');
+            const loader = document.getElementById('videoLoader');
+            loader.classList.remove('hidden');
+            
+            if(hlsPlayer) {
+                hlsPlayer.destroy();
+            }
+
+            // Reset UI
+            document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-play"></i>';
+            document.querySelector('.video-container').classList.add('paused');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('timeDisplay').textContent = '00:00 / 00:00';
+            document.getElementById('qualityMenu').innerHTML = '';
+            document.getElementById('currentQuality').textContent = 'Auto';
+
+            if (Hls.isSupported()) {
+                hlsPlayer = new Hls();
+                hlsPlayer.loadSource(url);
+                hlsPlayer.attachMedia(video);
+                
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+                    loader.classList.add('hidden');
+                    video.play().catch(e => console.log("Trình duyệt chặn autoplay"));
+                    setupQualitySelector(hlsPlayer.levels);
+                });
+                
+                hlsPlayer.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.error("Lỗi mạng, thử lại...");
+                                hlsPlayer.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.error("Lỗi media, cố khôi phục...");
+                                hlsPlayer.recoverMediaError();
+                                break;
+                            default:
+                                hlsPlayer.destroy();
+                                loader.classList.add('hidden');
+                                showToast("Không thể tải luồng video (Lỗi máy chủ m3u8).");
+                                break;
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // For Safari
+                video.src = url;
+                video.addEventListener('loadedmetadata', function() {
+                    loader.classList.add('hidden');
+                    video.play();
+                });
+            } else {
+                loader.classList.add('hidden');
+                showToast("Trình duyệt không hỗ trợ phát video này.");
+            }
+        }
+
+        function setupVideoControls() {
+            const video = document.getElementById('mainVideo');
+            const playBtn = document.getElementById('playPauseBtn');
+            const progressContainer = document.getElementById('progressBarContainer');
+            const progressBar = document.getElementById('progressBar');
+            const timeDisplay = document.getElementById('timeDisplay');
+            const muteBtn = document.getElementById('muteBtn');
+            const volSlider = document.getElementById('volumeSlider');
+            const fullBtn = document.getElementById('fullscreenBtn');
+            const videoContainer = document.querySelector('.video-container');
+
+            // Play / Pause
+            function togglePlay() {
+                if(video.paused) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            }
+            playBtn.onclick = togglePlay;
+            video.onclick = togglePlay; // Bấm vào màn hình để pause/play
+
+            video.addEventListener('play', () => {
+                playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                videoContainer.classList.remove('paused');
+            });
+            video.addEventListener('pause', () => {
+                playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                videoContainer.classList.add('paused');
+            });
+
+            // Tiến độ (Timeupdate)
+            video.addEventListener('timeupdate', () => {
+                if(video.duration) {
+                    const percent = (video.currentTime / video.duration) * 100;
+                    progressBar.style.width = `${percent}%`;
+                    timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+                }
+            });
+
+            // Seek
+            progressContainer.addEventListener('click', (e) => {
+                const rect = progressContainer.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                video.currentTime = pos * video.duration;
+            });
+
+            // Rewind / Forward
+            document.getElementById('rewindBtn').onclick = () => { video.currentTime = Math.max(0, video.currentTime - 10); };
+            document.getElementById('forwardBtn').onclick = () => { video.currentTime = Math.min(video.duration, video.currentTime + 10); };
+
+            // Volume
+            muteBtn.onclick = () => {
+                video.muted = !video.muted;
+                updateVolIcon();
+            };
+            volSlider.addEventListener('input', (e) => {
+                video.volume = e.target.value;
+                video.muted = e.target.value == 0;
+                updateVolIcon();
+            });
+
+            function updateVolIcon() {
+                if(video.muted || video.volume == 0) muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                else if(video.volume < 0.5) muteBtn.innerHTML = '<i class="fas fa-volume-down"></i>';
+                else muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            }
+
+            // Fullscreen
+            fullBtn.onclick = () => {
+                if (!document.fullscreenElement) {
+                    videoContainer.requestFullscreen().catch(err => console.log(err));
+                } else {
+                    document.exitFullscreen();
+                }
+            };
+            
+            document.addEventListener('fullscreenchange', () => {
+                if(document.fullscreenElement) {
+                    fullBtn.innerHTML = '<i class="fas fa-compress"></i>';
+                    videoContainer.classList.add('h-screen', 'w-screen', 'fixed', 'inset-0', 'z-[70]', 'bg-black');
+                } else {
+                    fullBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                    videoContainer.classList.remove('h-screen', 'w-screen', 'fixed', 'inset-0', 'z-[70]', 'bg-black');
+                }
+            });
+
+            // Subtitles Toggle (Mô phỏng do API KKPhim thường hardsub)
+            document.getElementById('subBtn').onclick = () => {
+                showToast("Phim này đã được thuyết minh hoặc Vietsub cứng trên màn hình.");
+            };
+
+            // Quality Menu Toggle
+            const qualityBtn = document.querySelector('.group\\/quality > button');
+            const qualityMenu = document.getElementById('qualityMenu');
+            qualityBtn.onclick = (e) => {
+                e.stopPropagation();
+                qualityMenu.classList.toggle('hidden');
+                qualityMenu.classList.toggle('flex');
+            };
+            document.addEventListener('click', () => {
+                qualityMenu.classList.add('hidden');
+                qualityMenu.classList.remove('flex');
+            });
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if(h > 0) return `${h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+            return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        }
+
+        function setupQualitySelector(levels) {
+            const menu = document.getElementById('qualityMenu');
+            if(!levels || levels.length === 0) {
+                menu.innerHTML = '<button class="text-xs py-2 px-4 text-left hover:bg-gray-800 text-gray-400">Chỉ có 1 bản</button>';
+                return;
+            }
+
+            let html = `<button onclick="changeQuality(-1, 'Auto')" class="text-xs py-2 px-4 text-left hover:bg-gray-800 text-primary font-bold">Auto</button>`;
+            
+            // Xếp giảm dần độ phân giải
+            const sortedLevels = levels.map((l, i) => ({...l, index: i})).sort((a,b) => b.height - a.height);
+            
+            sortedLevels.forEach(level => {
+                html += `<button onclick="changeQuality(${level.index}, '${level.height}p')" class="text-xs py-2 px-4 text-left hover:bg-gray-800 text-white">${level.height}p</button>`;
+            });
+            menu.innerHTML = html;
+        }
+
+        function changeQuality(levelIndex, label) {
+            if(hlsPlayer) {
+                hlsPlayer.currentLevel = levelIndex;
+                document.getElementById('currentQuality').textContent = label;
+                
+                // Update UI selected state
+                const btns = document.getElementById('qualityMenu').querySelectorAll('button');
+                btns.forEach(b => {
+                    b.classList.remove('text-primary', 'font-bold');
+                    b.classList.add('text-white');
+                    if(b.textContent === label) {
+                        b.classList.add('text-primary', 'font-bold');
+                        b.classList.remove('text-white');
+                    }
+                });
+            }
+        }
+
     </script>
 </body>
 </html>
