@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetPhim - Trải nghiệm điện ảnh đỉnh cao</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E50914',
+                        dark: '#141414',
+                        darker: '#000000',
+                        light: '#E5E5E5'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- HLS.js cho Video Player -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <style>
+        body {
+            background-color: #141414;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141414;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #E50914;
+        }
+
+        /* Ẩn thanh cuộn cho các slider */
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Slider Animations */
+        .movie-card {
+            transition: transform 0.3s ease, z-index 0.3s ease;
+        }
+        .movie-card:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        /* Gradient cho banner */
+        .banner-gradient {
+            background: linear-gradient(to right, rgba(20,20,20,1) 0%, rgba(20,20,20,0.4) 50%, rgba(20,20,20,0) 100%);
+        }
+        .banner-bottom-gradient {
+            background: linear-gradient(to top, rgba(20,20,20,1) 0%, rgba(20,20,20,0) 100%);
+        }
+
+        /* Custom Video Player Range Inputs */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+        .progress-filled {
+            height: 100%;
+            background: #E50914;
+            border-radius: 2px;
+            width: 0%;
+            position: relative;
+        }
+        .progress-filled::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -4px;
+            width: 12px;
+            height: 12px;
+            background: #E50914;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .progress-bar:hover .progress-filled::after {
+            opacity: 1;
+        }
+
+        #player-controls {
+            transition: opacity 0.3s ease;
+        }
+        .video-container:hover #player-controls, .video-container.paused #player-controls {
+            opacity: 1;
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: #E50914;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header / Navbar -->
+    <header class="fixed w-full z-50 transition-colors duration-300" id="navbar">
+        <div class="px-4 md:px-12 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <a href="#" class="text-primary text-3xl font-bold tracking-tighter" onclick="showHome()">NetPhim</a>
+                <nav class="hidden md:flex gap-5 text-sm font-medium">
+                    <a href="#" onclick="showHome()" class="hover:text-gray-300 transition">Trang chủ</a>
+                    <a href="#" onclick="loadCategory('phim-le', 'Phim Lẻ')" class="hover:text-gray-300 transition">Phim lẻ</a>
+                    <a href="#" onclick="loadCategory('phim-bo', 'Phim Bộ')" class="hover:text-gray-300 transition">Phim bộ</a>
+                    <a href="#" onclick="loadCategory('hoat-hinh', 'Hoạt Hình')" class="hover:text-gray-300 transition">Hoạt hình</a>
+                    <a href="#" onclick="toggleFilter()" class="hover:text-gray-300 transition text-gray-400"><i class="fas fa-filter mr-1"></i>Lọc phim</a>
+                </nav>
+            </div>
+
+            <!-- Tìm kiếm -->
+            <div class="flex items-center gap-4 relative">
+                <div class="relative group hidden sm:block">
+                    <div class="flex items-center bg-black/60 border border-gray-600 rounded px-3 py-1.5 focus-within:border-white transition">
+                        <i class="fas fa-search text-gray-400"></i>
+                        <input type="text" id="searchInput" placeholder="Tìm kiếm phim..." class="bg-transparent border-none text-white text-sm outline-none w-0 md:w-48 lg:w-64 ml-2 focus:w-48 md:focus:w-64 transition-all duration-300">
+                    </div>
+                    <!-- Live Search Results -->
+                    <div id="searchResults" class="absolute top-full right-0 mt-2 w-72 bg-dark border border-gray-800 rounded shadow-xl hidden max-h-[400px] overflow-y-auto z-50">
+                        <!-- Items inject qua JS -->
+                    </div>
+                </div>
+                <button class="md:hidden text-xl" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden bg-black/95 absolute w-full left-0 top-full flex flex-col px-4 py-4 space-y-4 border-b border-gray-800">
+            <div class="relative w-full mb-2">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" id="mobileSearchInput" placeholder="Tìm kiếm phim..." class="w-full bg-gray-900 border border-gray-700 rounded py-2 pl-10 pr-3 text-white outline-none">
+            </div>
+            <a href="#" onclick="showHome(); toggleMobileMenu()" class="font-medium">Trang chủ</a>
+            <a href="#" onclick="loadCategory('phim-le', 'Phim Lẻ'); toggleMobileMenu()" class="font-medium">Phim lẻ</a>
+            <a href="#" onclick="loadCategory('phim-bo', 'Phim Bộ'); toggleMobileMenu()" class="font-medium">Phim bộ</a>
+            <a href="#" onclick="loadCategory('hoat-hinh', 'Hoạt Hình'); toggleMobileMenu()" class="font-medium">Hoạt hình</a>
+            <a href="#" onclick="toggleFilter(); toggleMobileMenu()" class="font-medium text-gray-400"><i class="fas fa-filter mr-2"></i>Bộ lọc nâng cao</a>
+        </div>
+    </header>
+
+    <!-- App Content -->
+    <main id="appContent" class="min-h-screen pb-10">
+        <!-- Vùng Hiển Thị Chính (Home / Danh sách / Lọc) -->
+        <div id="mainView">
+            
+            <!-- Filter Section (Hidden by default) -->
+            <div id="filterSection" class="hidden pt-24 px-4 md:px-12 mb-8 bg-black/50 border-b border-gray-800 pb-6">
+                <h2 class="text-2xl font-bold mb-4">Lọc Phim Nâng Cao</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <select id="filterType" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none">
+                        <option value="">Loại Phim</option>
+                        <option value="phim-le">Phim Lẻ</option>
+                        <option value="phim-bo">Phim Bộ</option>
+                        <option value="hoat-hinh">Hoạt Hình</option>
+                        <option value="tv-shows">TV Shows</option>
+                    </select>
+                    <select id="filterGenre" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none">
+                        <option value="">Thể Loại</option>
+                        <option value="hanh-dong">Hành Động</option>
+                        <option value="tinh-cam">Tình Cảm</option>
+                        <option value="hai-huoc">Hài Hước</option>
+                        <option value="kinh-di">Kinh Dị</option>
+                        <option value="khoa-hoc-vien-tuong">Viễn Tưởng</option>
+                    </select>
+                    <select id="filterCountry" class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none">
+                        <option value="">Quốc Gia</option>
+                        <option value="viet-nam">Việt Nam</option>
+                        <option value="han-quoc">Hàn Quốc</option>
+                        <option value="trung-quoc">Trung Quốc</option>
+                        <option value="au-my">Âu Mỹ</option>
+                        <option value="nhat-ban">Nhật Bản</option>
+                    </select>
+                    <button onclick="applyFilter()" class="bg-primary hover:bg-red-700 text-white font-bold py-2 rounded transition">Lọc Kết Quả</button>
+                </div>
+            </div>
+
+            <!-- Loading Full Page -->
+            <div id="pageLoader" class="flex justify-center items-center h-screen hidden">
+                <div class="loader"></div>
+            </div>
+
+            <div id="homeContent">
+                <!-- Hero Banner Carousel -->
+                <section id="heroCarousel" class="relative w-full h-[60vh] md:h-[85vh] overflow-hidden">
+                    <!-- Slides injected via JS -->
+                    <div id="heroSlides" class="w-full h-full relative"></div>
+                    
+                    <!-- Carousel Controls -->
+                    <button onclick="prevSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-4xl text-white/50 hover:text-white"><i class="fas fa-chevron-left"></i></button>
+                    <button onclick="nextSlide()" class="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-4xl text-white/50 hover:text-white"><i class="fas fa-chevron-right"></i></button>
+                    <div class="absolute bottom-8 left-0 w-full flex justify-center gap-2 z-20" id="carouselIndicators"></div>
+                </section>
+
+                <!-- Movie Rows -->
+                <div class="px-4 md:px-12 -mt-10 md:-mt-24 relative z-20" id="movieRows">
+                    <!-- Rows injected via JS -->
+                </div>
+            </div>
+
+            <div id="categoryContent" class="hidden pt-24 px-4 md:px-12">
+                <h2 id="categoryTitle" class="text-3xl font-bold mb-6 flex items-center gap-3">Danh sách phim</h2>
+                <div id="categoryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <!-- Grid items injected here -->
+                </div>
+                <div class="flex justify-center mt-8">
+                    <button id="loadMoreBtn" class="px-6 py-2 border border-gray-600 rounded hover:bg-gray-800 transition hidden">Tải thêm</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Trình Phát Video (Player View) -->
+        <div id="playerView" class="hidden fixed inset-0 bg-black z-[60] flex flex-col lg:flex-row">
+            <!-- Back Button -->
+            <button onclick="closePlayer()" class="absolute top-4 left-4 z-50 text-white hover:text-primary text-xl flex items-center gap-2 bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                <i class="fas fa-arrow-left"></i> Trở về
+            </button>
+
+            <!-- Main Video Area -->
+            <div class="w-full lg:w-3/4 h-[40vh] lg:h-full relative video-container group bg-black flex flex-col justify-center">
+                <video id="mainVideo" class="w-full max-h-full aspect-video" playsinline></video>
+                
+                <!-- Loading Overlay Video -->
+                <div id="videoLoader" class="absolute inset-0 flex items-center justify-center bg-black/80 hidden z-40">
+                    <div class="loader"></div>
+                </div>
+
+                <!-- Custom Controls -->
+                <div id="player-controls" class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-4 px-4 opacity-0 z-40">
+                    <!-- Tiến trình -->
+                    <div class="progress-bar mb-4" id="progressBarContainer">
+                        <div class="progress-filled" id="progressBar"></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <button id="playPauseBtn" class="text-white hover:text-primary text-2xl w-8"><i class="fas fa-play"></i></button>
+                            <button id="rewindBtn" class="text-white hover:text-gray-300 text-xl"><i class="fas fa-backward-10"></i></button>
+                            <button id="forwardBtn" class="text-white hover:text-gray-300 text-xl"><i class="fas fa-forward-10"></i></button>
+                            
+                            <!-- Âm lượng -->
+                            <div class="flex items-center gap-2 group/vol">
+                                <button id="muteBtn" class="text-white hover:text-gray-300 text-xl w-6"><i class="fas fa-volume-up"></i></button>
+                                <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" class="w-0 group-hover/vol:w-20 transition-all duration-300 opacity-0 group-hover/vol:opacity-100 h-1 bg-gray-600 rounded">
+                            </div>
+
+                            <span id="timeDisplay" class="text-sm font-medium ml-2">00:00 / 00:00</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-4">
+                            <!-- Chuyển đổi chất lượng -->
+                            <div class="relative group/quality">
+                                <button class="text-white hover:text-gray-300 text-sm font-semibold flex items-center gap-1">
+                                    <i class="fas fa-cog"></i> <span id="currentQuality">Auto</span>
+                                </button>
+                                <div id="qualityMenu" class="absolute bottom-full right-0 mb-2 w-24 bg-black/90 border border-gray-700 rounded hidden flex-col overflow-hidden">
+                                    <!-- Injected via JS -->
+                                </div>
+                            </div>
+                            
+                            <!-- Phụ đề Toggle -->
+                            <button id="subBtn" class="text-white hover:text-primary text-xl relative" title="Bật/Tắt Phụ Đề">
+                                <i class="fas fa-closed-captioning"></i>
+                            </button>
+
+                            <button id="fullscreenBtn" class="text-white hover:text-gray-300 text-xl w-6"><i class="fas fa-expand"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Tập Phim & Thông Tin -->
+            <div class="w-full lg:w-1/4 h-[60vh] lg:h-full bg-darker border-l border-gray-800 flex flex-col overflow-hidden">
+                <div class="p-4 border-b border-gray-800">
+                    <h2 id="playerMovieTitle" class="text-xl font-bold mb-1">Tên Phim</h2>
+                    <p id="playerMovieSub" class="text-sm text-gray-400 mb-3">Tập đang phát</p>
+                    <div id="serverSelectContainer" class="hidden">
+                        <label class="text-xs text-gray-500 mb-1 block">Chọn Server:</label>
+                        <select id="serverSelect" class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm outline-none">
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 hide-scroll" id="episodeListContainer">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Danh sách tập</h3>
+                    <div id="episodeGrid" class="grid grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                        <!-- Eps injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Chi Tiết Phim -->
+    <div id="movieModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 lg:p-0 overflow-y-auto pt-20 lg:pt-0">
+        <div class="bg-dark border border-gray-800 rounded-lg w-full max-w-4xl relative overflow-hidden shadow-2xl animate-fade-in my-auto">
+            <button onclick="closeModal()" class="absolute top-4 right-4 z-20 w-10 h-10 bg-black/60 rounded-full flex items-center justify-center hover:bg-white hover:text-black transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <div id="modalContent" class="relative">
+                <!-- Nội dung inject via JS -->
+                <div class="h-64 flex items-center justify-center"><div class="loader"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông báo nổi (Toast) -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg z-[100] transition-opacity duration-300 opacity-0 pointer-events-none">
+        Thông báo
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        // API Configuration (Sử dụng PhimAPI.com chuẩn KKPhim)
+        const API_BASE = 'https://phimapi.com';
+        const IMG_URL = 'https://phimimg.com/';
+        
+        let heroCarouselInterval;
+        let currentSlideIndex = 0;
+        let homeData = [];
+        
+        // Video Player State
+        let hlsPlayer = null;
+        let currentMovieData = null;
+        let currentEpisodeInfo = null;
+
+        // --- KHỞI TẠO ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            setupNavbarScroll();
+            setupSearch();
+            setupVideoControls();
+        });
+
+        async function initApp() {
+            showPageLoader(true);
+            try {
+                // Fetch danh sách phim mới nhất cho Hero Carousel
+                const newRes = await fetch(`${API_BASE}/danh-sach/phim-moi-cap-nhat?page=1`);
+                const newData = await newRes.json();
+                
+                // Fetch các danh mục phổ biến cho các Row
+                const [phimLe, phimBo, hoatHinh] = await Promise.all([
+                    fetch(`${API_BASE}/v1/api/danh-sach/phim-le?limit=12`).then(r => r.json()),
+                    fetch(`${API_BASE}/v1/api/danh-sach/phim-bo?limit=12`).then(r => r.json()),
+                    fetch(`${API_BASE}/v1/api/danh-sach/hoat-hinh?limit=12`).then(r => r.json())
+                ]);
+
+                renderHeroCarousel(newData.items.slice(0, 5));
+                
+                const rowsHTML = `
+                    ${createMovieRow('Phim Lẻ Mới Cập Nhật', phimLe.data.items, 'phim-le')}
+                    ${createMovieRow('Phim Bộ Thịnh Hành', phimBo.data.items, 'phim-bo')}
+                    ${createMovieRow('Hoạt Hình Đặc Sắc', hoatHinh.data.items, 'hoat-hinh')}
+                `;
+                document.getElementById('movieRows').innerHTML = rowsHTML;
+
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu trang chủ:", error);
+                showToast("Lỗi kết nối máy chủ dữ liệu phim!");
+            }
+            showPageLoader(false);
+        }
+
+        // --- UI UTILS ---
+        function showPageLoader(show) {
+            document.getElementById('pageLoader').classList.toggle('hidden', !show);
+            document.getElementById('homeContent').classList.toggle('hidden', show);
+        }
+
+        function getImgUrl(path) {
+            return path.includes('http') ? path : `${IMG_URL}${path}`;
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+
+        function setupNavbarScroll() {
+            const nav = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    nav.classList.add('bg-dark', 'shadow-lg');
+                    nav.classList.remove('bg-transparent');
+                } else {
+                    nav.classList.remove('bg-dark', 'shadow-lg');
+                    nav.classList.add('bg-transparent');
+                }
+            });
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        function toggleFilter() {
+            const filter = document.getElementById('filterSection');
+            filter.classList.toggle('hidden');
+        }
+
+        // --- CHUYỂN TRANG ---
+        function showHome() {
+            document.getElementById('mainView').classList.remove('hidden');
+            document.getElementById('homeContent').classList.remove('hidden');
+            document.getElementById('categoryContent').classList.add('hidden');
+            document.getElementById('playerView').classList.add('hidden');
+            document.getElementById('filterSection').classList.add('hidden');
+            window.scrollTo(0,0);
+        }
+
+        async function loadCategory(slug, title, page = 1, isLoadMore = false) {
+            if (!isLoadMore) {
+                document.getElementById('homeContent').classList.add('hidden');
+                const catContent = document.getElementById('categoryContent');
+                catContent.classList.remove('hidden');
+                document.getElementById('categoryTitle').innerHTML = `${title} <span class="text-sm font-normal text-gray-400 ml-4">Đang tải...</span>`;
+                document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
+                document.getElementById('loadMoreBtn').classList.add('hidden');
+            } else {
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tải...';
+                btn.disabled = true;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/v1/api/danh-sach/${slug}?page=${page}&limit=24`);
+                const data = await res.json();
+                
+                if (!isLoadMore) {
+                    document.getElementById('categoryTitle').textContent = data.data.titlePage || title;
+                }
+                
+                let html = '';
+                data.data.items.forEach(movie => {
+                    html += createMovieCard(movie);
+                });
+                
+                if (isLoadMore) {
+                    document.getElementById('categoryGrid').insertAdjacentHTML('beforeend', html);
+                } else {
+                    document.getElementById('categoryGrid').innerHTML = html;
+                }
+                
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = 'Tải thêm';
+                btn.disabled = false;
+                
+                // Logic load more thực tế
+                if(data.data.params.pagination.totalItems > page * 24) {
+                    btn.classList.remove('hidden');
+                    btn.onclick = () => loadCategory(slug, title, page + 1, true);
+                } else {
+                    btn.classList.add('hidden');
+                }
+
+            } catch(e) {
+                if (!isLoadMore) {
+                    document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
+                } else {
+                    showToast("Lỗi tải thêm dữ liệu.");
+                    const btn = document.getElementById('loadMoreBtn');
+                    btn.innerHTML = 'Tải thêm';
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        async function applyFilter() {
+            const type = document.getElementById('filterType').value || 'phim-moi-cap-nhat'; // Default fallback
+            const genre = document.getElementById('filterGenre').value;
+            const country = document.getElementById('filterCountry').value;
+            
+            // API công khai thường không hỗ trợ lọc chéo nhiều điều kiện phức tạp qua URL trực tiếp dễ dàng
+            // Ở đây demo lọc theo loại hoặc thể loại
+            let endpoint = '';
+            let title = 'Kết Quả Lọc';
+
+            if (genre) {
+                endpoint = `${API_BASE}/v1/api/the-loai/${genre}`;
+            } else if (country) {
+                endpoint = `${API_BASE}/v1/api/quoc-gia/${country}`;
+            } else {
+                endpoint = type === 'phim-moi-cap-nhat' ? `${API_BASE}/danh-sach/phim-moi-cap-nhat` : `${API_BASE}/v1/api/danh-sach/${type}`;
+            }
+
+            loadCategoryByUrl(endpoint, title);
+        }
+
+        async function loadCategoryByUrl(urlBase, title, page = 1, isLoadMore = false) {
+            if (!isLoadMore) {
+                document.getElementById('homeContent').classList.add('hidden');
+                document.getElementById('categoryContent').classList.remove('hidden');
+                document.getElementById('categoryTitle').textContent = title;
+                document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
+                document.getElementById('loadMoreBtn').classList.add('hidden');
+            } else {
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tải...';
+                btn.disabled = true;
+            }
+            
+            try {
+                // Tự động append page param cho url lấy từ filter/search
+                const separator = urlBase.includes('?') ? '&' : '?';
+                const fetchUrl = `${urlBase}${separator}page=${page}&limit=24`;
+
+                const res = await fetch(fetchUrl);
+                const data = await res.json();
+                
+                let items = data.data ? data.data.items : data.items; // Xử lý khác biệt format API
+                let totalItems = data.data && data.data.params && data.data.params.pagination ? data.data.params.pagination.totalItems : 
+                                 (data.pagination ? data.pagination.totalItems : (items ? items.length : 0));
+                
+                let html = '';
+                if(items && items.length > 0) {
+                    items.forEach(movie => { html += createMovieCard(movie); });
+                } else if (!isLoadMore) {
+                    html = '<p class="col-span-full text-center text-gray-400">Không tìm thấy phim phù hợp.</p>';
+                }
+
+                if (isLoadMore) {
+                    document.getElementById('categoryGrid').insertAdjacentHTML('beforeend', html);
+                } else {
+                    document.getElementById('categoryGrid').innerHTML = html;
+                }
+
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = 'Tải thêm';
+                btn.disabled = false;
+
+                // Ẩn hoặc hiện nút tải thêm với trang kế tiếp
+                if (totalItems > page * 24) {
+                    btn.classList.remove('hidden');
+                    btn.onclick = () => loadCategoryByUrl(urlBase, title, page + 1, true);
+                } else {
+                    btn.classList.add('hidden');
+                }
+            } catch(e) {
+                if (!isLoadMore) {
+                    document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
+                } else {
+                    showToast("Lỗi tải thêm dữ liệu.");
+                    const btn = document.getElementById('loadMoreBtn');
+                    btn.innerHTML = 'Tải thêm';
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        // --- RENDER COMPONENTS ---
+        function renderHeroCarousel(movies) {
+            const slidesContainer = document.getElementById('heroSlides');
+            const indicatorsContainer = document.getElementById('carouselIndicators');
+            let slidesHtml = '';
+            let indsHtml = '';
+
+            movies.forEach((movie, index) => {
+                const isActive = index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0';
+                const bgUrl = getImgUrl(movie.poster_url || movie.thumb_url);
+                
+                slidesHtml += `
+                    <div class="absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive} hero-slide" id="slide-${index}">
+                        <img src="${bgUrl}" class="w-full h-full object-cover" alt="${movie.name}">
+                        <div class="absolute inset-0 banner-gradient"></div>
+                        <div class="absolute inset-0 banner-bottom-gradient"></div>
+                        <div class="absolute bottom-[10%] md:bottom-[20%] left-4 md:left-12 w-full md:w-1/2 z-20">
+                            <h1 class="text-3xl md:text-6xl font-bold mb-2 md:mb-4 text-white drop-shadow-lg">${movie.name}</h1>
+                            <p class="text-sm md:text-lg text-gray-300 mb-4 drop-shadow font-medium">${movie.origin_name || ''} ${movie.year ? `(${movie.year})` : ''}</p>
+                            <div class="flex gap-3">
+                                <button onclick="openMovieDetails('${movie.slug}')" class="bg-white text-black px-6 md:px-8 py-2 md:py-3 rounded font-bold hover:bg-gray-300 transition flex items-center gap-2">
+                                    <i class="fas fa-play"></i> Xem Ngay
+                                </button>
+                                <button onclick="openMovieDetails('${movie.slug}')" class="bg-gray-500/50 text-white px-6 md:px-8 py-2 md:py-3 rounded font-bold hover:bg-gray-500/80 transition flex items-center gap-2 backdrop-blur-sm">
+                                    <i class="fas fa-info-circle"></i> Chi tiết
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                indsHtml += `<div class="w-2 h-2 rounded-full cursor-pointer transition-colors duration-300 ${index === 0 ? 'bg-white' : 'bg-gray-600'}" onclick="goToSlide(${index})"></div>`;
+            });
+
+            slidesContainer.innerHTML = slidesHtml;
+            indicatorsContainer.innerHTML = indsHtml;
+
+            // Auto slide
+            if(heroCarouselInterval) clearInterval(heroCarouselInterval);
+            heroCarouselInterval = setInterval(nextSlide, 6000);
+        }
+
+        function nextSlide() {
+            const slides = document.querySelectorAll('.hero-slide');
+            goToSlide((currentSlideIndex + 1) % slides.length);
+        }
+        function prevSlide() {
+            const slides = document.querySelectorAll('.hero-slide');
+            goToSlide((currentSlideIndex - 1 + slides.length) % slides.length);
+        }
+        function goToSlide(index) {
+            const slides = document.querySelectorAll('.hero-slide');
+            const inds = document.getElementById('carouselIndicators').children;
+            if(slides.length === 0) return;
+
+            slides[currentSlideIndex].classList.remove('opacity-100', 'z-10');
+            slides[currentSlideIndex].classList.add('opacity-0', 'z-0');
+            inds[currentSlideIndex].classList.remove('bg-white');
+            inds[currentSlideIndex].classList.add('bg-gray-600');
+
+            currentSlideIndex = index;
+
+            slides[currentSlideIndex].classList.remove('opacity-0', 'z-0');
+            slides[currentSlideIndex].classList.add('opacity-100', 'z-10');
+            inds[currentSlideIndex].classList.remove('bg-gray-600');
+            inds[currentSlideIndex].classList.add('bg-white');
+            
+            // Reset interval
+            clearInterval(heroCarouselInterval);
+            heroCarouselInterval = setInterval(nextSlide, 6000);
+        }
+
+        function createMovieRow(title, movies, typeSlug) {
+            if(!movies || movies.length === 0) return '';
+            
+            let cardsHtml = movies.map(m => createMovieCard(m)).join('');
+            
+            return `
+                <div class="mb-8">
+                    <div class="flex justify-between items-end mb-3">
+                        <h2 class="text-xl md:text-2xl font-bold">${title}</h2>
+                        <a href="#" onclick="loadCategory('${typeSlug}', '${title}')" class="text-sm text-gray-400 hover:text-white transition">Xem tất cả <i class="fas fa-chevron-right text-xs ml-1"></i></a>
+                    </div>
+                    <div class="flex gap-4 overflow-x-auto hide-scroll pb-4 -mx-4 px-4 md:-mx-12 md:px-12 relative group/row snap-x">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createMovieCard(movie) {
+            const thumbUrl = getImgUrl(movie.thumb_url);
+            const isFinished = movie.episode_current === 'Full' || movie.episode_current === movie.episode_total;
+            const badge = movie.episode_current ? `<div class="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded z-10 shadow">${movie.episode_current}</div>` : '';
+            
+            return `
+                <div class="min-w-[140px] md:min-w-[200px] max-w-[140px] md:max-w-[200px] relative rounded overflow-hidden movie-card cursor-pointer snap-start flex-shrink-0" onclick="openMovieDetails('${movie.slug}')">
+                    ${badge}
+                    <div class="aspect-[2/3] w-full relative group">
+                        <img src="${thumbUrl}" alt="${movie.name}" class="w-full h-full object-cover rounded bg-gray-900" loading="lazy">
+                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <i class="fas fa-play-circle text-4xl text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <h3 class="text-white font-medium text-sm md:text-base truncate" title="${movie.name}">${movie.name}</h3>
+                        <p class="text-gray-400 text-xs truncate">${movie.origin_name || ''}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- TÌM KIẾM (SEARCH LIVE) ---
+        function setupSearch() {
+            const inputs = [document.getElementById('searchInput'), document.getElementById('mobileSearchInput')];
+            let debounceTimer;
+
+            inputs.forEach(input => {
+                input.addEventListener('input', (e) => {
+                    clearTimeout(debounceTimer);
+                    const query = e.target.value.trim();
+                    const resultsContainer = document.getElementById('searchResults');
+                    
+                    if (query.length < 2) {
+                        resultsContainer.classList.add('hidden');
+                        return;
+                    }
+
+                    // Chỉ hiển thị dropdown search trên Desktop, mobile thì ấn nút Go (giả lập đơn giản)
+                    if(e.target.id === 'searchInput') {
+                        resultsContainer.classList.remove('hidden');
+                        resultsContainer.innerHTML = '<div class="p-4 text-center text-sm text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tìm...</div>';
+                        
+                        debounceTimer = setTimeout(() => fetchSearch(query, resultsContainer), 500);
+                    } else {
+                        // Mobile Enter event
+                        debounceTimer = setTimeout(() => {
+                            if(query.length >= 2) loadCategoryByUrl(`${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(query)}&limit=24`, `Tìm kiếm: ${query}`);
+                            toggleMobileMenu();
+                        }, 800);
+                    }
+                });
+            });
+
+            // Ẩn search khi click ngoài
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.group')) {
+                    document.getElementById('searchResults').classList.add('hidden');
+                }
+            });
+        }
+
+        async function fetchSearch(keyword, container) {
+            try {
+                const res = await fetch(`${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=5`);
+                const data = await res.json();
+                
+                if (data.data.items.length === 0) {
+                    container.innerHTML = '<div class="p-4 text-sm text-gray-400 text-center">Không tìm thấy phim.</div>';
+                    return;
+                }
+
+                let html = '';
+                data.data.items.forEach(m => {
+                    html += `
+                        <div class="flex gap-3 p-2 hover:bg-gray-800 cursor-pointer transition border-b border-gray-800 last:border-0" onclick="openMovieDetails('${m.slug}'); document.getElementById('searchResults').classList.add('hidden');">
+                            <img src="${getImgUrl(m.thumb_url)}" class="w-12 h-16 object-cover rounded">
+                            <div class="flex-1 overflow-hidden">
+                                <h4 class="text-sm font-bold text-white truncate">${m.name}</h4>
+                                <p class="text-xs text-gray-400 truncate">${m.origin_name}</p>
+                                <p class="text-xs text-primary mt-1">${m.year}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                // Thêm nút xem tất cả
+                html += `
+                    <div class="p-2 text-center bg-gray-900 hover:bg-gray-800 cursor-pointer text-sm text-white" 
+                         onclick="loadCategoryByUrl('${API_BASE}/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=24', 'Tìm kiếm: ${keyword}'); document.getElementById('searchResults').classList.add('hidden');">
+                        Xem tất cả kết quả
+                    </div>
+                `;
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div class="p-4 text-sm text-red-500 text-center">Lỗi tìm kiếm.</div>';
+            }
+        }
+
+        // --- CHI TIẾT PHIM (MODAL) ---
+        async function openMovieDetails(slug) {
+            const modal = document.getElementById('movieModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Ngăn cuộn body
+            content.innerHTML = '<div class="h-[60vh] flex items-center justify-center"><div class="loader"></div></div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/phim/${slug}`);
+                const data = await res.json();
+                
+                if(!data.status) throw new Error("Không tìm thấy phim");
+                
+                currentMovieData = data; // Lưu để dùng cho Player
+                const movie = data.movie;
+                const episodes = data.episodes;
+                
+                const bgUrl = getImgUrl(movie.poster_url || movie.thumb_url);
+                const thumbUrl = getImgUrl(movie.thumb_url);
+                const genres = movie.category ? movie.category.map(c => c.name).join(', ') : 'Đang cập nhật';
+                const cast = movie.actor ? movie.actor.join(', ') : 'Đang cập nhật';
+                
+                // Lấy link tập 1
+                let firstEpLink = '';
+                let firstEpData = null;
+                if(episodes && episodes.length > 0 && episodes[0].server_data.length > 0) {
+                    firstEpData = episodes[0].server_data[0];
+                    firstEpLink = firstEpData.link_m3u8;
+                }
+
+                let actionBtn = firstEpLink 
+                    ? `<button onclick="startPlayFirst()" class="bg-primary text-white px-8 py-3 rounded font-bold hover:bg-red-700 transition flex items-center gap-2 text-lg shadow-lg shadow-red-500/30">
+                           <i class="fas fa-play"></i> Xem Phim
+                       </button>`
+                    : `<button class="bg-gray-600 text-white px-8 py-3 rounded font-bold cursor-not-allowed text-lg">Phim sắp chiếu</button>`;
+
+                content.innerHTML = `
+                    <div class="relative h-64 md:h-96 w-full">
+                        <img src="${bgUrl}" class="w-full h-full object-cover" alt="Banner">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/60 to-transparent"></div>
+                    </div>
+                    
+                    <div class="px-6 md:px-10 pb-10 -mt-20 md:-mt-32 relative z-10 flex flex-col md:flex-row gap-6 md:gap-8">
+                        <div class="hidden md:block w-48 shrink-0 rounded overflow-hidden shadow-2xl border border-gray-700">
+                            <img src="${thumbUrl}" class="w-full h-auto object-cover">
+                        </div>
+                        
+                        <div class="flex-1">
+                            <h2 class="text-3xl md:text-4xl font-bold mb-1">${movie.name}</h2>
+                            <p class="text-lg text-gray-300 mb-4 italic">${movie.origin_name || ''} (${movie.year || 'N/A'})</p>
+                            
+                            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-300 mb-6">
+                                <span class="bg-gray-800 px-2 py-1 rounded border border-gray-600">${movie.quality} - ${movie.lang}</span>
+                                <span><i class="far fa-clock mr-1"></i>${movie.time}</span>
+                                <span><i class="fas fa-star text-yellow-500 mr-1"></i>9.5</span>
+                            </div>
+
+                            <div class="mb-6 flex gap-4">
+                                ${actionBtn}
+                            </div>
+
+                            <p class="text-gray-300 leading-relaxed text-sm md:text-base mb-6 line-clamp-3 hover:line-clamp-none transition-all">${movie.content.replace(/<[^>]*>?/gm, '')}</p>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm border-t border-gray-800 pt-4">
+                                <div><span class="text-gray-500">Đạo diễn:</span> <span class="text-gray-200">${movie.director ? movie.director.join(', ') : 'Đang cập nhật'}</span></div>
+                                <div><span class="text-gray-500">Quốc gia:</span> <span class="text-gray-200">${movie.country ? movie.country.map(c => c.name).join(', ') : 'Đang cập nhật'}</span></div>
+                                <div class="col-span-1 sm:col-span-2"><span class="text-gray-500">Diễn viên:</span> <span class="text-gray-200">${cast}</span></div>
+                                <div class="col-span-1 sm:col-span-2"><span class="text-gray-500">Thể loại:</span> <span class="text-gray-200">${genres}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                content.innerHTML = '<div class="p-10 text-center text-red-500"><i class="fas fa-exclamation-triangle text-3xl mb-3 block"></i> Lỗi khi tải chi tiết phim.</div>';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('movieModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('modalContent').innerHTML = '';
+        }
+
+        // --- TRÌNH PHÁT VIDEO (HLS PLAYER) ---
+        function startPlayFirst() {
+            closeModal();
+            if(currentMovieData && currentMovieData.episodes && currentMovieData.episodes.length > 0) {
+                const firstServer = currentMovieData.episodes[0];
+                const firstEp = firstServer.server_data[0];
+                openPlayer(firstEp.link_m3u8, firstEp, firstServer.server_name);
+            }
+        }
+
+        function openPlayer(m3u8Url, epData, serverName) {
+            document.getElementById('mainView').classList.add('hidden');
+            document.getElementById('playerView').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            window.scrollTo(0,0);
+
+            const movie = currentMovieData.movie;
+            document.getElementById('playerMovieTitle').textContent = movie.name;
+            document.getElementById('playerMovieSub').textContent = `Tập ${epData.name} - ${serverName}`;
+            
+            currentEpisodeInfo = { url: m3u8Url, data: epData, server: serverName };
+
+            // Render Server Select
+            renderServerSelect();
+            // Render Episode List
+            renderEpisodeList(serverName);
+            
+            // Init Video
+            initVideoPlayer(m3u8Url);
+        }
+
+        function closePlayer() {
+            if(hlsPlayer) {
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+            }
+            const video = document.getElementById('mainVideo');
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+            
+            document.getElementById('playerView').classList.add('hidden');
+            document.getElementById('mainView').classList.remove('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function renderServerSelect() {
+            const container = document.getElementById('serverSelectContainer');
+            const select = document.getElementById('serverSelect');
+            const eps = currentMovieData.episodes;
+            
+            if(eps.length > 1) {
+                container.classList.remove('hidden');
+                let html = '';
+                eps.forEach((srv, idx) => {
+                    html += `<option value="${idx}" ${srv.server_name === currentEpisodeInfo.server ? 'selected' : ''}>${srv.server_name}</option>`;
+                });
+                select.innerHTML = html;
+                
+                select.onchange = (e) => {
+                    const serverIdx = e.target.value;
+                    const serverData = eps[serverIdx];
+                    // Play tập đầu của server mới
+                    const ep = serverData.server_data[0];
+                    openPlayer(ep.link_m3u8, ep, serverData.server_name);
+                };
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function renderEpisodeList(serverName) {
+            const grid = document.getElementById('episodeGrid');
+            const server = currentMovieData.episodes.find(s => s.server_name === serverName);
+            
+            if(!server || !server.server_data) return;
+
+            let html = '';
+            server.server_data.forEach(ep => {
+                const isActive = ep.slug === currentEpisodeInfo.data.slug;
+                const btnClass = isActive 
+                    ? 'bg-primary text-white border-primary' 
+                    : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700 hover:text-white';
+                
+                // Chuỗi link base64 lưu tạm tránh dấu phẩy, nháy
+                html += `
+                    <button onclick="changeEpisode('${ep.link_m3u8}', '${ep.slug}', '${serverName}')" 
+                            class="${btnClass} border py-2 px-1 rounded text-sm font-medium transition text-center truncate" title="${ep.name}">
+                        ${ep.name}
+                    </button>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function changeEpisode(url, slug, serverName) {
+            const server = currentMovieData.episodes.find(s => s.server_name === serverName);
+            const epData = server.server_data.find(e => e.slug === slug);
+            if(epData) openPlayer(url, epData, serverName);
+        }
+
+        // --- Custom Video Player Logic ---
+        function initVideoPlayer(url) {
+            const video = document.getElementById('mainVideo');
+            const loader = document.getElementById('videoLoader');
+            loader.classList.remove('hidden');
+            
+            if(hlsPlayer) {
+                hlsPlayer.destroy();
+            }
+
+            // Reset UI
+            document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-play"></i>';
+            document.querySelector('.video-container').classList.add('paused');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('timeDisplay').textContent = '00:00 / 00:00';
+            document.getElementById('qualityMenu').innerHTML = '';
+            document.getElementById('currentQuality').textContent = 'Auto';
+
+            if (Hls.isSupported()) {
+                hlsPlayer = new Hls();
+                hlsPlayer.loadSource(url);
+                hlsPlayer.attachMedia(video);
+                
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+                    loader.classList.add('hidden');
+                    video.play().catch(e => console.log("Trình duyệt chặn autoplay"));
+                    setupQualitySelector(hlsPlayer.levels);
+                });
+                
+                hlsPlayer.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.error("Lỗi mạng, thử lại...");
+                                hlsPlayer.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.error("Lỗi media, cố khôi phục...");
+                                hlsPlayer.recoverMediaError();
+                                break;
+                            default:
+                                hlsPlayer.destroy();
+                                loader.classList.add('hidden');
+                                showToast("Không thể tải luồng video (Lỗi máy chủ m3u8).");
+                                break;
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // For Safari
+                video.src = url;
+                video.addEventListener('loadedmetadata', function() {
+                    loader.classList.add('hidden');
+                    video.play();
+                });
+            } else {
+                loader.classList.add('hidden');
+                showToast("Trình duyệt không hỗ trợ phát video này.");
+            }
+        }
+
+        function setupVideoControls() {
+            const video = document.getElementById('mainVideo');
+            const playBtn = document.getElementById('playPauseBtn');
+            const progressContainer = document.getElementById('progressBarContainer');
+            const progressBar = document.getElementById('progressBar');
+            const timeDisplay = document.getElementById('timeDisplay');
+            const muteBtn = document.getElementById('muteBtn');
+            const volSlider = document.getElementById('volumeSlider');
+            const fullBtn = document.getElementById('fullscreenBtn');
+            const videoContainer = document.querySelector('.video-container');
+
+            // Play / Pause
+            function togglePlay() {
+                if(video.paused) {
+                    video.play();
+                } else {
+                    video.pause();
+                }
+            }
+            playBtn.onclick = togglePlay;
+            video.onclick = togglePlay; // Bấm vào màn hình để pause/play
+
+            video.addEventListener('play', () => {
+                playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                videoContainer.classList.remove('paused');
+            });
+            video.addEventListener('pause', () => {
+                playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                videoContainer.classList.add('paused');
+            });
+
+            // Tiến độ (Timeupdate)
+            video.addEventListener('timeupdate', () => {
+                if(video.duration) {
+                    const percent = (video.currentTime / video.duration) * 100;
+                    progressBar.style.width = `${percent}%`;
+                    timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+                }
+            });
+
+            // Seek
+            progressContainer.addEventListener('click', (e) => {
+                const rect = progressContainer.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                video.currentTime = pos * video.duration;
+            });
+
+            // Rewind / Forward
+            document.getElementById('rewindBtn').onclick = () => { video.currentTime = Math.max(0, video.currentTime - 10); };
+            document.getElementById('forwardBtn').onclick = () => { video.currentTime = Math.min(video.duration, video.currentTime + 10); };
+
+            // Volume
+            muteBtn.onclick = () => {
+                video.muted = !video.muted;
+                updateVolIcon();
+            };
+            volSlider.addEventListener('input', (e) => {
+                video.volume = e.target.value;
+                video.muted = e.target.value == 0;
+                updateVolIcon();
+            });
+
+            function updateVolIcon() {
+                if(video.muted || video.volume == 0) muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                else if(video.volume < 0.5) muteBtn.innerHTML = '<i class="fas fa-volume-down"></i>';
+                else muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            }
+
+            // Fullscreen
+            fullBtn.onclick = () => {
+                if (!document.fullscreenElement) {
+                    videoContainer.requestFullscreen().catch(err => console.log(err));
+                } else {
+                    document.exitFullscreen();
+                }
+            };
+            
+            document.addEventListener('fullscreenchange', () => {
+                if(document.fullscreenElement) {
+                    fullBtn.innerHTML = '<i class="fas fa-compress"></i>';
+                    videoContainer.classList.add('h-screen', 'w-screen', 'fixed', 'inset-0', 'z-[70]', 'bg-black');
+                } else {
+                    fullBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                    videoContainer.classList.remove('h-screen', 'w-screen', 'fixed', 'inset-0', 'z-[70]', 'bg-black');
+                }
+            });
+
+            // Subtitles Toggle (Mô phỏng do API KKPhim thường hardsub)
+            document.getElementById('subBtn').onclick = () => {
+                showToast("Phim này đã được thuyết minh hoặc Vietsub cứng trên màn hình.");
+            };
+
+            // Quality Menu Toggle
+            const qualityBtn = document.querySelector('.group\\/quality > button');
+            const qualityMenu = document.getElementById('qualityMenu');
+            qualityBtn.onclick = (e) => {
+                e.stopPropagation();
+                qualityMenu.classList.toggle('hidden');
+                qualityMenu.classList.toggle('flex');
+            };
+            document.addEventListener('click', () => {
+                qualityMenu.classList.add('hidden');
+                qualityMenu.classList.remove('flex');
+            });
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if(h > 0) return `${h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+            return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        }
+
+        function setupQualitySelector(levels) {
+            const menu = document.getElementById('qualityMenu');
+            if(!levels || levels.length === 0) {
+                menu.innerHTML = '<button class="text-xs py-2 px-4 text-left hover:bg-gray-800 text-gray-400">Chỉ có 1 bản</button>';
+                return;
+            }
+
+            let html = `<button onclick="changeQuality(-1, 'Auto')" class="text-xs py-2 px-4 text-left hover:bg-gray-800 text-primary font-bold">Auto</button>`;
+            
+            // Xếp giảm dần độ phân giải
+            const sortedLevels = levels.map((l, i) => ({...l, index: i})).sort((a,b) => b.height - a.height);
+            
+            sortedLevels.forEach(level => {
+                html += `<button onclick="changeQuality(${level.index}, '${level.height}p')" class="text-xs py-2 px-4 text-left hover:bg-gray-800 text-white">${level.height}p</button>`;
+            });
+            menu.innerHTML = html;
+        }
+
+        function changeQuality(levelIndex, label) {
+            if(hlsPlayer) {
+                hlsPlayer.currentLevel = levelIndex;
+                document.getElementById('currentQuality').textContent = label;
+                
+                // Update UI selected state
+                const btns = document.getElementById('qualityMenu').querySelectorAll('button');
+                btns.forEach(b => {
+                    b.classList.remove('text-primary', 'font-bold');
+                    b.classList.add('text-white');
+                    if(b.textContent === label) {
+                        b.classList.add('text-primary', 'font-bold');
+                        b.classList.remove('text-white');
+                    }
+                });
+            }
+        }
+
+    </script>
+</body>
+</html>
