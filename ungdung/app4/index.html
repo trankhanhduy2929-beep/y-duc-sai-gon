@@ -474,36 +474,60 @@
             window.scrollTo(0,0);
         }
 
-        async function loadCategory(slug, title, page = 1) {
-            document.getElementById('homeContent').classList.add('hidden');
-            const catContent = document.getElementById('categoryContent');
-            catContent.classList.remove('hidden');
-            document.getElementById('categoryTitle').innerHTML = `${title} <span class="text-sm font-normal text-gray-400 ml-4">Đang tải...</span>`;
-            document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
-            document.getElementById('loadMoreBtn').classList.add('hidden');
+        async function loadCategory(slug, title, page = 1, isLoadMore = false) {
+            if (!isLoadMore) {
+                document.getElementById('homeContent').classList.add('hidden');
+                const catContent = document.getElementById('categoryContent');
+                catContent.classList.remove('hidden');
+                document.getElementById('categoryTitle').innerHTML = `${title} <span class="text-sm font-normal text-gray-400 ml-4">Đang tải...</span>`;
+                document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
+                document.getElementById('loadMoreBtn').classList.add('hidden');
+            } else {
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tải...';
+                btn.disabled = true;
+            }
 
             try {
                 const res = await fetch(`${API_BASE}/v1/api/danh-sach/${slug}?page=${page}&limit=24`);
                 const data = await res.json();
                 
-                document.getElementById('categoryTitle').textContent = data.data.titlePage || title;
+                if (!isLoadMore) {
+                    document.getElementById('categoryTitle').textContent = data.data.titlePage || title;
+                }
                 
                 let html = '';
                 data.data.items.forEach(movie => {
                     html += createMovieCard(movie);
                 });
                 
-                document.getElementById('categoryGrid').innerHTML = html;
+                if (isLoadMore) {
+                    document.getElementById('categoryGrid').insertAdjacentHTML('beforeend', html);
+                } else {
+                    document.getElementById('categoryGrid').innerHTML = html;
+                }
                 
-                // Logic load more (giả lập)
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = 'Tải thêm';
+                btn.disabled = false;
+                
+                // Logic load more thực tế
                 if(data.data.params.pagination.totalItems > page * 24) {
-                    const btn = document.getElementById('loadMoreBtn');
                     btn.classList.remove('hidden');
-                    btn.onclick = () => alert('Chức năng tải thêm trang trong demo'); // Có thể dev thêm logic fetch append html
+                    btn.onclick = () => loadCategory(slug, title, page + 1, true);
+                } else {
+                    btn.classList.add('hidden');
                 }
 
             } catch(e) {
-                document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
+                if (!isLoadMore) {
+                    document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
+                } else {
+                    showToast("Lỗi tải thêm dữ liệu.");
+                    const btn = document.getElementById('loadMoreBtn');
+                    btn.innerHTML = 'Tải thêm';
+                    btn.disabled = false;
+                }
             }
         }
 
@@ -528,26 +552,64 @@
             loadCategoryByUrl(endpoint, title);
         }
 
-        async function loadCategoryByUrl(url, title) {
-            document.getElementById('homeContent').classList.add('hidden');
-            document.getElementById('categoryContent').classList.remove('hidden');
-            document.getElementById('categoryTitle').textContent = title;
-            document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
+        async function loadCategoryByUrl(urlBase, title, page = 1, isLoadMore = false) {
+            if (!isLoadMore) {
+                document.getElementById('homeContent').classList.add('hidden');
+                document.getElementById('categoryContent').classList.remove('hidden');
+                document.getElementById('categoryTitle').textContent = title;
+                document.getElementById('categoryGrid').innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
+                document.getElementById('loadMoreBtn').classList.add('hidden');
+            } else {
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tải...';
+                btn.disabled = true;
+            }
             
             try {
-                const res = await fetch(url);
+                // Tự động append page param cho url lấy từ filter/search
+                const separator = urlBase.includes('?') ? '&' : '?';
+                const fetchUrl = `${urlBase}${separator}page=${page}&limit=24`;
+
+                const res = await fetch(fetchUrl);
                 const data = await res.json();
+                
                 let items = data.data ? data.data.items : data.items; // Xử lý khác biệt format API
+                let totalItems = data.data && data.data.params && data.data.params.pagination ? data.data.params.pagination.totalItems : 
+                                 (data.pagination ? data.pagination.totalItems : (items ? items.length : 0));
                 
                 let html = '';
                 if(items && items.length > 0) {
                     items.forEach(movie => { html += createMovieCard(movie); });
-                } else {
+                } else if (!isLoadMore) {
                     html = '<p class="col-span-full text-center text-gray-400">Không tìm thấy phim phù hợp.</p>';
                 }
-                document.getElementById('categoryGrid').innerHTML = html;
+
+                if (isLoadMore) {
+                    document.getElementById('categoryGrid').insertAdjacentHTML('beforeend', html);
+                } else {
+                    document.getElementById('categoryGrid').innerHTML = html;
+                }
+
+                const btn = document.getElementById('loadMoreBtn');
+                btn.innerHTML = 'Tải thêm';
+                btn.disabled = false;
+
+                // Ẩn hoặc hiện nút tải thêm với trang kế tiếp
+                if (totalItems > page * 24) {
+                    btn.classList.remove('hidden');
+                    btn.onclick = () => loadCategoryByUrl(urlBase, title, page + 1, true);
+                } else {
+                    btn.classList.add('hidden');
+                }
             } catch(e) {
-                document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
+                if (!isLoadMore) {
+                    document.getElementById('categoryGrid').innerHTML = '<p class="col-span-full text-center text-red-500">Lỗi tải dữ liệu.</p>';
+                } else {
+                    showToast("Lỗi tải thêm dữ liệu.");
+                    const btn = document.getElementById('loadMoreBtn');
+                    btn.innerHTML = 'Tải thêm';
+                    btn.disabled = false;
+                }
             }
         }
 
