@@ -9,7 +9,7 @@
     
     <!-- Thêm thư viện TensorFlow.js và Upscaler.js để chạy AI trên trình duyệt -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-    <script src="https://unpkg.com/upscaler@0.14.0/dist/browser/umd/upscaler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/upscaler@0.16.0/dist/browser/umd/upscaler.min.js"></script>
 
     <style>
         body {
@@ -293,7 +293,10 @@
                 if (!upscaler) {
                     processingText.innerText = "Đang tải mô hình Neural Network (Chỉ tải 1 lần đầu tiên)...";
                     progressBar.style.width = "30%";
-                    upscaler = new window.Upscaler();
+                    
+                    // Fix lỗi "is not a constructor" do cấu trúc export của thư viện
+                    const UpscalerClass = window.Upscaler.default || window.Upscaler;
+                    upscaler = new UpscalerClass();
                 }
 
                 processingText.innerText = "Đang nâng cấp độ phân giải hình ảnh bằng GPU của bạn...";
