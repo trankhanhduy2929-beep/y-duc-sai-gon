@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Nâng Cấp Ảnh - Tương tự Remini</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #111827;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Tùy chỉnh thanh trượt so sánh Before/After */
+        .comparison-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            /* Sẽ được set tỷ lệ bằng JS */
+        }
+
+        .comparison-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            user-select: none;
+            pointer-events: none;
+            background-color: #1f2937;
+        }
+
+        .image-after {
+            clip-path: inset(0 50% 0 0); /* Mặc định hiển thị 50% */
+        }
+
+        .slider {
+            position: absolute;
+            appearance: none;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            outline: none;
+            margin: 0;
+            transition: all 0.2s;
+            cursor: ew-resize;
+            z-index: 20;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 4px;
+            height: 100vh;
+            background: white;
+            cursor: ew-resize;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .slider::-moz-range-thumb {
+            appearance: none;
+            width: 4px;
+            height: 100vh;
+            background: white;
+            cursor: ew-resize;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: none;
+        }
+
+        .slider-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #111827;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Nút Tải lên tùy chỉnh */
+        .upload-area {
+            border: 2px dashed #4b5563;
+            transition: all 0.3s ease;
+        }
+        .upload-area.dragover {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        /* Loader */
+        .loader {
+            border: 4px solid #374151;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .badge {
+            position: absolute;
+            top: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            z-index: 5;
+        }
+        .badge-before { right: 1rem; }
+        .badge-after { left: 1rem; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+    <!-- Header -->
+    <header class="border-b border-gray-800 bg-gray-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-wand-magic-sparkles text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">AI Enhancer</h1>
+            </div>
+            <a href="https://github.com/bisnuray/smart-enhancer" target="_blank" class="text-gray-400 hover:text-white transition">
+                <i class="fa-brands fa-github text-xl"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 sm:p-8 relative">
+        
+        <!-- View 1: Upload Area -->
+        <div id="upload-view" class="w-full max-w-2xl flex flex-col items-center">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-center mb-4 leading-tight">
+                Làm nét và khôi phục ảnh <br/>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">bằng Trí tuệ Nhân tạo</span>
+            </h2>
+            <p class="text-gray-400 text-center mb-8 max-w-lg">
+                Tải lên một bức ảnh mờ, nhiễu hoặc chất lượng thấp. AI của chúng tôi sẽ phân tích và tái tạo lại chi tiết độ phân giải cao ngay lập tức.
+            </p>
+
+            <div id="drop-zone" class="upload-area w-full rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer bg-gray-800/30 hover:bg-gray-800/50">
+                <div class="w-20 h-20 rounded-full bg-gray-700/50 flex items-center justify-center mb-6">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Kéo thả ảnh vào đây</h3>
+                <p class="text-gray-500 mb-6 text-sm">hoặc click để chọn file từ thiết bị</p>
+                <input type="file" id="file-input" class="hidden" accept="image/jpeg, image/png, image/webp">
+                <button onclick="document.getElementById('file-input').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-full transition shadow-lg shadow-blue-500/20">
+                    Chọn Ảnh
+                </button>
+            </div>
+        </div>
+
+        <!-- View 2: Processing -->
+        <div id="processing-view" class="hidden w-full max-w-xl flex flex-col items-center justify-center py-20">
+            <div class="loader mb-8"></div>
+            <h3 class="text-2xl font-bold mb-2">AI đang xử lý hình ảnh...</h3>
+            <p class="text-gray-400 text-center" id="processing-text">
+                Quá trình này có thể mất vài giây. Vui lòng đợi trong khi chúng tôi khôi phục chi tiết ảnh.
+            </p>
+            
+            <!-- Skeleton Preview -->
+            <div class="w-full max-w-sm mt-8 aspect-square rounded-xl bg-gray-800 animate-pulse flex items-center justify-center overflow-hidden relative">
+                <img id="preview-thumbnail" class="absolute inset-0 w-full h-full object-cover opacity-30 blur-sm" src="" alt="">
+                <div class="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>
+            </div>
+        </div>
+
+        <!-- View 3: Result (Comparison Slider) -->
+        <div id="result-view" class="hidden w-full max-w-5xl flex flex-col items-center">
+            <div class="w-full flex justify-between items-end mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold">Thành quả</h2>
+                    <p class="text-gray-400 text-sm">Kéo thanh trượt để so sánh</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="resetApp()" class="px-5 py-2.5 rounded-full bg-gray-800 hover:bg-gray-700 text-white font-medium transition flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i> Ảnh khác
+                    </button>
+                    <button onclick="downloadImage()" class="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium transition shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Tải xuống
+                    </button>
+                </div>
+            </div>
+
+            <!-- Slider Container -->
+            <div id="slider-container" class="comparison-container bg-gray-800">
+                <img id="img-before" class="comparison-image" src="" alt="Before">
+                <span class="badge badge-before">Bản gốc</span>
+                
+                <img id="img-after" class="comparison-image image-after" src="" alt="After">
+                <span class="badge badge-after">Đã nâng cấp</span>
+
+                <input type="range" min="0" max="100" value="50" class="slider" id="compare-slider">
+                
+                <div id="slider-button" class="slider-button">
+                    <i class="fa-solid fa-arrows-left-right text-sm"></i>
+                </div>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-6 text-center max-w-2xl">
+                Lưu ý: Chất lượng đầu ra phụ thuộc vào tình trạng của ảnh gốc. Mô hình AI sẽ cố gắng nội suy và khôi phục các chi tiết hợp lý nhất.
+            </p>
+        </div>
+
+    </main>
+
+    <script>
+        // API Key (do môi trường cung cấp runtime)
+        const apiKey = ""; 
+        
+        // DOM Elements
+        const views = {
+            upload: document.getElementById('upload-view'),
+            processing: document.getElementById('processing-view'),
+            result: document.getElementById('result-view')
+        };
+        
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewThumbnail = document.getElementById('preview-thumbnail');
+        
+        const imgBefore = document.getElementById('img-before');
+        const imgAfter = document.getElementById('img-after');
+        const compareSlider = document.getElementById('compare-slider');
+        const sliderButton = document.getElementById('slider-button');
+        const sliderContainer = document.getElementById('slider-container');
+        const processingText = document.getElementById('processing-text');
+
+        // State variables
+        let originalBase64 = null;
+        let enhancedBase64 = null;
+        let mimeTypeStr = null;
+
+        // --- Sự kiện Upload Ảnh ---
+        
+        // Mở hộp thoại chọn file
+        dropZone.addEventListener('click', () => {
+            if(event.target.tagName !== 'BUTTON' && event.target.tagName !== 'INPUT') {
+                fileInput.click();
+            }
+        });
+
+        // Xử lý kéo thả
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Xử lý khi chọn file qua input
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Xử lý file ảnh
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Vui lòng chọn một tệp hình ảnh hợp lệ (JPG, PNG, WEBP).');
+                return;
+            }
+
+            mimeTypeStr = file.type;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Data = e.target.result;
+                originalBase64 = base64Data;
+                
+                // Trích xuất phần data base64 thuần túy (bỏ prefix data:image/png;base64,)
+                const base64Pure = base64Data.split(',')[1];
+                
+                // Chuyển view
+                showView('processing');
+                previewThumbnail.src = base64Data;
+                
+                // Thiết lập tỷ lệ cho container slider dựa trên ảnh thật
+                const img = new Image();
+                img.onload = () => {
+                    // Đảm bảo slider container có cùng tỷ lệ với ảnh
+                    const ratio = (img.height / img.width) * 100;
+                    sliderContainer.style.paddingBottom = `${Math.min(ratio, 80)}%`; // Giới hạn max height 80vw để không bị quá dài
+                };
+                img.src = base64Data;
+
+                // Gọi API Gemini
+                callGeminiAPI(base64Pure, mimeTypeStr);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Xử lý API Gemini với Exponential Backoff ---
+
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function callGeminiAPI(base64Data, mimeType) {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+            
+            // Prompt yêu cầu AI nâng cấp ảnh
+            const promptText = "Please enhance this image to the highest quality. Make it extremely sharp, clear, and high resolution. Remove any noise, blur, or pixelation. Restore details beautifully, like a professional photo remastering or AI upscaling tool.";
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inlineData: { mimeType: mimeType, data: base64Data } }
+                    ]
+                }],
+                generationConfig: {
+                    responseModalities: ["TEXT", "IMAGE"]
+                }
+            };
+
+            const retries = [1000, 2000, 4000, 8000, 16000]; // Exponential backoff delays
+
+            for (let attempt = 0; attempt <= retries.length; attempt++) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    // Tìm kiếm phần trả về chứa image
+                    const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                    
+                    if (imagePart && imagePart.inlineData && imagePart.inlineData.data) {
+                        const enhancedBase64Pure = imagePart.inlineData.data;
+                        const outMime = imagePart.inlineData.mimeType || 'image/jpeg';
+                        enhancedBase64 = `data:${outMime};base64,${enhancedBase64Pure}`;
+                        
+                        // Hiển thị kết quả
+                        displayResult();
+                        return; // Thành công
+                    } else {
+                        throw new Error("Không tìm thấy dữ liệu hình ảnh trong phản hồi của AI.");
+                    }
+
+                } catch (error) {
+                    console.error(`Attempt ${attempt + 1} failed:`, error);
+                    
+                    if (attempt < retries.length) {
+                        processingText.innerText = `Lỗi mạng tạm thời. Đang thử lại (Lần ${attempt + 1}/${retries.length})...`;
+                        await sleep(retries[attempt]);
+                    } else {
+                        // Đã hết số lần thử
+                        showError("Đã xảy ra lỗi khi kết nối với máy chủ AI. Vui lòng thử lại sau. Chi tiết: " + error.message);
+                    }
+                }
+            }
+        }
+
+        // --- Logic Hiển thị và Slider ---
+
+        function showView(viewName) {
+            views.upload.classList.add('hidden');
+            views.processing.classList.add('hidden');
+            views.result.classList.add('hidden');
+            views[viewName].classList.remove('hidden');
+        }
+
+        function displayResult() {
+            imgBefore.src = originalBase64;
+            imgAfter.src = enhancedBase64;
+            
+            // Đặt lại slider về giữa
+            compareSlider.value = 50;
+            updateSlider(50);
+            
+            showView('result');
+        }
+
+        // Cập nhật Slider khi kéo
+        compareSlider.addEventListener('input', (e) => {
+            updateSlider(e.target.value);
+        });
+
+        function updateSlider(percentage) {
+            // Cập nhật clip-path cho ảnh After (cắt từ phải sang trái)
+            imgAfter.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
+            // Cập nhật vị trí nút bấm
+            sliderButton.style.left = `${percentage}%`;
+        }
+
+        function resetApp() {
+            originalBase64 = null;
+            enhancedBase64 = null;
+            fileInput.value = '';
+            processingText.innerText = "Quá trình này có thể mất vài giây. Vui lòng đợi trong khi chúng tôi khôi phục chi tiết ảnh.";
+            showView('upload');
+        }
+
+        function downloadImage() {
+            if (!enhancedBase64) return;
+            
+            const a = document.createElement('a');
+            a.href = enhancedBase64;
+            a.download = `enhanced_image_${new Date().getTime()}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function showError(message) {
+            views.processing.innerHTML = `
+                <div class="text-red-500 mb-4 text-5xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <h3 class="text-xl font-bold mb-2 text-white">Xử lý thất bại</h3>
+                <p class="text-red-400 text-center max-w-md mb-6">${message}</p>
+                <button onclick="resetApp()" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-full transition text-white">
+                    Quay lại
+                </button>
+            `;
+        }
+
+    </script>
+</body>
+</html>
