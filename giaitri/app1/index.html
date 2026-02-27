@@ -910,10 +910,14 @@
         }
 
         function openPlayer(m3u8Url, epData, serverName) {
+            const playerView = document.getElementById('playerView');
             document.getElementById('mainView').classList.add('hidden');
-            document.getElementById('playerView').classList.remove('hidden');
+            playerView.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             window.scrollTo(0,0);
+
+            // Ép trình duyệt tính toán lại layout (Reflow) để huỷ trạng thái ẩn trước khi gọi Fullscreen
+            void playerView.offsetWidth;
 
             const movie = currentMovieData.movie;
             document.getElementById('playerMovieTitle').textContent = movie.name;
@@ -926,24 +930,31 @@
             // Render Episode List
             renderEpisodeList(serverName);
             
-            // Init Video
+            // Init Video (Phải gọi trước Fullscreen để video có source cho iOS nhận diện)
             initVideoPlayer(m3u8Url);
 
             // Tự động Fullscreen trên thiết bị di động (màn hình nhỏ hơn 1024px)
             if (window.innerWidth < 1024) {
-                const videoContainer = document.querySelector('.video-container');
-                const video = document.getElementById('mainVideo');
-                try {
-                    if (videoContainer.requestFullscreen) {
-                        videoContainer.requestFullscreen();
-                    } else if (videoContainer.webkitRequestFullscreen) {
-                        videoContainer.webkitRequestFullscreen(); // Safari
-                    } else if (video.webkitEnterFullscreen) {
-                        video.webkitEnterFullscreen(); // Dành riêng cho iOS Safari (iPhone)
-                    }
-                } catch (e) { 
-                    console.log("Trình duyệt chặn tự động Fullscreen", e); 
+                triggerFullscreen();
+            }
+        }
+
+        function triggerFullscreen() {
+            const videoContainer = document.querySelector('.video-container');
+            const video = document.getElementById('mainVideo');
+            try {
+                if (videoContainer.requestFullscreen) {
+                    videoContainer.requestFullscreen().catch(e => console.log(e));
+                } else if (videoContainer.webkitRequestFullscreen) {
+                    videoContainer.webkitRequestFullscreen(); // Dành cho Safari / Chrome Android cũ
+                } else if (video.webkitEnterFullscreen) {
+                    video.webkitEnterFullscreen(); // Dành riêng cho iOS Safari (iPhone)
+                } else {
+                    // Fallback CSS phóng to màn hình nếu thiết bị không hỗ trợ API
+                    videoContainer.classList.add('h-screen', 'w-screen', 'fixed', 'inset-0', 'z-[70]', 'bg-black');
                 }
+            } catch (e) { 
+                console.log("Trình duyệt chặn tự động Fullscreen", e); 
             }
         }
 
@@ -1177,22 +1188,36 @@
 
             // Fullscreen
             fullBtn.onclick = () => {
-                if (!document.fullscreenElement) {
-                    videoContainer.requestFullscreen().catch(err => console.log(err));
+                const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+                if (!isFull) {
+                    triggerFullscreen();
                 } else {
-                    document.exitFullscreen();
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen(); // Safari
+                    }
                 }
             };
             
-            document.addEventListener('fullscreenchange', () => {
-                if(document.fullscreenElement) {
+            const handleFullscreenChange = () => {
+                const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+                if(isFull) {
                     fullBtn.innerHTML = '<i class="fas fa-compress"></i>';
                     videoContainer.classList.add('h-screen', 'w-screen', 'fixed', 'inset-0', 'z-[70]', 'bg-black');
                 } else {
                     fullBtn.innerHTML = '<i class="fas fa-expand"></i>';
                     videoContainer.classList.remove('h-screen', 'w-screen', 'fixed', 'inset-0', 'z-[70]', 'bg-black');
                 }
-            });
+            };
+
+            // Sự kiện thay đổi kích thước chuẩn và cho Safari
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            
+            // Sự kiện Fullscreen riêng biệt cho iOS iPhone (Trình phát gốc của iPhone)
+            video.addEventListener('webkitbeginfullscreen', () => { fullBtn.innerHTML = '<i class="fas fa-compress"></i>'; });
+            video.addEventListener('webkitendfullscreen', () => { fullBtn.innerHTML = '<i class="fas fa-expand"></i>'; });
 
             // Subtitles Toggle (Mô phỏng do API KKPhim thường hardsub)
             document.getElementById('subBtn').onclick = () => {
