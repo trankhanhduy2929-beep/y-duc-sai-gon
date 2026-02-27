@@ -631,16 +631,22 @@
                           <th className="px-6 py-4">Tên Thuốc</th>
                           <th className="px-6 py-4">Hoạt Chất</th>
                           <th className="px-6 py-4">Số ĐK</th>
+                          <th className="px-6 py-4">Hàm Lượng</th>
+                          <th className="px-6 py-4">ĐVT</th>
                           <th className="px-6 py-4">Đóng Gói</th>
                           <th className="px-6 py-4">Đường Dùng</th>
                           <th className="px-6 py-4 text-center">Mã Tuyến</th>
+                          <th className="px-6 py-4">Hãng SX</th>
+                          <th className="px-6 py-4">Quốc Gia</th>
+                          <th className="px-6 py-4">Nhà Cung Cấp</th>
+                          <th className="px-6 py-4 text-right">Giá Bán</th>
                           <th className="px-6 py-4 text-right">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {dataList.length === 0 ? (
                           <tr>
-                            <td colSpan="8" className="px-6 py-16 text-center text-slate-400">
+                            <td colSpan="14" className="px-6 py-16 text-center text-slate-400">
                               <div className="flex flex-col items-center justify-center">
                                 <svg className="w-12 h-12 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                                 <p className="font-medium text-base">Không gian trống</p>
@@ -655,6 +661,8 @@
                               <td className="px-6 py-3.5 font-bold text-slate-800">{item.TEN_THUOC}</td>
                               <td className="px-6 py-3.5 text-slate-600">{item.HOAT_CHAT}</td>
                               <td className="px-6 py-3.5 text-slate-600 font-mono text-xs">{item.SO_DANG_KY}</td>
+                              <td className="px-6 py-3.5 text-slate-600">{item.HAM_LUONG}</td>
+                              <td className="px-6 py-3.5 text-slate-600">{item.DON_VI_TINH}</td>
                               <td className="px-6 py-3.5 text-slate-600">{item.DONG_GOI}</td>
                               <td className="px-6 py-3.5">
                                 {item.DUONG_DUNG ? (
@@ -669,6 +677,14 @@
                                     {item.MA_DUONG_DUNG}
                                   </span>
                                 ) : <span className="text-slate-300">-</span>}
+                              </td>
+                              <td className="px-6 py-3.5 text-slate-600">{item.HANG_SX}</td>
+                              <td className="px-6 py-3.5 text-slate-600">{item.NUOC_SX}</td>
+                              <td className="px-6 py-3.5 text-slate-600 max-w-[200px] truncate" title={item.NHA_CUNG_CAP}>
+                                {item.NHA_CUNG_CAP}
+                              </td>
+                              <td className="px-6 py-3.5 text-right font-semibold text-emerald-600">
+                                {item.GIA_BAN ? new Intl.NumberFormat('vi-VN').format(item.GIA_BAN) + ' ₫' : '-'}
                               </td>
                               <td className="px-6 py-3.5 text-right whitespace-nowrap">
                                 <button 
