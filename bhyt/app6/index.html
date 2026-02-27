@@ -436,6 +436,7 @@
 
         // 4. Phân tích Bảng 3
         let machineUsage = {}; 
+        let personUsage = {}; // Bổ sung Map ghi nhận người thực hiện
         let preliminaryRecords = [];
 
         rawData.b3.forEach(row => {
@@ -445,7 +446,10 @@
             let tenDV = (row.TEN_DICH_VU || '').toLowerCase();
             let maMay = (row.MA_MAY || '').trim();
             let maMay3176 = (row.MA_MAY_3176 || '').trim();
-            let ngayKq = (row.NGAY_KQ || row.NGAY_TH_YL || '').trim();
+            let nguoiThucHienCode = (row.NGUOI_THUC_HIEN || '').trim();
+            
+            // Lấy ưu tiên NGAY_TH_YL (Ngày Thực Hiện Y Lệnh) theo yêu cầu người dùng
+            let ngayThYl = (row.NGAY_TH_YL || row.NGAY_KQ || '').trim();
             let maDichVu = row.MA_DICH_VU || '';
 
             let errors = [];
@@ -458,10 +462,19 @@
             }
 
             let actualMachine = maMay || maMay3176;
-            if (actualMachine && ngayKq && !isKham) { 
+            
+            // Ghi nhận thời gian dùng Máy
+            if (actualMachine && ngayThYl && !isKham) { 
                 if (!machineUsage[actualMachine]) machineUsage[actualMachine] = {};
-                if (!machineUsage[actualMachine][ngayKq]) machineUsage[actualMachine][ngayKq] = [];
-                machineUsage[actualMachine][ngayKq].push(maLk);
+                if (!machineUsage[actualMachine][ngayThYl]) machineUsage[actualMachine][ngayThYl] = [];
+                machineUsage[actualMachine][ngayThYl].push(maLk);
+            }
+
+            // Ghi nhận thời gian Người Thực Hiện (NGUOI_THUC_HIEN & NGAY_TH_YL)
+            if (nguoiThucHienCode && ngayThYl) {
+                if (!personUsage[nguoiThucHienCode]) personUsage[nguoiThucHienCode] = {};
+                if (!personUsage[nguoiThucHienCode][ngayThYl]) personUsage[nguoiThucHienCode][ngayThYl] = [];
+                personUsage[nguoiThucHienCode][ngayThYl].push(maLk);
             }
 
             let patientInfo = b1Map[maLk] || {};
@@ -471,10 +484,11 @@
                 maLk: maLk,
                 tenBenhNhan: patientInfo.HO_TEN || 'Không rõ',
                 tenDichVu: row.TEN_DICH_VU || '',
-                ngayThucHien: ngayKq,
+                ngayThucHien: ngayThYl,
                 maMay: actualMachine,
+                nguoiThucHienCode: nguoiThucHienCode,
                 bsKham: getDocName(row.MA_BAC_SI),
-                bsThucHien: getDocName(row.NGUOI_THUC_HIEN),
+                bsThucHien: getDocName(nguoiThucHienCode),
                 bsDocKq: getDocName(b4Info.bsDoc || ''),
                 errors: errors,
                 isOverlap: false
@@ -489,25 +503,46 @@
             preliminaryRecords.push(record);
         });
 
-        // 5. Check Chồng Giờ
+        // 5. Check Chồng Giờ (Máy & Người Thực Hiện)
         let errorCount = 0;
         preliminaryRecords.forEach(rec => {
+            let isMachineOverlap = false;
+            let isPersonOverlap = false;
+
+            // Kiểm tra lỗi Máy trùng giờ
             if (rec.maMay && rec.ngayThucHien) {
-                // FIX LỖI "TypeError: Cannot read properties of undefined":
-                // Sử dụng optional chaining (?.) để kiểm tra xem machineUsage[rec.maMay] có tồn tại không trước khi truy cập ngayThucHien
-                let usersAtSameTime = machineUsage[rec.maMay]?.[rec.ngayThucHien];
-                
-                if (usersAtSameTime) {
-                    let uniquePatientsList = [...new Set(usersAtSameTime)];
+                let mUsers = machineUsage[rec.maMay]?.[rec.ngayThucHien];
+                if (mUsers) {
+                    let uniquePatientsList = [...new Set(mUsers)];
                     if (uniquePatientsList.length > 1) {
                         rec.errors.push({ 
                             type: 'overlap_machine', 
-                            text: `Trùng giờ máy (${uniquePatientsList.length} BN dùng chung)` 
+                            text: `Trùng giờ MÁY (${uniquePatientsList.length} BN dùng chung)` 
                         });
-                        rec.isOverlap = true;
-                        overlappingTimesSet.add(rec.ngayThucHien); // Gom mốc thời gian trùng
+                        isMachineOverlap = true;
+                        overlappingTimesSet.add(rec.ngayThucHien);
                     }
                 }
+            }
+
+            // Kiểm tra lỗi Người Thực Hiện trùng giờ
+            if (rec.nguoiThucHienCode && rec.ngayThucHien) {
+                let pUsers = personUsage[rec.nguoiThucHienCode]?.[rec.ngayThucHien];
+                if (pUsers) {
+                    let uniquePatientsList = [...new Set(pUsers)];
+                    if (uniquePatientsList.length > 1) {
+                        rec.errors.push({ 
+                            type: 'overlap_person', 
+                            text: `Trùng giờ N.Thực Hiện (${uniquePatientsList.length} BN)` 
+                        });
+                        isPersonOverlap = true;
+                        overlappingTimesSet.add(rec.ngayThucHien);
+                    }
+                }
+            }
+
+            if (isMachineOverlap || isPersonOverlap) {
+                rec.isOverlap = true;
             }
 
             if(rec.errors.length > 0) errorCount++;
