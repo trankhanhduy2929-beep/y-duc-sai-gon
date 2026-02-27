@@ -928,6 +928,23 @@
             
             // Init Video
             initVideoPlayer(m3u8Url);
+
+            // Tự động Fullscreen trên thiết bị di động (màn hình nhỏ hơn 1024px)
+            if (window.innerWidth < 1024) {
+                const videoContainer = document.querySelector('.video-container');
+                const video = document.getElementById('mainVideo');
+                try {
+                    if (videoContainer.requestFullscreen) {
+                        videoContainer.requestFullscreen();
+                    } else if (videoContainer.webkitRequestFullscreen) {
+                        videoContainer.webkitRequestFullscreen(); // Safari
+                    } else if (video.webkitEnterFullscreen) {
+                        video.webkitEnterFullscreen(); // Dành riêng cho iOS Safari (iPhone)
+                    }
+                } catch (e) { 
+                    console.log("Trình duyệt chặn tự động Fullscreen", e); 
+                }
+            }
         }
 
         function closePlayer() {
