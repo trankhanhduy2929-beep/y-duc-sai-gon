@@ -553,17 +553,57 @@
                 });
             } else {
                 // Fallback for mp4
-                video.src = sourceUrl;
-                videoLoader.classList.add('hidden');
-                video.play().catch(e => {});
-            }
+            video.src = sourceUrl;
+            videoLoader.classList.add('hidden');
+            video.play().catch(e => {});
+        }
 
-            // Play/Pause
-            const togglePlay = () => {
-                if(video.paused) video.play();
-                else video.pause();
-            };
-            playBtn.addEventListener('click', togglePlay);
+        // Mobile Detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Fullscreen & Orientation API Helpers
+        const enterFullscreen = async () => {
+            try {
+                if (videoContainer.requestFullscreen) {
+                    await videoContainer.requestFullscreen();
+                } else if (videoContainer.webkitRequestFullscreen) {
+                    await videoContainer.webkitRequestFullscreen();
+                }
+                // Lock screen to landscape
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape').catch(e => console.log("Orientation lock error:", e));
+                }
+            } catch (err) { console.log("Fullscreen error:", err); }
+        };
+
+        const exitFullscreen = async () => {
+            try {
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    await document.webkitExitFullscreen();
+                }
+                // Unlock screen orientation
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            } catch (err) { console.log("Exit fullscreen error:", err); }
+        };
+
+        // Play/Pause
+        const togglePlay = () => {
+            if(video.paused) {
+                video.play();
+                // Auto fullscreen & landscape on mobile when pressing play
+                if (isMobile && !document.fullscreenElement) {
+                    enterFullscreen();
+                }
+            }
+            else {
+                video.pause();
+            }
+        };
+        playBtn.addEventListener('click', togglePlay);
             
             // Update UI on play/pause
             video.addEventListener('play', () => playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>');
@@ -606,25 +646,25 @@
             };
 
             muteBtn.addEventListener('click', () => {
-                video.muted = !video.muted;
-                if(!video.muted && video.volume === 0) { video.volume = 1; volumeSlider.value = 1; }
-                else { volumeSlider.value = video.muted ? 0 : video.volume; }
-                updateVolumeIcon();
-            });
+            video.muted = !video.muted;
+            if(!video.muted && video.volume === 0) { video.volume = 1; volumeSlider.value = 1; }
+            else { volumeSlider.value = video.muted ? 0 : video.volume; }
+            updateVolumeIcon();
+        });
 
-            // Fullscreen
-            fullscreenBtn.addEventListener('click', () => {
-                if (!document.fullscreenElement) {
-                    videoContainer.requestFullscreen().catch(err => console.log(err));
-                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
-                } else {
-                    document.exitFullscreen();
-                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-                }
-            });
+        // Fullscreen
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                enterFullscreen();
+                fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+            } else {
+                exitFullscreen();
+                fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+            }
+        });
 
-            // Picture in Picture
-            pipBtn.addEventListener('click', async () => {
+        // Picture in Picture
+        pipBtn.addEventListener('click', async () => {
                 try {
                     if (document.pictureInPictureElement) {
                         await document.exitPictureInPicture();
@@ -707,20 +747,33 @@
         };
 
         window.playEpisode = (link, btnElement) => {
-            // Update UI
-            document.querySelectorAll('.ep-btn').forEach(btn => {
-                btn.classList.remove('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
-                btn.classList.add('text-gray-300', 'bg-gray-800');
-            });
-            btnElement.classList.remove('text-gray-300', 'bg-gray-800');
-            btnElement.classList.add('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
-            
-            // Scroll to video
-            window.scrollTo({top: 0, behavior: 'smooth'});
-            initPlayer(link);
-        };
+        // Update UI
+        document.querySelectorAll('.ep-btn').forEach(btn => {
+            btn.classList.remove('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
+            btn.classList.add('text-gray-300', 'bg-gray-800');
+        });
+        btnElement.classList.remove('text-gray-300', 'bg-gray-800');
+        btnElement.classList.add('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
+        
+        // Scroll to video
+        window.scrollTo({top: 0, behavior: 'smooth'});
+        initPlayer(link);
 
-        // 3. FILTER / CATEGORY VIEW
+        // Auto fullscreen & landscape on Mobile when clicking an episode
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            const videoContainer = document.getElementById('videoContainer');
+            if (videoContainer && videoContainer.requestFullscreen) {
+                videoContainer.requestFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(e=>{});
+                    }
+                }).catch(e=>{});
+            }
+        }
+    };
+
+    // 3. FILTER / CATEGORY VIEW
         const renderFilter = async (container, listType) => {
             let typeName = listType === 'phim-le' ? 'Phim Lẻ' : listType === 'phim-bo' ? 'Phim Bộ' : listType === 'hoat-hinh' ? 'Hoạt Hình' : 'TV Shows';
             
@@ -817,8 +870,19 @@
             });
 
             // Load Initial View
-            navigate('home');
+        navigate('home');
+
+        // Handle Fullscreen Exit (e.g., via physical Back button on Android)
+        document.addEventListener('fullscreenchange', () => {
+            const fsBtn = document.getElementById('fullscreenBtn');
+            if (!document.fullscreenElement) {
+                if (fsBtn) fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+            } else {
+                if (fsBtn) fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+            }
         });
-    </script>
+    });
+</script>
 </body>
 </html>
