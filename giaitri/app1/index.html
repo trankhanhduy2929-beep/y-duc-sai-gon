@@ -28,6 +28,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- HLS.js for m3u8 playback -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Google Cast Framework -->
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
     <style>
         /* Custom Scrollbar */
@@ -61,7 +63,7 @@
         .video-controls {
             position: absolute; bottom: 0; left: 0; right: 0;
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%);
-            padding: 20px 15px 10px; transition: opacity 0.3s; opacity: 0;
+            padding: 20px 15px 10px; transition: opacity 0.3s; opacity: 0; z-index: 20;
         }
         .video-container:hover .video-controls, .video-container.touch-device .video-controls.active { opacity: 1; }
         
@@ -78,12 +80,24 @@
             position: absolute; top: 50%; transform: translateY(-50%);
             background: rgba(0,0,0,0.6); color: white; padding: 15px 20px;
             border-radius: 50%; font-size: 1.5rem; pointer-events: none;
-            opacity: 0; transition: opacity 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 15;
         }
         .seek-left { left: 15%; }
         .seek-right { right: 15%; }
         .seek-active { opacity: 1; animation: pop 0.3s ease-out; }
         @keyframes pop { 0% { transform: translateY(-50%) scale(0.8); } 50% { transform: translateY(-50%) scale(1.1); } 100% { transform: translateY(-50%) scale(1); } }
+
+        /* Cast Button Styles */
+        google-cast-launcher {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            --connected-color: #06b6d4;
+            --disconnected-color: white;
+            transition: opacity 0.3s;
+        }
+        google-cast-launcher:hover { opacity: 0.8; }
 
         /* Carousel Overlay */
         .hero-overlay { background: linear-gradient(to top, #0f172a 0%, transparent 100%); }
@@ -194,7 +208,70 @@
             heroIndex: 0,
             heroTimer: null,
             hls: null,
-            searchTimeout: null
+            searchTimeout: null,
+            // Variables for Google Cast
+            currentMediaUrl: '',
+            currentMediaTitle: '',
+            currentMediaPoster: ''
+        };
+
+        // --- GOOGLE CAST API SETUP ---
+        window.__onGCastApiAvailable = function(isAvailable) {
+            if (isAvailable) {
+                cast.framework.CastContext.getInstance().setOptions({
+                    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+                });
+
+                const context = cast.framework.CastContext.getInstance();
+                context.addEventListener(
+                    cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+                    function(event) {
+                        switch (event.sessionState) {
+                            case cast.framework.SessionState.SESSION_STARTED:
+                            case cast.framework.SessionState.SESSION_RESUMED:
+                                window.loadMediaToCast();
+                                break;
+                        }
+                    }
+                );
+            }
+        };
+
+        window.loadMediaToCast = function() {
+            if (typeof cast === 'undefined' || !cast.framework) return;
+            const session = cast.framework.CastContext.getInstance().getCurrentSession();
+            if (!session || !state.currentMediaUrl) return;
+
+            const isHls = state.currentMediaUrl.includes('.m3u8');
+            const mediaInfo = new chrome.cast.media.MediaInfo(state.currentMediaUrl, isHls ? 'application/x-mpegURL' : 'video/mp4');
+            mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
+            mediaInfo.metadata.metadataType = chrome.cast.media.MetadataType.GENERIC;
+            mediaInfo.metadata.title = state.currentMediaTitle || 'KKPhim Premium';
+            if (state.currentMediaPoster) {
+                mediaInfo.metadata.images = [new chrome.cast.Image(state.currentMediaPoster)];
+            }
+
+            const request = new chrome.cast.media.LoadRequest(mediaInfo);
+            
+            // Đồng bộ thời gian hiện tại từ Web lên Loa/TV và Pause video trên Web
+            const localVideo = document.getElementById('customPlayer');
+            if (localVideo) {
+                request.currentTime = localVideo.currentTime;
+                localVideo.pause();
+                
+                const osdText = document.getElementById('osdText');
+                if(osdText) {
+                    osdText.innerText = 'Đang phát trên thiết bị Cast...';
+                    osdText.classList.remove('opacity-0');
+                    setTimeout(() => osdText.classList.add('opacity-0'), 3000);
+                }
+            }
+
+            session.loadMedia(request).then(
+                function() { console.log('Đã nạp Media lên thiết bị Cast'); },
+                function(errorCode) { console.error('Lỗi nạp Media Cast: ' + errorCode); }
+            );
         };
 
         // --- UTILS ---
@@ -269,10 +346,8 @@
                 </div>
             `;
 
-            // Fetch Top Movies for Hero
             const newMovies = await fetchAPI('/danh-sach/phim-moi-cap-nhat?page=1');
             if (newMovies && newMovies.items) {
-                // Get full details for top 5 movies to get proper banners
                 const topMovies = [];
                 for(let i=0; i<Math.min(5, newMovies.items.length); i++) {
                     const detail = await fetchAPI(`/phim/${newMovies.items[i].slug}`);
@@ -282,7 +357,6 @@
                 renderHeroSlider();
             }
 
-            // Fetch Rows
             renderMovieRow('row-phim-le', 'Phim Lẻ Mới', 'phim-le');
             renderMovieRow('row-phim-bo', 'Phim Bộ Nổi Bật', 'phim-bo');
             renderMovieRow('row-hoat-hinh', 'Hoạt Hình', 'hoat-hinh');
@@ -322,7 +396,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Slider Indicators -->
                     <div class="absolute bottom-6 right-8 flex gap-2 z-20">
                         ${state.latestMovies.map((_, i) => `
                             <button onclick="setHeroIndex(${i})" class="w-10 h-1.5 rounded-full transition-all ${i === state.heroIndex ? 'bg-primary' : 'bg-gray-600'}"></button>
@@ -365,14 +438,12 @@
                         <img data-src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-0" alt="${movie.name}">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         
-                        <!-- Overlay Play Icon -->
                         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <div class="w-12 h-12 bg-primary/90 rounded-full flex items-center justify-center text-white shadow-lg shadow-primary/50">
                                 <i class="fa-solid fa-play ml-1"></i>
                             </div>
                         </div>
 
-                        <!-- Labels -->
                         <div class="absolute top-2 left-2 flex flex-col gap-1">
                             ${movie.quality ? `<span class="bg-primary text-xs font-bold px-1.5 py-0.5 rounded shadow">${movie.quality}</span>` : ''}
                         </div>
@@ -396,8 +467,11 @@
 
             const movie = data.movie;
             const episodes = data.episodes?.[0]?.server_data || [];
-            // Auto select first episode
             const firstEpLink = episodes.length > 0 ? episodes[0].link_m3u8 : '';
+
+            // Update state for Casting info
+            state.currentMediaTitle = movie.name;
+            state.currentMediaPoster = getImgUrl(movie.poster_url || movie.thumb_url);
 
             container.innerHTML = `
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -439,9 +513,14 @@
                                         <div class="relative group" id="qualityWrapper" style="display:none;">
                                             <button class="text-white hover:text-primary text-sm font-bold flex items-center gap-1"><i class="fa-solid fa-gear"></i> <span id="qualityLabel">Auto</span></button>
                                             <div id="qualityMenu" class="absolute bottom-full right-0 mb-2 bg-gray-900 border border-gray-700 rounded-lg hidden group-hover:flex flex-col min-w-[100px] overflow-hidden">
-                                                <!-- injected via JS -->
                                             </div>
                                         </div>
+                                        
+                                        <!-- CAST BUTTON HERE -->
+                                        <div class="flex items-center ml-2 mr-1" title="Truyền tới TV/Loa (Cast)">
+                                            <google-cast-launcher></google-cast-launcher>
+                                        </div>
+
                                         <button id="resizeBtn" class="text-white hover:text-primary transition-colors text-lg" title="Kích cỡ: Mặc định"><i class="fa-solid fa-crop-simple"></i></button>
                                         <button id="pipBtn" class="text-white hover:text-primary transition-colors" title="Picture in Picture"><i class="fa-solid fa-clone"></i></button>
                                         <button id="fullscreenBtn" class="text-white hover:text-primary transition-colors text-lg"><i class="fa-solid fa-expand"></i></button>
@@ -501,7 +580,6 @@
                 </div>
             `;
 
-            // Initialize Player after HTML is rendered
             if (firstEpLink) {
                 initPlayer(firstEpLink);
             }
@@ -523,7 +601,17 @@
             const videoLoader = document.getElementById('videoLoader');
             const osdText = document.getElementById('osdText');
             
-            // Clean up previous HLS instance
+            // Cập nhật State cho Cast
+            state.currentMediaUrl = sourceUrl;
+            
+            // Tự động load lên thiết bị Cast nếu đang có session Cast kết nối sẵn
+            if (typeof cast !== 'undefined' && cast.framework) {
+                const context = cast.framework.CastContext.getInstance();
+                if (context.getCurrentSession()) {
+                    window.loadMediaToCast();
+                }
+            }
+
             if (state.hls) {
                 state.hls.destroy();
                 state.hls = null;
@@ -543,7 +631,6 @@
                 
                 hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                     videoLoader.classList.add('hidden');
-                    // Setup Quality selector
                     setupQualitySelector(hls, data.levels);
                     video.play().catch(e => console.log("Auto-play prevented", e));
                 });
@@ -566,86 +653,78 @@
                 });
             } else {
                 // Fallback for mp4
-            video.src = sourceUrl;
-            videoLoader.classList.add('hidden');
-            video.play().catch(e => {});
-        }
-
-        // Mobile Detection
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        // Fullscreen & Orientation API Helpers
-        const enterFullscreen = async () => {
-            try {
-                if (videoContainer.requestFullscreen) {
-                    await videoContainer.requestFullscreen();
-                } else if (videoContainer.webkitRequestFullscreen) {
-                    await videoContainer.webkitRequestFullscreen();
-                }
-                // Lock screen to landscape
-                if (screen.orientation && screen.orientation.lock) {
-                    await screen.orientation.lock('landscape').catch(e => console.log("Orientation lock error:", e));
-                }
-            } catch (err) { console.log("Fullscreen error:", err); }
-        };
-
-        const exitFullscreen = async () => {
-            try {
-                if (document.exitFullscreen) {
-                    await document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    await document.webkitExitFullscreen();
-                }
-                // Unlock screen orientation
-                if (screen.orientation && screen.orientation.unlock) {
-                    screen.orientation.unlock();
-                }
-            } catch (err) { console.log("Exit fullscreen error:", err); }
-        };
-
-        // Play/Pause
-        const togglePlay = () => {
-            if(video.paused) {
-                video.play();
-                // Auto fullscreen & landscape on mobile when pressing play
-                if (isMobile && !document.fullscreenElement) {
-                    enterFullscreen();
-                }
+                video.src = sourceUrl;
+                videoLoader.classList.add('hidden');
+                video.play().catch(e => {});
             }
-            else {
-                video.pause();
-            }
-        };
-        playBtn.addEventListener('click', togglePlay);
+
+            // Mobile Detection
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            // Fullscreen & Orientation API Helpers
+            const enterFullscreen = async () => {
+                try {
+                    if (videoContainer.requestFullscreen) {
+                        await videoContainer.requestFullscreen();
+                    } else if (videoContainer.webkitRequestFullscreen) {
+                        await videoContainer.webkitRequestFullscreen();
+                    }
+                    if (screen.orientation && screen.orientation.lock) {
+                        await screen.orientation.lock('landscape').catch(e => console.log("Orientation lock error:", e));
+                    }
+                } catch (err) { console.log("Fullscreen error:", err); }
+            };
+
+            const exitFullscreen = async () => {
+                try {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        await document.webkitExitFullscreen();
+                    }
+                    if (screen.orientation && screen.orientation.unlock) {
+                        screen.orientation.unlock();
+                    }
+                } catch (err) { console.log("Exit fullscreen error:", err); }
+            };
+
+            // Play/Pause
+            const togglePlay = () => {
+                if(video.paused) {
+                    video.play();
+                    if (isMobile && !document.fullscreenElement) {
+                        enterFullscreen();
+                    }
+                }
+                else {
+                    video.pause();
+                }
+            };
+            playBtn.addEventListener('click', togglePlay);
             
-            // Update UI on play/pause
             video.addEventListener('play', () => playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>');
             video.addEventListener('pause', () => playBtn.innerHTML = '<i class="fa-solid fa-play"></i>');
             video.addEventListener('waiting', () => videoLoader.classList.remove('hidden'));
             video.addEventListener('playing', () => videoLoader.classList.add('hidden'));
 
-            // Format Time Helper
             const formatTime = (seconds) => {
                 const m = Math.floor(seconds / 60);
                 const s = Math.floor(seconds % 60);
                 return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
             };
 
-            // Time Update & Progress
             video.addEventListener('timeupdate', () => {
                 const percent = (video.currentTime / video.duration) * 100;
                 progressFilled.style.width = `${percent}%`;
                 timeDisplay.innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
             });
 
-            // Click Progress Bar to Seek
             progressBar.addEventListener('click', (e) => {
                 const rect = progressBar.getBoundingClientRect();
                 const pos = (e.clientX - rect.left) / rect.width;
                 video.currentTime = pos * video.duration;
             });
 
-            // Volume Control
             volumeSlider.addEventListener('input', (e) => {
                 video.volume = e.target.value;
                 video.muted = video.volume === 0;
@@ -659,25 +738,23 @@
             };
 
             muteBtn.addEventListener('click', () => {
-            video.muted = !video.muted;
-            if(!video.muted && video.volume === 0) { video.volume = 1; volumeSlider.value = 1; }
-            else { volumeSlider.value = video.muted ? 0 : video.volume; }
-            updateVolumeIcon();
-        });
+                video.muted = !video.muted;
+                if(!video.muted && video.volume === 0) { video.volume = 1; volumeSlider.value = 1; }
+                else { volumeSlider.value = video.muted ? 0 : video.volume; }
+                updateVolumeIcon();
+            });
 
-        // Fullscreen
-        fullscreenBtn.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                enterFullscreen();
-                fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
-            } else {
-                exitFullscreen();
-                fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-            }
-        });
+            fullscreenBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    enterFullscreen();
+                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                } else {
+                    exitFullscreen();
+                    fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                }
+            });
 
-        // Picture in Picture
-        pipBtn.addEventListener('click', async () => {
+            pipBtn.addEventListener('click', async () => {
                 try {
                     if (document.pictureInPictureElement) {
                         await document.exitPictureInPicture();
@@ -687,7 +764,6 @@
                 } catch(err) { console.error("PiP error", err); }
             });
 
-            // Resize Video (Zoom/Fit/Fill)
             const fitModes = ['contain', 'cover', 'fill'];
             const fitLabels = ['Kích cỡ: Mặc định', 'Kích cỡ: Phủ kín', 'Kích cỡ: Kéo dãn'];
             let currentFitIndex = 0;
@@ -699,7 +775,6 @@
                 video.classList.add(`fit-${fitModes[currentFitIndex]}`);
                 resizeBtn.title = fitLabels[currentFitIndex];
                 
-                // Show OSD
                 if(osdText) {
                     osdText.innerText = fitLabels[currentFitIndex];
                     osdText.classList.remove('opacity-0');
@@ -707,10 +782,7 @@
                     osdTimer = setTimeout(() => osdText.classList.add('opacity-0'), 2000);
                 }
             });
-
-            // --- Advanced Interactions (Double click to seek) ---
             
-            // Touch detection for showing controls on mobile
             if('ontouchstart' in window) {
                 videoContainer.classList.add('touch-device');
                 video.addEventListener('click', () => {
@@ -721,27 +793,23 @@
 
             let clickTimer = null;
             videoContainer.addEventListener('click', (e) => {
-                // Ignore clicks on controls
                 if(e.target.closest('.video-controls')) return;
 
                 if (clickTimer === null) {
                     clickTimer = setTimeout(() => {
-                        if(!('ontouchstart' in window)) togglePlay(); // Single click pauses only on PC
+                        if(!('ontouchstart' in window)) togglePlay(); 
                         clickTimer = null;
-                    }, 250); // wait 250ms to see if double click happens
+                    }, 250); 
                 } else {
-                    clearTimeout(clickTimer); // Cancel single click
+                    clearTimeout(clickTimer); 
                     clickTimer = null;
-                    // Double Click detected
                     const rect = videoContainer.getBoundingClientRect();
                     const clickX = e.clientX - rect.left;
                     
                     if (clickX < rect.width / 2) {
-                        // Rewind
                         video.currentTime = Math.max(0, video.currentTime - 10);
                         animateSeek('seekLeft');
                     } else {
-                        // Forward
                         video.currentTime = Math.min(video.duration, video.currentTime + 10);
                         animateSeek('seekRight');
                     }
@@ -751,7 +819,7 @@
             const animateSeek = (id) => {
                 const el = document.getElementById(id);
                 el.classList.remove('seek-active');
-                void el.offsetWidth; // trigger reflow
+                void el.offsetWidth; 
                 el.classList.add('seek-active');
                 setTimeout(() => el.classList.remove('seek-active'), 400);
             };
@@ -762,7 +830,7 @@
             const menu = document.getElementById('qualityMenu');
             const label = document.getElementById('qualityLabel');
             
-            if (!levels || levels.length <= 1) return; // Hide if only 1 quality
+            if (!levels || levels.length <= 1) return; 
             
             wrapper.style.display = 'block';
             let menuHtml = `<button class="text-left px-4 py-2 hover:bg-primary text-sm font-bold text-white transition-colors" onclick="setQuality(-1)">Auto</button>`;
@@ -775,37 +843,34 @@
             window.setQuality = (index, name = 'Auto') => {
                 hls.currentLevel = index;
                 label.innerText = name;
-                menu.classList.add('hidden'); // hide after select
-                setTimeout(() => menu.classList.remove('hidden'), 100); // hack to restore hover capability
+                menu.classList.add('hidden'); 
+                setTimeout(() => menu.classList.remove('hidden'), 100); 
             };
         };
 
         window.playEpisode = (link, btnElement) => {
-        // Update UI
-        document.querySelectorAll('.ep-btn').forEach(btn => {
-            btn.classList.remove('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
-            btn.classList.add('text-gray-300', 'bg-gray-800');
-        });
-        btnElement.classList.remove('text-gray-300', 'bg-gray-800');
-        btnElement.classList.add('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
-        
-        // Scroll to video
-        window.scrollTo({top: 0, behavior: 'smooth'});
-        initPlayer(link);
+            document.querySelectorAll('.ep-btn').forEach(btn => {
+                btn.classList.remove('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
+                btn.classList.add('text-gray-300', 'bg-gray-800');
+            });
+            btnElement.classList.remove('text-gray-300', 'bg-gray-800');
+            btnElement.classList.add('bg-primary/20', 'border-primary', 'text-primary', 'font-bold');
+            
+            window.scrollTo({top: 0, behavior: 'smooth'});
+            initPlayer(link);
 
-        // Auto fullscreen & landscape on Mobile when clicking an episode
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile) {
-            const videoContainer = document.getElementById('videoContainer');
-            if (videoContainer && videoContainer.requestFullscreen) {
-                videoContainer.requestFullscreen().then(() => {
-                    if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('landscape').catch(e=>{});
-                    }
-                }).catch(e=>{});
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                const videoContainer = document.getElementById('videoContainer');
+                if (videoContainer && videoContainer.requestFullscreen) {
+                    videoContainer.requestFullscreen().then(() => {
+                        if (screen.orientation && screen.orientation.lock) {
+                            screen.orientation.lock('landscape').catch(e=>{});
+                        }
+                    }).catch(e=>{});
+                }
             }
-        }
-    };
+        };
 
     // 3. FILTER / CATEGORY VIEW
         const filterOptions = {
@@ -832,16 +897,13 @@
 
         window.applyFilter = (type, slug) => {
             if(!slug) return;
-            // Cập nhật router giả lập: type:slug (VD: the-loai:hanh-dong)
             navigate('filter', `${type}:${slug}`);
         };
 
         const renderFilter = async (container, param) => {
-            // Mặc định load phim lẻ
             let endpointType = 'danh-sach';
             let currentSlug = param || 'phim-le';
 
-            // Phân tách nếu param có chứa type (VD: the-loai:hanh-dong)
             if (param && param.includes(':')) {
                 const parts = param.split(':');
                 endpointType = parts[0];
@@ -854,7 +916,6 @@
                         <h1 class="text-3xl font-bold text-white border-l-4 border-primary pl-4" id="filterTitle">Đang lọc phim...</h1>
                     </div>
 
-                    <!-- Thanh Công Cụ Lọc -->
                     <div class="bg-cardbg p-4 rounded-xl border border-gray-800 mb-8 flex flex-wrap gap-4 items-center shadow-lg">
                         <div class="flex items-center gap-2 mr-2">
                             <i class="fa-solid fa-filter text-primary"></i>
@@ -877,12 +938,10 @@
                         </select>
                     </div>
 
-                    <!-- Lưới hiển thị phim -->
                     <div id="filter-results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
                         <div class="col-span-full py-20 flex justify-center"><div class="loader"></div></div>
                     </div>
                     
-                    <!-- Nút Tải Thêm -->
                     <div class="mt-8 flex justify-center hidden" id="loadMoreContainer">
                         <button onclick="loadMoreFilter()" class="bg-gray-800 hover:bg-primary text-white px-8 py-3 rounded-full transition-colors border border-gray-700 font-bold shadow-lg flex items-center gap-2">
                             <i class="fa-solid fa-arrow-down"></i> Tải thêm
@@ -891,7 +950,6 @@
                 </div>
             `;
 
-            // Khởi tạo trạng thái phân trang
             window.currentFilterPage = 1;
             window.currentEndpointType = endpointType;
             window.currentFilterSlug = currentSlug;
@@ -910,18 +968,16 @@
 
             const data = await fetchAPI(`/v1/api/${window.currentEndpointType}/${window.currentFilterSlug}?page=${window.currentFilterPage}&limit=24`);
             
-            if(!append) grid.innerHTML = ''; // Xóa loader nếu load trang đầu
+            if(!append) grid.innerHTML = ''; 
 
             if (data && data.data && data.data.items && data.data.items.length > 0) {
                 const html = data.data.items.map(movie => createMovieCard(movie)).join('');
                 grid.innerHTML += html;
                 lazyLoadImages();
 
-                // Cập nhật tiêu đề trang từ API trả về
                 const titleEl = document.getElementById('filterTitle');
                 if(titleEl && data.data.titlePage) titleEl.innerText = data.data.titlePage;
 
-                // Hiện nút tải thêm nếu số item load ra >= 24 (tức là còn phim trang sau)
                 if(data.data.items.length >= 24) {
                     loadMoreBtn.classList.remove('hidden');
                 } else {
@@ -977,10 +1033,9 @@
                     } else {
                         dropdown.innerHTML = '<div class="p-4 text-center text-gray-400">Không tìm thấy phim nào.</div>';
                     }
-                }, 500); // Debounce 500ms
+                }, 500);
             });
 
-            // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
                 if(!input.contains(e.target) && !dropdown.contains(e.target)) {
                     dropdown.classList.add('hidden');
@@ -998,12 +1053,10 @@
             setupSearch('searchInput', 'searchDropdown');
             setupSearch('searchInputMobile', 'searchDropdownMobile');
             
-            // Mobile Menu Toggle
             document.getElementById('mobileMenuBtn').addEventListener('click', () => {
                 document.getElementById('mobileMenu').classList.toggle('hidden');
             });
 
-            // Navbar scroll effect
             window.addEventListener('scroll', () => {
                 const nav = document.getElementById('navbar');
                 if (window.scrollY > 10) {
@@ -1013,20 +1066,18 @@
                 }
             });
 
-            // Load Initial View
-        navigate('home');
+            navigate('home');
 
-        // Handle Fullscreen Exit (e.g., via physical Back button on Android)
-        document.addEventListener('fullscreenchange', () => {
-            const fsBtn = document.getElementById('fullscreenBtn');
-            if (!document.fullscreenElement) {
-                if (fsBtn) fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-            } else {
-                if (fsBtn) fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
-            }
+            document.addEventListener('fullscreenchange', () => {
+                const fsBtn = document.getElementById('fullscreenBtn');
+                if (!document.fullscreenElement) {
+                    if (fsBtn) fsBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+                } else {
+                    if (fsBtn) fsBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                }
+            });
         });
-    });
-</script>
+    </script>
 </body>
 </html>
