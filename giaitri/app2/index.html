@@ -67,8 +67,10 @@
             position: absolute; bottom: 0; left: 0; right: 0; 
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
             transition: opacity 0.3s ease; opacity: 0; padding: 20px 15px 10px;
+            pointer-events: none;
         }
-        .player-container:hover .player-controls, .player-container.show-controls .player-controls { opacity: 1; }
+        .player-container.show-controls .player-controls { opacity: 1; pointer-events: auto; }
+        .player-container.hide-cursor, .player-container.hide-cursor * { cursor: none !important; }
         
         /* Custom Range Slider */
         input[type=range] { -webkit-appearance: none; background: transparent; width: 100%; cursor: pointer; }
@@ -944,15 +946,30 @@
                 
                 // Auto hide controls
                 const container = document.getElementById('player-container');
+                const controlsEl = container.querySelector('.player-controls');
                 let timeout;
+                let isHoveringControls = false;
+
+                controlsEl.addEventListener('mouseenter', () => { isHoveringControls = true; resetControls(); });
+                controlsEl.addEventListener('mouseleave', () => { isHoveringControls = false; resetControls(); });
+
                 const resetControls = () => {
                     container.classList.add('show-controls');
+                    container.classList.remove('hide-cursor');
                     clearTimeout(timeout);
-                    if (!video.paused) timeout = setTimeout(() => container.classList.remove('show-controls'), 3000);
+                    // Chỉ tự động ẩn khi video đang chạy VÀ chuột không nằm trên thanh điều khiển
+                    if (!video.paused && !isHoveringControls) {
+                        timeout = setTimeout(() => {
+                            container.classList.remove('show-controls');
+                            container.classList.add('hide-cursor');
+                        }, 2500); // Ẩn sau 2.5s không thao tác
+                    }
                 };
+                
                 container.addEventListener('mousemove', resetControls);
                 container.addEventListener('touchstart', resetControls, {passive: true});
                 video.addEventListener('play', resetControls);
+                video.addEventListener('pause', resetControls);
             },
 
             // [Giữ lại logic renderFilter]
