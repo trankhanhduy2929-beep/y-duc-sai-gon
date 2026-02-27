@@ -540,7 +540,12 @@
                 } else if (route === 'xem' && slug) {
                     await this.renderWatch(content, slug, extra);
                 } else if (route === 'danh-sach' && slug) {
-                    this.state.filterData.type = slug; this.state.filterData.page = 1;
+                    this.state.filterData.type = slug; 
+                    this.state.filterData.page = 1;
+                    // Xóa các bộ lọc cũ để xem list sạch
+                    this.state.filterData.category = '';
+                    this.state.filterData.country = '';
+                    this.state.filterData.year = '';
                     await this.renderFilter(content);
                 } else if (route === 'filter') {
                     await this.renderFilter(content);
@@ -972,18 +977,125 @@
                 video.addEventListener('pause', resetControls);
             },
 
-            // [Giữ lại logic renderFilter]
-            async renderFilter(container) { /* Giữ nguyên filter cũ */
+            // --- Filter / Category View ---
+            async renderFilter(container) {
                 container.innerHTML = document.getElementById('tpl-filter').innerHTML;
+                
+                // Fetch filter options concurrently
+                const [catsRes, countriesRes] = await Promise.all([
+                    api.fetch('/v1/api/the-loai'),
+                    api.fetch('/v1/api/quoc-gia')
+                ]);
+
+                // Populate selects
+                const catSelect = document.getElementById('filter-category');
+                if (catsRes && catsRes.data && catsRes.data.items) {
+                    catsRes.data.items.forEach(c => {
+                        catSelect.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
+                    });
+                }
+
+                const countrySelect = document.getElementById('filter-country');
+                if (countriesRes && countriesRes.data && countriesRes.data.items) {
+                    countriesRes.data.items.forEach(c => {
+                        countrySelect.innerHTML += `<option value="${c.slug}">${c.name}</option>`;
+                    });
+                }
+
+                const yearSelect = document.getElementById('filter-year');
+                const currentYear = new Date().getFullYear();
+                for (let y = currentYear; y >= 2000; y--) {
+                    yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+                }
+
+                // Set current values
+                document.getElementById('filter-type').value = this.state.filterData.type || 'phim-moi-cap-nhat';
+                if(this.state.filterData.category) catSelect.value = this.state.filterData.category;
+                if(this.state.filterData.country) countrySelect.value = this.state.filterData.country;
+                if(this.state.filterData.year) yearSelect.value = this.state.filterData.year;
+
+                // Event Listener
+                document.getElementById('btn-apply-filter').onclick = () => {
+                    this.state.filterData = {
+                        type: document.getElementById('filter-type').value,
+                        category: document.getElementById('filter-category').value,
+                        country: document.getElementById('filter-country').value,
+                        year: document.getElementById('filter-year').value,
+                        page: 1
+                    };
+                    this.loadFilterResults();
+                };
+
                 this.loadFilterResults();
             },
+
             async loadFilterResults() {
                 const resultsContainer = document.getElementById('filter-results');
+                const pagination = document.getElementById('filter-pagination');
                 resultsContainer.innerHTML = '<div class="col-span-full flex justify-center py-10"><div class="loader"></div></div>';
-                const { type, page } = this.state.filterData;
-                let data = await api.getList(type, page);
-                if (!data || !data.data || !data.data.items) return resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">Không tìm thấy phim phù hợp.</div>';
-                resultsContainer.innerHTML = data.data.items.map(m => this.createMovieCard(m)).join('');
+                pagination.innerHTML = '';
+
+                const { type, category, country, year, page } = this.state.filterData;
+                let data = null;
+
+                try {
+                    // Ưu tiên API theo Thể loại > Quốc gia > Loại phim (API OPhim không hỗ trợ gộp param)
+                    if (category) {
+                        data = await api.getCategoryList('the-loai', category, page);
+                    } else if (country) {
+                        data = await api.getCategoryList('quoc-gia', country, page);
+                    } else if (type === 'phim-moi-cap-nhat') {
+                        data = await api.getNewest(page);
+                        // Chuẩn hóa data format
+                        if(data && data.items) {
+                            data = { data: { items: data.items, params: { pagination: { current_page: data.pagination.currentPage, totalItems: data.pagination.totalItems, totalItemsPerPage: data.pagination.totalItemsPerPage, totalPages: data.pagination.totalPages } } } };
+                        }
+                    } else {
+                        data = await api.getList(type, page);
+                    }
+                } catch (e) {
+                    console.error("Filter Fetch Error:", e);
+                }
+
+                if (!data || !data.data || !data.data.items || data.data.items.length === 0) {
+                    resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">Không tìm thấy phim phù hợp.</div>';
+                    return;
+                }
+
+                let items = data.data.items;
+                
+                // Client-side filter for Year
+                if (year) {
+                    items = items.filter(i => i.year == year);
+                }
+
+                if (items.length === 0) {
+                    resultsContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">Không tìm thấy phim phù hợp cho năm này trong trang hiện tại. Bạn hãy sang trang tiếp theo để tìm thêm nhé.</div>';
+                } else {
+                    resultsContainer.innerHTML = items.map(m => this.createMovieCard(m)).join('');
+                }
+
+                // Render Pagination
+                const pageData = data.data.params?.pagination || data.pagination;
+                if (pageData) {
+                    const currentPage = parseInt(pageData.current_page || pageData.currentPage || page);
+                    // Lấy chính xác totalPages từ API
+                    const totalPages = parseInt(pageData.totalPages) || Math.ceil((pageData.totalItems) / (pageData.totalItemsPerPage || 24)) || 10; 
+                    
+                    if (currentPage > 1) {
+                        pagination.innerHTML += `<button class="px-4 py-2 bg-gray-800 hover:bg-primary rounded text-sm transition-colors font-medium" onclick="app.changeFilterPage(${currentPage - 1})"><i class="fa-solid fa-chevron-left mr-1"></i> Trang trước</button>`;
+                    }
+                    pagination.innerHTML += `<span class="px-4 py-2 bg-primary text-white rounded text-sm font-bold shadow-lg">${currentPage} / ${totalPages}</span>`;
+                    if (currentPage < totalPages) {
+                        pagination.innerHTML += `<button class="px-4 py-2 bg-gray-800 hover:bg-primary rounded text-sm transition-colors font-medium" onclick="app.changeFilterPage(${currentPage + 1})">Trang sau <i class="fa-solid fa-chevron-right ml-1"></i></button>`;
+                    }
+                }
+            },
+
+            changeFilterPage(page) {
+                this.state.filterData.page = page;
+                this.loadFilterResults();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             },
 
             // ==========================================
