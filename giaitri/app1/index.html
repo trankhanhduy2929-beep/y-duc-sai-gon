@@ -223,6 +223,37 @@
                     autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
                 });
 
+                // Khởi tạo Remote Player để đồng bộ giao diện Web với thiết bị Cast
+                window.remotePlayer = new cast.framework.RemotePlayer();
+                window.remotePlayerController = new cast.framework.RemotePlayerController(window.remotePlayer);
+
+                window.remotePlayerController.addEventListener(
+                    cast.framework.RemotePlayerEventType.CURRENT_TIME_CHANGED,
+                    function() {
+                        const session = cast.framework.CastContext.getInstance().getCurrentSession();
+                        if (session && window.remotePlayer.duration > 0) {
+                            const percent = (window.remotePlayer.currentTime / window.remotePlayer.duration) * 100;
+                            const progressFilled = document.getElementById('progressFilled');
+                            const timeDisplay = document.getElementById('timeDisplay');
+                            if(progressFilled) progressFilled.style.width = `${percent}%`;
+                            if(timeDisplay) timeDisplay.innerText = `${formatTime(window.remotePlayer.currentTime)} / ${formatTime(window.remotePlayer.duration)}`;
+                        }
+                    }
+                );
+
+                window.remotePlayerController.addEventListener(
+                    cast.framework.RemotePlayerEventType.IS_PAUSED_CHANGED,
+                    function() {
+                        const session = cast.framework.CastContext.getInstance().getCurrentSession();
+                        if (session) {
+                            const playBtn = document.getElementById('playBtn');
+                            if(playBtn) {
+                                playBtn.innerHTML = window.remotePlayer.isPaused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
+                            }
+                        }
+                    }
+                );
+
                 const context = cast.framework.CastContext.getInstance();
                 context.addEventListener(
                     cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
@@ -275,6 +306,13 @@
         };
 
         // --- UTILS ---
+        const formatTime = (seconds) => {
+            if (!seconds || isNaN(seconds)) return "00:00";
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        };
+
         const fetchAPI = async (endpoint) => {
             try {
                 const res = await fetch(`${API_BASE}${endpoint}`);
@@ -661,6 +699,20 @@
             // Mobile Detection
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+            // Cast Helpers
+            const isCasting = () => {
+                return typeof cast !== 'undefined' && cast.framework && cast.framework.CastContext.getInstance().getCurrentSession() != null;
+            };
+
+            const performSeek = (newTime) => {
+                if (isCasting() && window.remotePlayerController) {
+                    window.remotePlayer.currentTime = newTime;
+                    window.remotePlayerController.seek();
+                } else {
+                    video.currentTime = newTime;
+                }
+            };
+
             // Fullscreen & Orientation API Helpers
             const enterFullscreen = async () => {
                 try {
@@ -690,6 +742,11 @@
 
             // Play/Pause
             const togglePlay = () => {
+                if (isCasting() && window.remotePlayerController) {
+                    window.remotePlayerController.playOrPause();
+                    return;
+                }
+
                 if(video.paused) {
                     video.play();
                     if (isMobile && !document.fullscreenElement) {
@@ -707,13 +764,8 @@
             video.addEventListener('waiting', () => videoLoader.classList.remove('hidden'));
             video.addEventListener('playing', () => videoLoader.classList.add('hidden'));
 
-            const formatTime = (seconds) => {
-                const m = Math.floor(seconds / 60);
-                const s = Math.floor(seconds % 60);
-                return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
-            };
-
             video.addEventListener('timeupdate', () => {
+                if (isCasting()) return; // Để Cast xử lý đồng bộ thời gian
                 const percent = (video.currentTime / video.duration) * 100;
                 progressFilled.style.width = `${percent}%`;
                 timeDisplay.innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
@@ -722,26 +774,41 @@
             progressBar.addEventListener('click', (e) => {
                 const rect = progressBar.getBoundingClientRect();
                 const pos = (e.clientX - rect.left) / rect.width;
-                video.currentTime = pos * video.duration;
+                const duration = isCasting() && window.remotePlayer ? window.remotePlayer.duration : video.duration;
+                if (duration) performSeek(pos * duration);
             });
 
             volumeSlider.addEventListener('input', (e) => {
-                video.volume = e.target.value;
-                video.muted = video.volume === 0;
-                updateVolumeIcon();
+                const vol = parseFloat(e.target.value);
+                if (isCasting() && window.remotePlayerController) {
+                    window.remotePlayer.volumeLevel = vol;
+                    window.remotePlayerController.setVolumeLevel();
+                } else {
+                    video.volume = vol;
+                    video.muted = video.volume === 0;
+                }
+                updateVolumeIcon(vol);
             });
 
-            const updateVolumeIcon = () => {
-                if(video.muted || video.volume === 0) muteBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
-                else if(video.volume < 0.5) muteBtn.innerHTML = '<i class="fa-solid fa-volume-low"></i>';
+            const updateVolumeIcon = (volVal) => {
+                const v = volVal !== undefined ? volVal : (isCasting() && window.remotePlayer ? window.remotePlayer.volumeLevel : video.volume);
+                const isMuted = isCasting() && window.remotePlayer ? window.remotePlayer.isMuted : video.muted;
+                
+                if(isMuted || v === 0) muteBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                else if(v < 0.5) muteBtn.innerHTML = '<i class="fa-solid fa-volume-low"></i>';
                 else muteBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
             };
 
             muteBtn.addEventListener('click', () => {
-                video.muted = !video.muted;
-                if(!video.muted && video.volume === 0) { video.volume = 1; volumeSlider.value = 1; }
-                else { volumeSlider.value = video.muted ? 0 : video.volume; }
-                updateVolumeIcon();
+                if (isCasting() && window.remotePlayerController) {
+                    window.remotePlayerController.muteOrUnmute();
+                    setTimeout(() => updateVolumeIcon(), 100);
+                } else {
+                    video.muted = !video.muted;
+                    if(!video.muted && video.volume === 0) { video.volume = 1; volumeSlider.value = 1; }
+                    else { volumeSlider.value = video.muted ? 0 : video.volume; }
+                    updateVolumeIcon();
+                }
             });
 
             fullscreenBtn.addEventListener('click', () => {
@@ -806,11 +873,14 @@
                     const rect = videoContainer.getBoundingClientRect();
                     const clickX = e.clientX - rect.left;
                     
+                    const currentTime = isCasting() && window.remotePlayer ? window.remotePlayer.currentTime : video.currentTime;
+                    const duration = isCasting() && window.remotePlayer ? window.remotePlayer.duration : video.duration;
+
                     if (clickX < rect.width / 2) {
-                        video.currentTime = Math.max(0, video.currentTime - 10);
+                        performSeek(Math.max(0, currentTime - 10));
                         animateSeek('seekLeft');
                     } else {
-                        video.currentTime = Math.min(video.duration, video.currentTime + 10);
+                        performSeek(Math.min(duration || 0, currentTime + 10));
                         animateSeek('seekRight');
                     }
                 }
