@@ -282,7 +282,26 @@
 
                       <div className="col-span-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị tính</label>
-                        <input type="text" name="DON_VI_TINH" value={formData.DON_VI_TINH} onChange={handleInputChange} className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="VD: viên, ống..." />
+                        <select name="DON_VI_TINH" value={formData.DON_VI_TINH} onChange={handleInputChange} className="w-full border border-gray-300 bg-white rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                          <option value="viên">viên</option>
+                          <option value="ống">ống</option>
+                          <option value="lọ">lọ</option>
+                          <option value="chai">chai</option>
+                          <option value="tuýp">tuýp</option>
+                          <option value="gói">gói</option>
+                          <option value="hộp">hộp</option>
+                          <option value="vỉ">vỉ</option>
+                          <option value="bơm tiêm">bơm tiêm</option>
+                          <option value="túi">túi</option>
+                          <option value="ml">ml</option>
+                          <option value="lít">lít</option>
+                          <option value="gam">gam</option>
+                          <option value="kg">kg</option>
+                          <option value="bình">bình</option>
+                          <option value="liều">liều</option>
+                          <option value="cái">cái</option>
+                          <option value="bộ">bộ</option>
+                        </select>
                       </div>
 
                       <div className="col-span-1">
