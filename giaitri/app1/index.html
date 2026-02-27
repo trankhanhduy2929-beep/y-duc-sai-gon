@@ -237,6 +237,16 @@
                             const timeDisplay = document.getElementById('timeDisplay');
                             if(progressFilled) progressFilled.style.width = `${percent}%`;
                             if(timeDisplay) timeDisplay.innerText = `${formatTime(window.remotePlayer.currentTime)} / ${formatTime(window.remotePlayer.duration)}`;
+
+                            // ĐỒNG BỘ: Ép hình ảnh local chạy theo đúng thời gian của loa Cast nếu bị lệch
+                            const localVideo = document.getElementById('customPlayer');
+                            if (localVideo) {
+                                const drift = Math.abs(localVideo.currentTime - window.remotePlayer.currentTime);
+                                // Cập nhật hình ảnh nếu lệch quá 1.5 giây
+                                if (drift > 1.5) {
+                                    localVideo.currentTime = window.remotePlayer.currentTime;
+                                }
+                            }
                         }
                     }
                 );
@@ -249,6 +259,16 @@
                             const playBtn = document.getElementById('playBtn');
                             if(playBtn) {
                                 playBtn.innerHTML = window.remotePlayer.isPaused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
+                            }
+
+                            // ĐỒNG BỘ: Dừng/Phát hình ảnh local theo đúng trạng thái của loa
+                            const localVideo = document.getElementById('customPlayer');
+                            if (localVideo) {
+                                if (window.remotePlayer.isPaused) {
+                                    localVideo.pause();
+                                } else {
+                                    localVideo.play().catch(e=>{});
+                                }
                             }
                         }
                     }
@@ -289,13 +309,21 @@
             const localVideo = document.getElementById('customPlayer');
             if (localVideo) {
                 request.currentTime = localVideo.currentTime;
-                localVideo.pause();
                 
+                // THAY ĐỔI: Không dùng localVideo.pause() nữa.
+                // Mute tiếng ở điện thoại và cho hình tiếp tục chạy để đồng bộ với Loa
+                localVideo.muted = true;
+                localVideo.play().catch(e=>{});
+                
+                // Cập nhật icon Mute trên UI
+                const muteBtn = document.getElementById('muteBtn');
+                if(muteBtn) muteBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+
                 const osdText = document.getElementById('osdText');
                 if(osdText) {
-                    osdText.innerText = 'Đang phát trên thiết bị Cast...';
+                    osdText.innerText = 'Đang phát âm thanh trên Loa/TV (Hình ảnh đồng bộ local)';
                     osdText.classList.remove('opacity-0');
-                    setTimeout(() => osdText.classList.add('opacity-0'), 3000);
+                    setTimeout(() => osdText.classList.add('opacity-0'), 4000);
                 }
             }
 
@@ -708,6 +736,8 @@
                 if (isCasting() && window.remotePlayerController) {
                     window.remotePlayer.currentTime = newTime;
                     window.remotePlayerController.seek();
+                    // Nhảy hình ảnh local ngay lập tức để giao diện mượt hơn khi xả
+                    video.currentTime = newTime;
                 } else {
                     video.currentTime = newTime;
                 }
