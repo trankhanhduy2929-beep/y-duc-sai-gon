@@ -99,6 +99,13 @@
         .seek-feedback i { font-size: 1.5rem; margin-bottom: 2px; }
         .seek-feedback.animate-ping-short { animation: pingShort 0.5s cubic-bezier(0, 0, 0.2, 1); }
         @keyframes pingShort { 0% { transform: translateY(-50%) scale(0.8); opacity: 0.8; } 100% { transform: translateY(-50%) scale(1.5); opacity: 0; } }
+
+        /* Đảm bảo video luôn canh giữa, không bao giờ bị cắt xén khi Fullscreen trên Mobile */
+        #player-wrapper:fullscreen { width: 100vw; height: 100vh; background-color: #000; display: flex; align-items: center; justify-content: center; }
+        #player-wrapper:fullscreen #player-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        #player-wrapper:fullscreen video { object-fit: contain !important; max-height: 100vh; max-width: 100vw; }
+        #player-wrapper:-webkit-full-screen { width: 100vw; height: 100vh; background-color: #000; display: flex; align-items: center; justify-content: center; }
+        #player-wrapper:-webkit-full-screen video { object-fit: contain !important; }
     </style>
 </head>
 <body class="bg-dark text-white selection:bg-primary selection:text-white">
@@ -772,7 +779,55 @@
             },
             attachPlayerEvents(video, wrapper) { 
                 const bp = document.getElementById('btn-play'); 
-                const togglePlay = () => video.paused ? video.play() : video.pause();
+                const btnFullscreen = document.getElementById('btn-fullscreen');
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                // --- Logic Tự động Fullscreen & Xoay ngang (Mobile Android) ---
+                const enterFullscreenAndLandscape = () => {
+                    if (!document.fullscreenElement) {
+                        const req = wrapper.requestFullscreen || wrapper.webkitRequestFullscreen || wrapper.msRequestFullscreen;
+                        if (req) {
+                            req.call(wrapper).then(() => {
+                                // Mở thành công -> Khóa màn hình ngang
+                                if (isMobile && screen.orientation && screen.orientation.lock) {
+                                    screen.orientation.lock('landscape').catch(e => console.warn("Lỗi xoay ngang:", e));
+                                }
+                            }).catch(e => console.warn(e));
+                        }
+                    }
+                };
+
+                const toggleFullscreen = () => {
+                    if (!document.fullscreenElement) {
+                        enterFullscreenAndLandscape();
+                    } else {
+                        const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+                        if (exit) exit.call(document);
+                    }
+                };
+
+                // Lắng nghe sự kiện đổi Fullscreen để đổi Icon và mở khóa xoay (nếu bấm nút Back trên điện thoại)
+                document.addEventListener('fullscreenchange', () => {
+                    if (!document.fullscreenElement) {
+                        btnFullscreen.innerHTML = '<i class="fa-solid fa-expand"></i>';
+                        if (isMobile && screen.orientation && screen.orientation.unlock) {
+                            screen.orientation.unlock(); // Trả lại xoay tự do
+                        }
+                    } else {
+                        btnFullscreen.innerHTML = '<i class="fa-solid fa-compress"></i>';
+                    }
+                });
+
+                const togglePlay = () => {
+                    if (video.paused) {
+                        video.play();
+                        // Kích hoạt auto-fullscreen & ngang khi có tương tác Play trên điện thoại
+                        if (isMobile) enterFullscreenAndLandscape();
+                    } else {
+                        video.pause();
+                    }
+                };
+                
                 bp.onclick = togglePlay;
                 
                 video.onplay = () => bp.innerHTML = '<i class="fa-solid fa-pause"></i>'; 
@@ -853,7 +908,7 @@
                     };
                 }
 
-                // Volume & fullscreen
+                // Volume & fullscreen thủ công
                 const volumeSlider = document.getElementById('volume-slider');
                 const btnMute = document.getElementById('btn-mute');
                 const updateVolIcon = () => {
@@ -864,7 +919,7 @@
                 btnMute.onclick = () => { video.muted = !video.muted; volumeSlider.value = video.muted ? 0 : video.volume; updateVolIcon(); };
                 volumeSlider.addEventListener('input', (e) => { video.volume = e.target.value; video.muted = video.volume == 0; updateVolIcon(); });
 
-                document.getElementById('btn-fullscreen').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen(); }
+                btnFullscreen.onclick = toggleFullscreen;
 
                 // Progress update
                 const progressBar = document.getElementById('progress-bar');
