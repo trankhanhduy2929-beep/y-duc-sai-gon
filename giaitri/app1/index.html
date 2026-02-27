@@ -279,8 +279,11 @@
 
             <!-- Main Video Area -->
             <div class="w-full lg:w-3/4 h-[40vh] lg:h-full relative video-container group bg-black flex flex-col justify-center">
-                <video id="mainVideo" class="w-full max-h-full aspect-video" playsinline></video>
+                <video id="mainVideo" class="w-full max-h-full aspect-video transition-all duration-300 object-contain" playsinline></video>
                 
+                <!-- Chỉ báo Xả phim khi Click đúp -->
+                <div id="seekIndicator" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white bg-black/60 px-6 py-3 rounded-full opacity-0 pointer-events-none transition-opacity duration-200 z-50 flex items-center gap-2 text-2xl font-bold backdrop-blur-sm"></div>
+
                 <!-- Loading Overlay Video -->
                 <div id="videoLoader" class="absolute inset-0 flex items-center justify-center bg-black/80 hidden z-40">
                     <div class="loader"></div>
@@ -323,6 +326,9 @@
                             <button id="subBtn" class="text-white hover:text-primary text-xl relative" title="Bật/Tắt Phụ Đề">
                                 <i class="fas fa-closed-captioning"></i>
                             </button>
+
+                            <!-- Nút Thu Phóng (Aspect Ratio) -->
+                            <button id="aspectRatioBtn" class="text-white hover:text-gray-300 text-xl w-6" title="Đổi kích cỡ (Thu/Phóng)"><i class="fas fa-crop-alt"></i></button>
 
                             <button id="fullscreenBtn" class="text-white hover:text-gray-300 text-xl w-6"><i class="fas fa-expand"></i></button>
                         </div>
@@ -626,7 +632,7 @@
                 
                 slidesHtml += `
                     <div class="absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive} hero-slide" id="slide-${index}">
-                        <img src="${bgUrl}" class="w-full h-full object-cover" alt="${movie.name}">
+                        <img src="${bgUrl}" class="w-full h-full object-cover opacity-0 transition-opacity duration-700 ease-in-out bg-gray-900" onload="this.classList.remove('opacity-0')" alt="${movie.name}">
                         <div class="absolute inset-0 banner-gradient"></div>
                         <div class="absolute inset-0 banner-bottom-gradient"></div>
                         <div class="absolute bottom-[10%] md:bottom-[20%] left-4 md:left-12 w-full md:w-1/2 z-20">
@@ -712,7 +718,7 @@
                 <div class="min-w-[140px] md:min-w-[200px] max-w-[140px] md:max-w-[200px] relative rounded overflow-hidden movie-card cursor-pointer snap-start flex-shrink-0" onclick="openMovieDetails('${movie.slug}')">
                     ${badge}
                     <div class="aspect-[2/3] w-full relative group">
-                        <img src="${thumbUrl}" alt="${movie.name}" class="w-full h-full object-cover rounded bg-gray-900" loading="lazy">
+                        <img src="${thumbUrl}" alt="${movie.name}" class="w-full h-full object-cover rounded bg-gray-900 opacity-0 transition-opacity duration-500 ease-in-out" onload="this.classList.remove('opacity-0')" loading="lazy">
                         <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <i class="fas fa-play-circle text-4xl text-white"></i>
                         </div>
@@ -775,14 +781,21 @@
                     return;
                 }
 
+                // Hàm highlight từ khoá tìm kiếm
+                const highlightText = (text, query) => {
+                    if(!text) return '';
+                    const regex = new RegExp(`(${query})`, 'gi');
+                    return text.replace(regex, '<span class="text-primary font-bold">$1</span>');
+                };
+
                 let html = '';
                 data.data.items.forEach(m => {
                     html += `
                         <div class="flex gap-3 p-2 hover:bg-gray-800 cursor-pointer transition border-b border-gray-800 last:border-0" onclick="openMovieDetails('${m.slug}'); document.getElementById('searchResults').classList.add('hidden');">
-                            <img src="${getImgUrl(m.thumb_url)}" class="w-12 h-16 object-cover rounded">
+                            <img src="${getImgUrl(m.thumb_url)}" class="w-12 h-16 object-cover rounded opacity-0 transition-opacity duration-300" onload="this.classList.remove('opacity-0')">
                             <div class="flex-1 overflow-hidden">
-                                <h4 class="text-sm font-bold text-white truncate">${m.name}</h4>
-                                <p class="text-xs text-gray-400 truncate">${m.origin_name}</p>
+                                <h4 class="text-sm text-white truncate">${highlightText(m.name, keyword)}</h4>
+                                <p class="text-xs text-gray-400 truncate">${highlightText(m.origin_name, keyword)}</p>
                                 <p class="text-xs text-primary mt-1">${m.year}</p>
                             </div>
                         </div>
@@ -840,13 +853,13 @@
 
                 content.innerHTML = `
                     <div class="relative h-64 md:h-96 w-full">
-                        <img src="${bgUrl}" class="w-full h-full object-cover" alt="Banner">
+                        <img src="${bgUrl}" class="w-full h-full object-cover bg-gray-900 opacity-0 transition-opacity duration-500" onload="this.classList.remove('opacity-0')" alt="Banner">
                         <div class="absolute inset-0 bg-gradient-to-t from-dark via-dark/60 to-transparent"></div>
                     </div>
                     
                     <div class="px-6 md:px-10 pb-10 -mt-20 md:-mt-32 relative z-10 flex flex-col md:flex-row gap-6 md:gap-8">
-                        <div class="hidden md:block w-48 shrink-0 rounded overflow-hidden shadow-2xl border border-gray-700">
-                            <img src="${thumbUrl}" class="w-full h-auto object-cover">
+                        <div class="hidden md:block w-48 shrink-0 rounded overflow-hidden shadow-2xl border border-gray-700 bg-gray-900">
+                            <img src="${thumbUrl}" class="w-full h-auto object-cover opacity-0 transition-opacity duration-500" onload="this.classList.remove('opacity-0')">
                         </div>
                         
                         <div class="flex-1">
@@ -1057,9 +1070,12 @@
             const muteBtn = document.getElementById('muteBtn');
             const volSlider = document.getElementById('volumeSlider');
             const fullBtn = document.getElementById('fullscreenBtn');
+            const aspectBtn = document.getElementById('aspectRatioBtn');
             const videoContainer = document.querySelector('.video-container');
+            const seekIndicator = document.getElementById('seekIndicator');
 
-            // Play / Pause
+            // Play / Pause logic có chống xung đột khi Double Click
+            let clickTimer = null;
             function togglePlay() {
                 if(video.paused) {
                     video.play();
@@ -1068,16 +1084,42 @@
                 }
             }
             playBtn.onclick = togglePlay;
-            video.onclick = togglePlay; // Bấm vào màn hình để pause/play
+            
+            video.onclick = (e) => {
+                if (clickTimer) {
+                    // Nếu click lần 2 trước khi hết giờ (Tức là double click) -> Huỷ play/pause
+                    clearTimeout(clickTimer);
+                    clickTimer = null;
+                } else {
+                    // Chờ 250ms xem có click tiếp không, nếu không thì mới play/pause
+                    clickTimer = setTimeout(() => {
+                        togglePlay();
+                        clickTimer = null;
+                    }, 250);
+                }
+            };
 
-            video.addEventListener('play', () => {
-                playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                videoContainer.classList.remove('paused');
-            });
-            video.addEventListener('pause', () => {
-                playBtn.innerHTML = '<i class="fas fa-play"></i>';
-                videoContainer.classList.add('paused');
-            });
+            // Double Click để xả tới/lùi 10s
+            video.ondblclick = (e) => {
+                const rect = video.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                if (x < rect.width / 2) {
+                    // Nhấp đúp nửa trái màn hình -> Lùi 10s
+                    video.currentTime = Math.max(0, video.currentTime - 10);
+                    showSeekIndicator('-10s', 'fas fa-backward-10');
+                } else {
+                    // Nhấp đúp nửa phải màn hình -> Tới 10s
+                    video.currentTime = Math.min(video.duration, video.currentTime + 10);
+                    showSeekIndicator('+10s', 'fas fa-forward-10');
+                }
+            };
+
+            function showSeekIndicator(text, iconClass) {
+                seekIndicator.innerHTML = `<i class="${iconClass}"></i> ${text}`;
+                seekIndicator.style.opacity = '1';
+                clearTimeout(seekIndicator.timeout);
+                seekIndicator.timeout = setTimeout(() => seekIndicator.style.opacity = '0', 600);
+            }
 
             // Tiến độ (Timeupdate)
             video.addEventListener('timeupdate', () => {
@@ -1138,6 +1180,15 @@
             // Subtitles Toggle (Mô phỏng do API KKPhim thường hardsub)
             document.getElementById('subBtn').onclick = () => {
                 showToast("Phim này đã được thuyết minh hoặc Vietsub cứng trên màn hình.");
+            };
+
+            // Aspect Ratio (Thu / Phóng màn hình)
+            let isCover = false;
+            aspectBtn.onclick = () => {
+                isCover = !isCover;
+                video.style.objectFit = isCover ? 'cover' : 'contain';
+                aspectBtn.innerHTML = isCover ? '<i class="fas fa-compress-arrows-alt"></i>' : '<i class="fas fa-crop-alt"></i>';
+                showToast(isCover ? "Đã phóng to màn hình" : "Đã thu về mặc định");
             };
 
             // Quality Menu Toggle
