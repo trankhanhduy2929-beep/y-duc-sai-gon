@@ -808,29 +808,139 @@
     };
 
     // 3. FILTER / CATEGORY VIEW
-        const renderFilter = async (container, listType) => {
-            let typeName = listType === 'phim-le' ? 'Phim Lẻ' : listType === 'phim-bo' ? 'Phim Bộ' : listType === 'hoat-hinh' ? 'Hoạt Hình' : 'TV Shows';
-            
+        const filterOptions = {
+            'the-loai': [
+                { slug: 'hanh-dong', name: 'Hành Động' }, { slug: 'tinh-cam', name: 'Tình Cảm' },
+                { slug: 'hai-huoc', name: 'Hài Hước' }, { slug: 'co-trang', name: 'Cổ Trang' },
+                { slug: 'tam-ly', name: 'Tâm Lý' }, { slug: 'hinh-su', name: 'Hình Sự' },
+                { slug: 'chien-tranh', name: 'Chiến Tranh' }, { slug: 'the-thao', name: 'Thể Thao' },
+                { slug: 'vo-thuat', name: 'Võ Thuật' }, { slug: 'vien-tuong', name: 'Viễn Tưởng' },
+                { slug: 'kinh-di', name: 'Kinh Dị' }, { slug: 'tai-lieu', name: 'Tài Liệu' },
+                { slug: 'bi-an', name: 'Bí Ẩn' }, { slug: 'phim-18', name: 'Phim 18+' }
+            ],
+            'quoc-gia': [
+                { slug: 'han-quoc', name: 'Hàn Quốc' }, { slug: 'trung-quoc', name: 'Trung Quốc' },
+                { slug: 'thai-lan', name: 'Thái Lan' }, { slug: 'au-my', name: 'Âu Mỹ' },
+                { slug: 'viet-nam', name: 'Việt Nam' }, { slug: 'an-do', name: 'Ấn Độ' },
+                { slug: 'nhat-ban', name: 'Nhật Bản' }, { slug: 'hong-kong', name: 'Hồng Kông' }
+            ],
+            'danh-sach': [
+                { slug: 'phim-le', name: 'Phim Lẻ' }, { slug: 'phim-bo', name: 'Phim Bộ' },
+                { slug: 'hoat-hinh', name: 'Hoạt Hình' }, { slug: 'tv-shows', name: 'TV Shows' }
+            ]
+        };
+
+        window.applyFilter = (type, slug) => {
+            if(!slug) return;
+            // Cập nhật router giả lập: type:slug (VD: the-loai:hanh-dong)
+            navigate('filter', `${type}:${slug}`);
+        };
+
+        const renderFilter = async (container, param) => {
+            // Mặc định load phim lẻ
+            let endpointType = 'danh-sach';
+            let currentSlug = param || 'phim-le';
+
+            // Phân tách nếu param có chứa type (VD: the-loai:hanh-dong)
+            if (param && param.includes(':')) {
+                const parts = param.split(':');
+                endpointType = parts[0];
+                currentSlug = parts[1];
+            }
+
             container.innerHTML = `
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                        <h1 class="text-3xl font-bold text-white border-l-4 border-primary pl-4">${typeName}</h1>
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <h1 class="text-3xl font-bold text-white border-l-4 border-primary pl-4" id="filterTitle">Đang lọc phim...</h1>
                     </div>
+
+                    <!-- Thanh Công Cụ Lọc -->
+                    <div class="bg-cardbg p-4 rounded-xl border border-gray-800 mb-8 flex flex-wrap gap-4 items-center shadow-lg">
+                        <div class="flex items-center gap-2 mr-2">
+                            <i class="fa-solid fa-filter text-primary"></i>
+                            <span class="font-bold text-white">Lọc theo:</span>
+                        </div>
+                        
+                        <select onchange="applyFilter('danh-sach', this.value)" class="bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none cursor-pointer">
+                            <option value="">-- Loại Phim --</option>
+                            ${filterOptions['danh-sach'].map(opt => `<option value="${opt.slug}" ${endpointType === 'danh-sach' && currentSlug === opt.slug ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                        </select>
+
+                        <select onchange="applyFilter('the-loai', this.value)" class="bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none cursor-pointer">
+                            <option value="">-- Thể Loại --</option>
+                            ${filterOptions['the-loai'].map(opt => `<option value="${opt.slug}" ${endpointType === 'the-loai' && currentSlug === opt.slug ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                        </select>
+
+                        <select onchange="applyFilter('quoc-gia', this.value)" class="bg-gray-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 outline-none cursor-pointer">
+                            <option value="">-- Quốc Gia --</option>
+                            ${filterOptions['quoc-gia'].map(opt => `<option value="${opt.slug}" ${endpointType === 'quoc-gia' && currentSlug === opt.slug ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <!-- Lưới hiển thị phim -->
                     <div id="filter-results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
                         <div class="col-span-full py-20 flex justify-center"><div class="loader"></div></div>
+                    </div>
+                    
+                    <!-- Nút Tải Thêm -->
+                    <div class="mt-8 flex justify-center hidden" id="loadMoreContainer">
+                        <button onclick="loadMoreFilter()" class="bg-gray-800 hover:bg-primary text-white px-8 py-3 rounded-full transition-colors border border-gray-700 font-bold shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-down"></i> Tải thêm
+                        </button>
                     </div>
                 </div>
             `;
 
-            const data = await fetchAPI(`/v1/api/danh-sach/${listType}?limit=24`);
+            // Khởi tạo trạng thái phân trang
+            window.currentFilterPage = 1;
+            window.currentEndpointType = endpointType;
+            window.currentFilterSlug = currentSlug;
+
+            fetchAndRenderFilterResults();
+        };
+
+        window.fetchAndRenderFilterResults = async (append = false) => {
             const grid = document.getElementById('filter-results');
+            const loadMoreBtn = document.getElementById('loadMoreContainer');
             
-            if (data && data.data && data.data.items) {
-                grid.innerHTML = data.data.items.map(movie => createMovieCard(movie)).join('');
-                lazyLoadImages();
-            } else {
-                grid.innerHTML = '<p class="col-span-full text-center text-gray-500">Không có dữ liệu.</p>';
+            if(!append) {
+                grid.innerHTML = '<div class="col-span-full py-20 flex justify-center"><div class="loader"></div></div>';
+                loadMoreBtn.classList.add('hidden');
             }
+
+            const data = await fetchAPI(`/v1/api/${window.currentEndpointType}/${window.currentFilterSlug}?page=${window.currentFilterPage}&limit=24`);
+            
+            if(!append) grid.innerHTML = ''; // Xóa loader nếu load trang đầu
+
+            if (data && data.data && data.data.items && data.data.items.length > 0) {
+                const html = data.data.items.map(movie => createMovieCard(movie)).join('');
+                grid.innerHTML += html;
+                lazyLoadImages();
+
+                // Cập nhật tiêu đề trang từ API trả về
+                const titleEl = document.getElementById('filterTitle');
+                if(titleEl && data.data.titlePage) titleEl.innerText = data.data.titlePage;
+
+                // Hiện nút tải thêm nếu số item load ra >= 24 (tức là còn phim trang sau)
+                if(data.data.items.length >= 24) {
+                    loadMoreBtn.classList.remove('hidden');
+                } else {
+                    loadMoreBtn.classList.add('hidden');
+                }
+            } else {
+                if(!append) grid.innerHTML = '<p class="col-span-full text-center text-gray-500 mt-10">Không có dữ liệu phù hợp.</p>';
+                loadMoreBtn.classList.add('hidden');
+            }
+        };
+
+        window.loadMoreFilter = () => {
+            window.currentFilterPage++;
+            const btn = document.getElementById('loadMoreContainer');
+            btn.innerHTML = '<div class="loader mx-auto"></div>';
+            
+            fetchAndRenderFilterResults(true).then(() => {
+                btn.innerHTML = '<button onclick="loadMoreFilter()" class="bg-gray-800 hover:bg-primary text-white px-8 py-3 rounded-full transition-colors border border-gray-700 font-bold shadow-lg flex items-center gap-2"><i class="fa-solid fa-arrow-down"></i> Tải thêm</button>';
+            });
         };
 
 
