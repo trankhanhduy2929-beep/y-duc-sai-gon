@@ -39,7 +39,7 @@
                 <i class="fa-solid fa-shield-halved text-3xl"></i>
             </div>
             <h2 class="text-2xl font-bold mb-2 text-slate-800">Hệ Thống Dò Lỗi</h2>
-            <p class="text-slate-500 mb-6 text-sm">Nhập mã PIN (1402) để truy cập hệ thống</p>
+            <p class="text-slate-500 mb-6 text-sm">Nhập mã PIN để truy cập hệ thống</p>
             <input type="password" id="password-input" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-4 text-center text-2xl tracking-widest transition-all bg-slate-50" placeholder="••••">
             <p id="login-error" class="text-rose-500 text-sm mb-4 hidden font-medium animate-fade-in">Mã PIN không chính xác!</p>
             <button onclick="checkLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200">
@@ -526,10 +526,15 @@
 
                             let conflictTime = null;
                             let actionStr = "";
+                            
+                            // BỔ SUNG: Nhận diện xem dịch vụ này có phải là CÔNG KHÁM không
+                            const isCongKham = String(otherTask.TEN_DICH_VU).toLowerCase().includes('khám');
 
                             // Kiểm tra các mốc thời gian hành động của chính bác sĩ đó có lọt vào khoảng bận không
-                            if (isPrescriber && otherTask._tYL >= startBusy && otherTask._tYL <= endBusy) {
-                                conflictTime = otherTask.NGAY_YL; actionStr = "Ra Y Lệnh (NGAY_YL)";
+                            if (isPrescriber && isCongKham && otherTask._tYL >= startBusy && otherTask._tYL <= endBusy) {
+                                conflictTime = otherTask.NGAY_YL; actionStr = "Ra Y Lệnh CÔNG KHÁM (NGAY_YL)";
+                            } else if (isPrescriber && otherTask._tYL >= startBusy && otherTask._tYL <= endBusy) {
+                                conflictTime = otherTask.NGAY_YL; actionStr = "Ra Y Lệnh dịch vụ (NGAY_YL)";
                             } else if (isPerformer && otherTask._tTH >= startBusy && otherTask._tTH <= endBusy) {
                                 conflictTime = otherTask.NGAY_TH_YL; actionStr = "Bắt đầu thực hiện (NGAY_TH_YL)";
                             } else if (isReader && otherTask._tKQ >= startBusy && otherTask._tKQ <= endBusy) {
@@ -538,7 +543,15 @@
 
                             if (conflictTime) {
                                 crossPatientSeen.add(pairKey);
-                                createStructuredError('Chéo BN', docId, busyTask, otherTask, `Đang bận làm DV cho BN này (từ ${formatTimeShow(busyTask.NGAY_TH_YL)} đến ${formatTimeShow(busyTask.NGAY_KQ)}) nhưng lại có "${actionStr}" cho BN khác lọt vào lúc ${formatTimeShow(conflictTime)}`);
+                                
+                                let specificMsg = `Đang bận làm DV cho BN này (từ ${formatTimeShow(busyTask.NGAY_TH_YL)} đến ${formatTimeShow(busyTask.NGAY_KQ)}) nhưng lại có "${actionStr}" cho BN khác lọt vào lúc ${formatTimeShow(conflictTime)}`;
+                                
+                                // Đổi câu thông báo nếu phát hiện lỗi ra Y lệnh Công Khám
+                                if (actionStr.includes("CÔNG KHÁM")) {
+                                    specificMsg = `Đang bận thực hiện CLS/Dịch vụ cho BN này (từ ${formatTimeShow(busyTask.NGAY_TH_YL)} đến ${formatTimeShow(busyTask.NGAY_KQ)}) nhưng lại TẠO Y LỆNH CÔNG KHÁM cho BN khác lọt vào lúc ${formatTimeShow(conflictTime)}`;
+                                }
+
+                                createStructuredError('Chéo BN', docId, busyTask, otherTask, specificMsg);
                             }
                         });
                     }
