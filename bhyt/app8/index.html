@@ -581,6 +581,32 @@
 
                 let pErrors = [];
 
+                // QUY TẮC MỚI: KQ CLS KHÔNG ĐƯỢC TRÙNG HOÀN TOÀN VỚI GIỜ KHÁM HOẶC KÊ THUỐC
+                p.cls.forEach(c => {
+                    if (c.kq_date) {
+                        p.kham.forEach(k => {
+                            if (c.kq_date.getTime() === k.date.getTime()) {
+                                pErrors.push({
+                                    type: 'Xung Đột (KQ CLS & Khám)',
+                                    msg: `Giờ Đọc kết quả CLS <span class="font-bold text-slate-700">(${c.detail})</span> trùng khớp hoàn toàn với giờ Y lệnh Khám <span class="font-bold text-slate-700">(${k.detail})</span> lúc <span class="font-bold text-red-600">${formatBHYTTime(c.kq_timeStr)}</span>. Hai thao tác không được thực hiện trong cùng một khoảnh khắc.`,
+                                    timeStr: c.kq_timeStr,
+                                    doctor: c.doc
+                                });
+                            }
+                        });
+                        p.thuoc.forEach(t => {
+                            if (c.kq_date.getTime() === t.date.getTime()) {
+                                pErrors.push({
+                                    type: 'Xung Đột (KQ CLS & Thuốc)',
+                                    msg: `Giờ Đọc kết quả CLS <span class="font-bold text-slate-700">(${c.detail})</span> trùng khớp hoàn toàn với giờ Kê đơn thuốc <span class="font-bold text-slate-700">(${t.detail})</span> lúc <span class="font-bold text-red-600">${formatBHYTTime(c.kq_timeStr)}</span>. Hai thao tác không được thực hiện trong cùng một khoảnh khắc.`,
+                                    timeStr: c.kq_timeStr,
+                                    doctor: c.doc
+                                });
+                            }
+                        });
+                    }
+                });
+
                 if (timeVaoVien && timeRaVien) {
                     const diffMinsRV = (timeRaVien - timeVaoVien) / 60000;
                     if (diffMinsRV < 6) {
@@ -631,10 +657,10 @@
 
                     if (latest_kq_D) {
                         const diffMins = (t.date - latest_kq_D.kq_date) / 60000;
-                        if (diffMins < 1) {
+                        if (diffMins < 0) { // < 0 vì trường hợp = 0 đã bị bắt Xung Đột Cùng Lúc ở trên
                             pErrors.push({
                                 type: 'Thuốc vs KQ CLS',
-                                msg: `Kê đơn <span class="font-bold text-slate-700">(${t.detail})</span> lúc ${formatBHYTTime(t.timeStr)} bị phát hiện <b>trước hoặc cùng lúc</b> với KQ CLS cuối cùng của chuyên khoa này <span class="font-bold text-slate-700">(${latest_kq_D.detail})</span> lúc ${formatBHYTTime(latest_kq_D.kq_timeStr)}. Thời gian kê thuốc phải SAU kết quả CLS tương ứng ít nhất 1 phút.`,
+                                msg: `Kê đơn <span class="font-bold text-slate-700">(${t.detail})</span> lúc ${formatBHYTTime(t.timeStr)} bị phát hiện <b>trước</b> KQ CLS cuối cùng của chuyên khoa này <span class="font-bold text-slate-700">(${latest_kq_D.detail})</span> lúc ${formatBHYTTime(latest_kq_D.kq_timeStr)}. Thời gian kê thuốc phải SAU kết quả CLS tương ứng ít nhất 1 phút.`,
                                 timeStr: t.timeStr,
                                 doctor: t.doc
                             });
@@ -932,6 +958,7 @@
                     let badgeClass = "badge-soft-red";
                     if(err.type.includes("Thuốc")) { iconClass = "fa-pills"; badgeClass="badge-soft-emerald"; }
                     if(err.type.includes("CLS") || err.type.includes("Ra Viện")) { iconClass = "fa-microscope"; badgeClass="badge-soft-blue"; }
+                    if(err.type.includes("Xung Đột")) { iconClass = "fa-bolt"; badgeClass="badge-soft-red"; }
 
                     errBox.innerHTML += `
                         <div class="w-12 h-12 rounded-full ${badgeClass} flex items-center justify-center text-xl shrink-0 mt-1 shadow-sm"><i class="fas ${iconClass}"></i></div>
@@ -956,5 +983,3 @@
     </script>
 </body>
 </html>
-
-
