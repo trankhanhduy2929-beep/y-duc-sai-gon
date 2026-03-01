@@ -453,23 +453,23 @@
                         });
 
                         rxByDoc.forEach(rx => {
-                            const tThuoc = parseBHYTTime(rx.NGAY_YL);
+                            const tThuoc = parseBHYTTime(rx.NGAY_TH_YL); // Đã fix: Chỉ lấy NGAY_TH_YL
                             const latestData = latestTaskByPatient[rx.MA_LK];
                             
                             if (tThuoc && latestData && tThuoc < latestData.maxTime) {
                                 const latestTask = latestData.task;
                                 const rxFakeTask = { 
                                     MA_LK: rx.MA_LK, 
-                                    TEN_DICH_VU: `Kê đơn: ${rx.TEN_THUOC}`, 
-                                    NGAY_YL: rx.NGAY_YL, 
-                                    MA_BAC_SI: rx.MA_BAC_SI 
+                                    TEN_DICH_VU: `Thuốc: ${rx.TEN_THUOC}`, 
+                                    NGAY_TH_YL: rx.NGAY_TH_YL, 
+                                    NGUOI_THUC_HIEN: rx.MA_BAC_SI 
                                 };
                                 
                                 let isKham = latestTask.MA_DICH_VU === 'Khám bệnh' || String(latestTask.TEN_DICH_VU).toLowerCase().includes('khám');
                                 
                                 let reasonMsg = isKham 
-                                    ? `Kê đơn thuốc lúc ${formatTimeShow(rx.NGAY_YL)} trước khi hoàn tất Khám bệnh (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL || latestTask.NGAY_YL)}).`
-                                    : `Kê đơn thuốc lúc ${formatTimeShow(rx.NGAY_YL)} trước khi có Kết quả Cận lâm sàng (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL)}).`;
+                                    ? `Cấp thuốc lúc ${formatTimeShow(rx.NGAY_TH_YL)} trước khi hoàn tất Khám bệnh (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL || latestTask.NGAY_YL)}).`
+                                    : `Cấp thuốc lúc ${formatTimeShow(rx.NGAY_TH_YL)} trước khi có Kết quả Cận lâm sàng (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL)}).`;
 
                                 createStructuredError('Thuốc Sớm', docId, latestTask, rxFakeTask, reasonMsg);
                             }
@@ -477,59 +477,68 @@
                     }
 
                     // --- BẮT ĐẦU ĐOẠN BỔ SUNG: KIỂM TRA CHÉO BỆNH NHÂN ---
-                    // 4. KIỂM TRA CHÉO BỆNH NHÂN (Đang làm DV cho BN này -> Không được có TG của BN khác lọt vào)
-                    const rxByDocAction = t2.filter(r => r.MA_BAC_SI === docId).map(r => ({
-                        ...r,
-                        _tAction: parseBHYTTime(r.NGAY_YL) || parseBHYTTime(r.NGAY_TH_YL)
-                    }));
+                    // 4. KIỂM TRA CHÉO BỆNH NHÂN (Giữ logic cũ + Bổ sung luật khắt khe cho MA_BAC_SI)
+                    
+                    // ĐÃ FIX: Lấy các task mà Bác sĩ này THỰC SỰ THỰC HIỆN (từ TH_YL -> KQ). 
+                    // Nếu chỉ là MA_BAC_SI (chỉ định) mà người khác thực hiện/đọc KQ thì không bị coi là "đang bận làm".
+                    const docBusyTasksB3 = thTasks.filter(r => r._tKQ); // thTasks đã lọc "performer === docId" từ trước
+                    let crossPatientSeen = new Set(); // Bộ nhớ tạm để tránh báo lặp
 
-                    // Lấy tất cả task của BS này ở Bảng 3
-                    const allDocTasksB3 = t3.filter(r => r.MA_BAC_SI === docId || r.NGUOI_THUC_HIEN === docId || r._BS_KQ === docId);
-                    let crossPatientSeen = new Set(); // Bộ nhớ tạm để tránh báo lặp cùng 1 cặp lỗi
-
-                    for (let i = 0; i < thTasks.length; i++) {
-                        const busyTask = thTasks[i];
+                    for (let i = 0; i < docBusyTasksB3.length; i++) {
+                        const busyTask = docBusyTasksB3[i];
                         const startBusy = busyTask._tTH;
                         const endBusy = busyTask._tKQ;
 
-                        // Bỏ qua nếu thời gian thực hiện không phải là 1 khoảng hợp lệ (vd: bắt đầu trùng kết thúc)
-                        if (!startBusy || !endBusy || startBusy >= endBusy) continue;
+                        if (startBusy > endBusy) continue;
 
-                        // 4.1 Bảng 2: Không được kê thuốc cho BN khác
-                        rxByDocAction.forEach(rx => {
-                            if (rx.MA_LK === busyTask.MA_LK) return; // Chỉ xét Bệnh Nhân Khác
+                        // 4.1 Bảng 2: Không được có NGAY_TH_YL thuốc của BN khác lọt vào giữa
+                        t2.filter(r => r.MA_BAC_SI === docId).forEach(rx => {
+                            if (rx.MA_LK === busyTask.MA_LK) return; // Bỏ qua nếu cùng 1 bệnh nhân
                             
-                            if (rx._tAction >= startBusy && rx._tAction <= endBusy) {
-                                const pairKey = `B2_${busyTask._id}_${rx.MA_LK}_${rx.MA_THUOC}_${rx._tAction}`;
+                            const tThuoc = parseBHYTTime(rx.NGAY_TH_YL); // Chỉ lấy NGAY_TH_YL
+                            if (!tThuoc) return;
+
+                            if (tThuoc >= startBusy && tThuoc <= endBusy) {
+                                const pairKey = `B2_${busyTask._id}_${rx.MA_LK}_${rx.MA_THUOC}_${tThuoc}`;
                                 if (!crossPatientSeen.has(pairKey)) {
                                     crossPatientSeen.add(pairKey);
-                                    const rxFakeTask = { MA_LK: rx.MA_LK, TEN_DICH_VU: `Thuốc: ${rx.TEN_THUOC}`, NGAY_YL: rx.NGAY_YL || rx.NGAY_TH_YL, MA_BAC_SI: rx.MA_BAC_SI };
-                                    createStructuredError('Chéo BN', docId, busyTask, rxFakeTask, `Đang bận thực hiện DV cho BN này nhưng lại kê thuốc cho BN khác vào lúc ${formatTimeShow(rx.NGAY_YL || rx.NGAY_TH_YL)}`);
+                                    const rxFakeTask = { MA_LK: rx.MA_LK, TEN_DICH_VU: `Thuốc: ${rx.TEN_THUOC}`, NGAY_TH_YL: rx.NGAY_TH_YL, NGUOI_THUC_HIEN: rx.MA_BAC_SI };
+                                    createStructuredError('Chéo BN', docId, busyTask, rxFakeTask, `Đang bận thực hiện DV cho BN này nhưng lại có thời gian cấp thuốc (Bảng 2) cho BN khác lọt vào lúc ${formatTimeShow(rx.NGAY_TH_YL)}`);
                                 }
                             }
                         });
 
-                        // 4.2 Bảng 3: Không được có YL, TH_YL, KQ của BN khác lọt vào
-                        allDocTasksB3.forEach(otherTask => {
-                            if (otherTask.MA_LK === busyTask.MA_LK) return; // Chỉ xét Bệnh Nhân Khác
+                        // 4.2 Bảng 3: Bất kỳ NGAY_YL, NGAY_TH_YL, NGAY_KQ của BN khác lọt vào giữa khi bác sĩ thực hiện hành động
+                        t3.forEach(otherTask => {
+                            if (otherTask.MA_LK === busyTask.MA_LK) return; // Bỏ qua nếu cùng 1 bệnh nhân
                             
+                            // Xác định vai trò của bác sĩ trong otherTask (Bác sĩ có dính líu gì vào task này không?)
+                            const isPrescriber = otherTask.MA_BAC_SI === docId;
+                            const otherPerformer = otherTask.NGUOI_THUC_HIEN || otherTask.MA_BAC_SI;
+                            const isPerformer = otherPerformer === docId;
+                            const isReader = otherTask._BS_KQ === docId;
+
+                            // Nếu bác sĩ không tham gia gì vào task này thì bỏ qua
+                            if (!isPrescriber && !isPerformer && !isReader) return;
+
                             const pairKey = `B3_${Math.min(busyTask._id, otherTask._id)}_${Math.max(busyTask._id, otherTask._id)}`;
                             if (crossPatientSeen.has(pairKey)) return;
 
                             let conflictTime = null;
                             let actionStr = "";
 
-                            if (otherTask.MA_BAC_SI === docId && otherTask._tYL >= startBusy && otherTask._tYL <= endBusy) {
-                                conflictTime = otherTask.NGAY_YL; actionStr = "Ra Y lệnh";
-                            } else if ((otherTask.NGUOI_THUC_HIEN === docId || otherTask.MA_BAC_SI === docId) && otherTask._tTH >= startBusy && otherTask._tTH <= endBusy) {
-                                conflictTime = otherTask.NGAY_TH_YL; actionStr = "Thực hiện";
-                            } else if ((otherTask._BS_KQ === docId || otherTask.NGUOI_THUC_HIEN === docId || otherTask.MA_BAC_SI === docId) && otherTask._tKQ >= startBusy && otherTask._tKQ <= endBusy) {
-                                conflictTime = otherTask.NGAY_KQ; actionStr = "Kết thúc / Đọc KQ";
+                            // Kiểm tra các mốc thời gian hành động của chính bác sĩ đó có lọt vào khoảng bận không
+                            if (isPrescriber && otherTask._tYL >= startBusy && otherTask._tYL <= endBusy) {
+                                conflictTime = otherTask.NGAY_YL; actionStr = "Ra Y Lệnh (NGAY_YL)";
+                            } else if (isPerformer && otherTask._tTH >= startBusy && otherTask._tTH <= endBusy) {
+                                conflictTime = otherTask.NGAY_TH_YL; actionStr = "Bắt đầu thực hiện (NGAY_TH_YL)";
+                            } else if (isReader && otherTask._tKQ >= startBusy && otherTask._tKQ <= endBusy) {
+                                conflictTime = otherTask.NGAY_KQ; actionStr = "Đọc Kết quả (NGAY_KQ)";
                             }
 
                             if (conflictTime) {
                                 crossPatientSeen.add(pairKey);
-                                createStructuredError('Chéo BN', docId, busyTask, otherTask, `Đang bận thực hiện DV cho BN này nhưng lại "${actionStr}" cho BN khác vào lúc ${formatTimeShow(conflictTime)}`);
+                                createStructuredError('Chéo BN', docId, busyTask, otherTask, `Đang bận làm DV cho BN này (từ ${formatTimeShow(busyTask.NGAY_TH_YL)} đến ${formatTimeShow(busyTask.NGAY_KQ)}) nhưng lại có "${actionStr}" cho BN khác lọt vào lúc ${formatTimeShow(conflictTime)}`);
                             }
                         });
                     }
@@ -624,42 +633,175 @@
                 return;
             }
 
-            let html = '';
-            errors.forEach((e, idx) => {
-                const theme = getErrorTheme(e.type);
-                
-                html += `
-                    <div class="bg-white rounded-xl border ${theme.border} shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                        <!-- Header Lỗi -->
-                        <div class="${theme.bg} px-4 py-2 border-b ${theme.border} flex justify-between items-center">
-                            <div class="flex items-center gap-2">
-                                <span class="bg-white/50 text-slate-500 font-mono text-xs px-2 py-0.5 rounded-full border ${theme.border}">#${idx + 1}</span>
-                                <i class="fa-solid ${theme.icon} ${theme.text}"></i>
-                                <span class="font-bold text-sm ${theme.text}">${theme.label}</span>
-                            </div>
-                            <span class="text-xs bg-white/60 px-2 py-1 rounded text-slate-600 font-medium">BS Đang Xét: <span class="font-bold text-slate-800">${getDocName(e.checkedDocId)}</span></span>
-                        </div>
-                        
-                        <!-- Lời giải thích -->
-                        <div class="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-start gap-3">
-                            <i class="fa-solid fa-circle-info text-slate-400 mt-0.5"></i>
-                            <p class="text-sm font-medium text-slate-700">${e.msg}</p>
-                        </div>
+            // --- BẮT ĐẦU CẬP NHẬT: GOM NHÓM THEO BỆNH NHÂN (CROSS VÀ SINGLE) ---
+            const groupedErrors = {};
+            
+            errors.forEach(e => {
+                let gKey, type, m1, m2;
+                if (e.type === 'Chéo BN') {
+                    m1 = e.tA.MA_LK < e.tB.MA_LK ? e.tA.MA_LK : e.tB.MA_LK;
+                    m2 = e.tA.MA_LK < e.tB.MA_LK ? e.tB.MA_LK : e.tA.MA_LK;
+                    gKey = `CROSS_${m1}_${m2}`;
+                    type = 'CROSS';
+                } else {
+                    m1 = e.tA.MA_LK;
+                    gKey = `SINGLE_${m1}`;
+                    type = 'SINGLE';
+                }
 
-                        <!-- Cột Dịch vụ -->
-                        <div class="p-4 flex flex-col md:flex-row gap-4 bg-white relative">
-                            ${renderTaskDetail(e.tA, true, e.checkedDocId)}
-                            
-                            ${e.tB ? `
-                            <div class="hidden md:flex flex-col justify-center items-center px-2">
-                                <div class="w-8 h-8 rounded-full ${theme.bg} ${theme.text} flex items-center justify-center font-bold border ${theme.border} shadow-sm z-10">VS</div>
+                if (!groupedErrors[gKey]) {
+                    groupedErrors[gKey] = {
+                        type: type,
+                        malk1: m1,
+                        malk2: m2,
+                        p1Name: globalPatientMap[m1] || 'Không rõ',
+                        p2Name: m2 ? (globalPatientMap[m2] || 'Không rõ') : null,
+                        errorCount: 0,
+                        subGroups: {}
+                    };
+                }
+                groupedErrors[gKey].errorCount++;
+
+                // Gom những lỗi có cùng Task A lại với nhau
+                const subKey = `${e.type}_${e.tA._id}_${e.tA.MA_DICH_VU}_${e.tA.NGAY_TH_YL}`;
+                if (!groupedErrors[gKey].subGroups[subKey]) {
+                    groupedErrors[gKey].subGroups[subKey] = {
+                        type: e.type,
+                        tA: e.tA,
+                        checkedDocId: e.checkedDocId,
+                        msg: e.msg,
+                        tBs: []
+                    };
+                }
+                
+                if (e.tB) {
+                    // Tránh trùng lặp các tB giống hệt nhau
+                    const tBs = groupedErrors[gKey].subGroups[subKey].tBs;
+                    const bIdentifier = e.tB._id ? e.tB._id : (e.tB.TEN_DICH_VU + e.tB.NGAY_TH_YL); 
+                    if (!tBs.find(x => (x._id ? x._id === e.tB._id : (x.TEN_DICH_VU + x.NGAY_TH_YL) === bIdentifier))) {
+                        tBs.push(e.tB);
+                    }
+                }
+            });
+
+            let html = '';
+            let globalIdx = 1;
+
+            // Render từng Nhóm (Cross hoặc Single)
+            for (const gKey in groupedErrors) {
+                const group = groupedErrors[gKey];
+
+                if (group.type === 'CROSS') {
+                    html += `
+                        <div class="mb-6 bg-white border border-cyan-200 rounded-2xl shadow-sm overflow-hidden animate-fade-in">
+                            <div class="bg-cyan-50/80 border-b border-cyan-200 px-5 py-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center font-bold text-lg shadow-inner shrink-0">
+                                        <i class="fa-solid fa-people-arrows"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-cyan-900 text-lg uppercase leading-tight">LỖI CHÉO: ${group.p1Name} <span class="text-rose-500 mx-1">VS</span> ${group.p2Name}</h3>
+                                        <p class="text-xs text-slate-500 font-mono mt-0.5">${group.malk1} <span class="mx-1">&</span> ${group.malk2}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-rose-700 bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm flex items-center gap-1.5 shrink-0">
+                                        <i class="fa-solid fa-bug"></i> Có ${group.errorCount} Lỗi
+                                    </span>
+                                    <button onclick="openPatientModal('${group.malk1}', '${group.p1Name.replace(/'/g,"\\'")}')" class="text-[11px] bg-white border border-cyan-200 text-cyan-700 hover:bg-cyan-600 hover:text-white px-2.5 py-1.5 rounded-lg transition shadow-sm font-medium flex items-center gap-1 shrink-0">
+                                        <i class="fa-solid fa-timeline"></i> LS BN 1
+                                    </button>
+                                    <button onclick="openPatientModal('${group.malk2}', '${group.p2Name.replace(/'/g,"\\'")}')" class="text-[11px] bg-white border border-cyan-200 text-cyan-700 hover:bg-cyan-600 hover:text-white px-2.5 py-1.5 rounded-lg transition shadow-sm font-medium flex items-center gap-1 shrink-0">
+                                        <i class="fa-solid fa-timeline"></i> LS BN 2
+                                    </button>
+                                </div>
                             </div>
-                            ${renderTaskDetail(e.tB, true, e.checkedDocId)}
-                            ` : ''}
+                    `;
+                } else {
+                    html += `
+                        <div class="mb-6 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-fade-in">
+                            <div class="bg-indigo-50/80 border-b border-indigo-100 px-5 py-3 flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg shadow-inner shrink-0">
+                                        <i class="fa-solid fa-user-injured"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-indigo-900 text-lg uppercase leading-tight">${group.p1Name}</h3>
+                                        <p class="text-xs text-slate-500 font-mono mt-0.5">Mã LK: ${group.malk1}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-rose-700 bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm flex items-center gap-1.5">
+                                        <i class="fa-solid fa-bug"></i> Có ${group.errorCount} Lỗi
+                                    </span>
+                                    <button onclick="openPatientModal('${group.malk1}', '${group.p1Name.replace(/'/g,"\\'")}')" class="text-xs bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg transition shadow-sm font-medium flex items-center gap-1.5">
+                                        <i class="fa-solid fa-timeline"></i> Xem lịch sử BN
+                                    </button>
+                                </div>
+                            </div>
+                    `;
+                }
+
+                html += `<div class="p-4 bg-slate-50/50 space-y-4">`;
+
+                // Render chi tiết từng nhóm Lỗi (Task A)
+                for (const subKey in group.subGroups) {
+                    const sub = group.subGroups[subKey];
+                    const theme = getErrorTheme(sub.type);
+                    
+                    let displayMsg = sub.msg;
+                    if (sub.tBs.length > 1) {
+                        displayMsg = `Đang bận thực hiện dịch vụ này nhưng lại bị chồng chéo với <b class="text-rose-600">${sub.tBs.length}</b> dịch vụ/y lệnh/thuốc khác.`;
+                    }
+
+                    html += `
+                        <div class="bg-white rounded-xl border ${theme.border} shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden hover:shadow-md transition-all relative">
+                            <!-- Đường viền mỏng bên trái để nhấn mạnh màu theo loại lỗi -->
+                            <div class="absolute left-0 top-0 bottom-0 w-1.5 ${theme.bg.replace('50', '400')}"></div>
+
+                            <!-- Header Lỗi -->
+                            <div class="${theme.bg} px-4 py-2 border-b ${theme.border} flex justify-between items-center pl-6">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-white/70 text-slate-600 font-mono text-[10px] px-1.5 py-0.5 rounded border ${theme.border}">STT: #${globalIdx++}</span>
+                                    <i class="fa-solid ${theme.icon} ${theme.text} ml-1"></i>
+                                    <span class="font-bold text-sm ${theme.text}">${theme.label}</span>
+                                </div>
+                                <span class="text-xs bg-white/70 px-2 py-1 rounded text-slate-600 font-medium border ${theme.border}">
+                                    Phát hiện ở BS: <span class="font-bold text-slate-800">${getDocName(sub.checkedDocId)}</span>
+                                </span>
+                            </div>
+                            
+                            <!-- Lời giải thích lỗi -->
+                            <div class="px-5 py-3 bg-slate-50/50 border-b border-slate-100 flex items-start gap-3 pl-6">
+                                <i class="fa-solid fa-circle-info text-slate-400 mt-0.5"></i>
+                                <p class="text-sm font-medium text-slate-700 leading-relaxed">${displayMsg}</p>
+                            </div>
+
+                            <!-- Cột Dịch vụ -->
+                            <div class="p-4 flex flex-col md:flex-row gap-4 bg-white relative pl-6">
+                                <div class="flex-1 min-w-0">
+                                    ${renderTaskDetail(sub.tA, true, sub.checkedDocId)}
+                                </div>
+                                
+                                ${sub.tBs.length > 0 ? `
+                                <div class="hidden md:flex flex-col justify-center items-center px-1">
+                                    <div class="w-8 h-8 rounded-full ${theme.bg} ${theme.text} flex items-center justify-center font-black text-xs border ${theme.border} shadow-sm z-10">VS</div>
+                                </div>
+                                <div class="flex-1 min-w-0 flex flex-col gap-2">
+                                    ${sub.tBs.map(tB => renderTaskDetail(tB, true, sub.checkedDocId)).join('')}
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
                         </div>
                     </div>
                 `;
-            });
+            }
+
             container.innerHTML = html;
         }
 
