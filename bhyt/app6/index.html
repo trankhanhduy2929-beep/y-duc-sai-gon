@@ -393,9 +393,12 @@
         let uniqueDoctors = new Set();
         let uniqueMachines = new Set();
         
-        // 1. Map Bác Sỹ
+        // 1. Map Bác Sỹ & Máy được phép sử dụng
         let docMap = {};
-        let maIdx = -1, tenIdx = -1;
+        let docAllowedMachinesMap = {}; // Lưu danh sách máy được phép cho từng BS
+        
+        let maIdx = -1, tenIdx = -1, maMayBsIdx = -1;
+        
         rawData.bs.forEach(row => {
             if (maIdx === -1) {
                 row.forEach((col, idx) => {
@@ -403,11 +406,22 @@
                         let c = col.toUpperCase();
                         if (c.includes('CCHN') || c === 'MA_BAC_SI') maIdx = idx;
                         if (c.includes('TEN BS') || c.includes('TÊN BS') || c.includes('HO_TEN')) tenIdx = idx;
+                        if (c.includes('MÃ MÁY') || c.includes('MA_MAY')) maMayBsIdx = idx;
                     }
                 });
             } else {
-                if (row[maIdx] && row[tenIdx]) {
-                    docMap[row[maIdx].trim()] = row[tenIdx].trim();
+                if (row[maIdx]) {
+                    let docCode = row[maIdx].trim();
+                    if (row[tenIdx]) {
+                        docMap[docCode] = row[tenIdx].trim();
+                    }
+                    
+                    // Lưu danh sách máy được phép
+                    if (maMayBsIdx !== -1 && row[maMayBsIdx]) {
+                        // Tách các mã máy bằng dấu phẩy, làm sạch khoảng trắng
+                        let allowedMachines = String(row[maMayBsIdx]).split(',').map(m => m.trim()).filter(m => m);
+                        docAllowedMachinesMap[docCode] = allowedMachines;
+                    }
                 }
             }
         });
@@ -415,6 +429,18 @@
         const getDocName = (code) => {
             if (!code) return "";
             return docMap[code.trim()] ? `${docMap[code.trim()]} (${code})` : code;
+        };
+        
+        // Hàm kiểm tra xem BS có được phép sử dụng máy không
+        const isMachineAllowedForDoctor = (docCode, machineCode) => {
+            if (!docCode || !machineCode) return true; // Bỏ qua nếu thiếu thông tin
+            
+            let allowedMachines = docAllowedMachinesMap[docCode.trim()];
+            
+            // Nếu BS không có danh sách máy cụ thể nào (trống cột MÃ MÁY trong file BS), tạm coi là hợp lệ (hoặc bạn có thể đổi logic tùy ý)
+            if (!allowedMachines || allowedMachines.length === 0) return true; 
+            
+            return allowedMachines.includes(machineCode.trim());
         };
 
         // 2. Map Bệnh Nhân
@@ -457,11 +483,19 @@
                          tenDV.includes('cấy chỉ') || tenDV.includes('cay chi') ||
                          tenDV.includes('test');
 
+            // --- KIỂM TRA LỖI 1: THIẾU MÃ MÁY ---
             if (!isKham && (!maMay || !maMay3176)) {
                 errors.push({ type: 'missing_machine', text: 'Thiếu mã máy (MA_MAY hoặc MA_MAY_3176)' });
             }
 
             let actualMachine = maMay || maMay3176;
+            
+            // --- KIỂM TRA LỖI 2: SAI MÃ MÁY (Bác sỹ sử dụng máy không được cấp phép) ---
+            if (actualMachine && nguoiThucHienCode) {
+                if (!isMachineAllowedForDoctor(nguoiThucHienCode, actualMachine)) {
+                    errors.push({ type: 'wrong_machine', text: 'Sử dụng máy không được cấp phép (sai mã máy)' });
+                }
+            }
             
             // Ghi nhận thời gian dùng Máy
             if (actualMachine && ngayThYl && !isKham) { 
@@ -634,12 +668,19 @@
             let errorTags = '';
             if (rec.errors.length > 0) {
                 errorTags = rec.errors.map(e => {
-                    let style = e.type === 'missing_machine' 
-                        ? 'bg-amber-100 text-amber-800 border-amber-200' 
-                        : 'bg-rose-100 text-rose-800 border-rose-200';
-                    let icon = e.type === 'missing_machine' 
-                        ? '<svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>'
-                        : '<svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                    let style = '';
+                    let icon = '';
+                    
+                    if (e.type === 'missing_machine') {
+                        style = 'bg-amber-100 text-amber-800 border-amber-200';
+                        icon = '<svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+                    } else if (e.type === 'wrong_machine') {
+                        style = 'bg-purple-100 text-purple-800 border-purple-200';
+                        icon = '<svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                    } else {
+                        style = 'bg-rose-100 text-rose-800 border-rose-200';
+                        icon = '<svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                    }
                     
                     return `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${style} mb-1.5 w-max shadow-sm">${icon} ${e.text}</span><br>`;
                 }).join('');
