@@ -39,7 +39,7 @@
                 <i class="fa-solid fa-shield-halved text-3xl"></i>
             </div>
             <h2 class="text-2xl font-bold mb-2 text-slate-800">Hệ Thống Dò Lỗi</h2>
-            <p class="text-slate-500 mb-6 text-sm">Nhập mã PIN để truy cập hệ thống</p>
+            <p class="text-slate-500 mb-6 text-sm">Nhập mã PIN (1402) để truy cập hệ thống</p>
             <input type="password" id="password-input" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-4 text-center text-2xl tracking-widest transition-all bg-slate-50" placeholder="••••">
             <p id="login-error" class="text-rose-500 text-sm mb-4 hidden font-medium animate-fade-in">Mã PIN không chính xác!</p>
             <button onclick="checkLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200">
@@ -453,7 +453,7 @@
                         });
 
                         rxByDoc.forEach(rx => {
-                            const tThuoc = parseBHYTTime(rx.NGAY_TH_YL); // Đã fix: Chỉ lấy NGAY_TH_YL
+                            const tThuoc = parseBHYTTime(rx.NGAY_YL); // ĐÃ FIX: Chỉ lấy đúng NGAY_YL bảng 2
                             const latestData = latestTaskByPatient[rx.MA_LK];
                             
                             if (tThuoc && latestData && tThuoc < latestData.maxTime) {
@@ -461,15 +461,16 @@
                                 const rxFakeTask = { 
                                     MA_LK: rx.MA_LK, 
                                     TEN_DICH_VU: `Thuốc: ${rx.TEN_THUOC}`, 
-                                    NGAY_TH_YL: rx.NGAY_TH_YL, 
-                                    NGUOI_THUC_HIEN: rx.MA_BAC_SI 
+                                    NGAY_YL: rx.NGAY_YL, 
+                                    NGAY_TH_YL: rx.NGAY_YL, // Gắn tạm để giao diện render đồng nhất
+                                    MA_BAC_SI: rx.MA_BAC_SI 
                                 };
                                 
                                 let isKham = latestTask.MA_DICH_VU === 'Khám bệnh' || String(latestTask.TEN_DICH_VU).toLowerCase().includes('khám');
                                 
                                 let reasonMsg = isKham 
-                                    ? `Cấp thuốc lúc ${formatTimeShow(rx.NGAY_TH_YL)} trước khi hoàn tất Khám bệnh (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL || latestTask.NGAY_YL)}).`
-                                    : `Cấp thuốc lúc ${formatTimeShow(rx.NGAY_TH_YL)} trước khi có Kết quả Cận lâm sàng (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL)}).`;
+                                    ? `Kê đơn thuốc lúc ${formatTimeShow(rx.NGAY_YL)} trước khi hoàn tất Khám bệnh (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL || latestTask.NGAY_YL)}).`
+                                    : `Kê đơn thuốc lúc ${formatTimeShow(rx.NGAY_YL)} trước khi có Kết quả Cận lâm sàng (${formatTimeShow(latestTask.NGAY_KQ || latestTask.NGAY_TH_YL)}).`;
 
                                 createStructuredError('Thuốc Sớm', docId, latestTask, rxFakeTask, reasonMsg);
                             }
@@ -479,7 +480,7 @@
                     // --- BẮT ĐẦU ĐOẠN BỔ SUNG: KIỂM TRA CHÉO BỆNH NHÂN ---
                     // 4. KIỂM TRA CHÉO BỆNH NHÂN (Giữ logic cũ + Bổ sung luật khắt khe cho MA_BAC_SI)
                     
-                    // ĐÃ FIX: Lấy các task mà Bác sĩ này THỰC SỰ THỰC HIỆN (từ TH_YL -> KQ). 
+                    // Lấy các task mà Bác sĩ này THỰC SỰ THỰC HIỆN (từ TH_YL -> KQ). 
                     // Nếu chỉ là MA_BAC_SI (chỉ định) mà người khác thực hiện/đọc KQ thì không bị coi là "đang bận làm".
                     const docBusyTasksB3 = thTasks.filter(r => r._tKQ); // thTasks đã lọc "performer === docId" từ trước
                     let crossPatientSeen = new Set(); // Bộ nhớ tạm để tránh báo lặp
@@ -491,19 +492,25 @@
 
                         if (startBusy > endBusy) continue;
 
-                        // 4.1 Bảng 2: Không được có NGAY_TH_YL thuốc của BN khác lọt vào giữa
+                        // 4.1 Bảng 2: Không được có NGAY_YL thuốc của BN khác lọt vào giữa
                         t2.filter(r => r.MA_BAC_SI === docId).forEach(rx => {
                             if (rx.MA_LK === busyTask.MA_LK) return; // Bỏ qua nếu cùng 1 bệnh nhân
                             
-                            const tThuoc = parseBHYTTime(rx.NGAY_TH_YL); // Chỉ lấy NGAY_TH_YL
+                            const tThuoc = parseBHYTTime(rx.NGAY_YL); // ĐÃ FIX: Chỉ lấy đúng NGAY_YL bảng 2
                             if (!tThuoc) return;
 
                             if (tThuoc >= startBusy && tThuoc <= endBusy) {
                                 const pairKey = `B2_${busyTask._id}_${rx.MA_LK}_${rx.MA_THUOC}_${tThuoc}`;
                                 if (!crossPatientSeen.has(pairKey)) {
                                     crossPatientSeen.add(pairKey);
-                                    const rxFakeTask = { MA_LK: rx.MA_LK, TEN_DICH_VU: `Thuốc: ${rx.TEN_THUOC}`, NGAY_TH_YL: rx.NGAY_TH_YL, NGUOI_THUC_HIEN: rx.MA_BAC_SI };
-                                    createStructuredError('Chéo BN', docId, busyTask, rxFakeTask, `Đang bận thực hiện DV cho BN này nhưng lại có thời gian cấp thuốc (Bảng 2) cho BN khác lọt vào lúc ${formatTimeShow(rx.NGAY_TH_YL)}`);
+                                    const rxFakeTask = { 
+                                        MA_LK: rx.MA_LK, 
+                                        TEN_DICH_VU: `Thuốc: ${rx.TEN_THUOC}`, 
+                                        NGAY_YL: rx.NGAY_YL, 
+                                        NGAY_TH_YL: rx.NGAY_YL,
+                                        MA_BAC_SI: rx.MA_BAC_SI 
+                                    };
+                                    createStructuredError('Chéo BN', docId, busyTask, rxFakeTask, `Đang bận thực hiện DV cho BN này nhưng lại có thời gian kê đơn thuốc (Bảng 2) cho BN khác lọt vào lúc ${formatTimeShow(rx.NGAY_YL)}`);
                                 }
                             }
                         });
