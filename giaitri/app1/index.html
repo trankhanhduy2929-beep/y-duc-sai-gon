@@ -341,11 +341,25 @@
             return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
         };
 
-        // Hàm xử lý LocalStorage cho Lịch sử xem phim an toàn (Có Memory Fallback)
+        // Hàm xử lý LocalStorage cho Lịch sử xem phim an toàn (Có Memory Fallback Tối Ưu)
         let memHistory = [];
+        let useMemoryOnly = false;
+        
+        // Kiểm tra xem trình duyệt có chặn ghi LocalStorage không (Rất hay gặp ở Iframe/Incognito)
+        try {
+            localStorage.setItem('test_kkphim', '1');
+            localStorage.removeItem('test_kkphim');
+        } catch(e) {
+            useMemoryOnly = true;
+        }
+
         const getHistory = () => {
-            try { return JSON.parse(localStorage.getItem('kkphim_history') || '[]'); }
-            catch(e) { return memHistory; }
+            if (useMemoryOnly) return memHistory;
+            try { 
+                return JSON.parse(localStorage.getItem('kkphim_history') || '[]'); 
+            } catch(e) { 
+                return memHistory; 
+            }
         };
         
         const saveToHistory = (movieData) => {
@@ -359,33 +373,31 @@
             history.sort((a, b) => b.updatedAt - a.updatedAt);
             if(history.length > 50) history = history.slice(0, 50); // Lưu tối đa 50 phim
             
-            try { 
-                localStorage.setItem('kkphim_history', JSON.stringify(history)); 
-                memHistory = history; 
-            } catch(e) { 
-                memHistory = history; 
+            // Luôn đồng bộ vào RAM
+            memHistory = history; 
+            
+            // Ghi vào ổ cứng nếu trình duyệt cho phép
+            if (!useMemoryOnly) {
+                try { localStorage.setItem('kkphim_history', JSON.stringify(history)); } catch(e) {}
             }
         };
 
         window.removeHistory = (slug) => {
             let history = getHistory();
             history = history.filter(h => h.slug !== slug);
-            try { 
-                localStorage.setItem('kkphim_history', JSON.stringify(history)); 
-                memHistory = history; 
-            } catch(e) { 
-                memHistory = history; 
+            
+            memHistory = history;
+            if (!useMemoryOnly) {
+                try { localStorage.setItem('kkphim_history', JSON.stringify(history)); } catch(e) {}
             }
             if(state.currentView === 'history') renderHistory(document.getElementById('app-content'));
         };
 
         window.clearHistory = () => {
             if(confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử xem phim?')) {
-                try { 
-                    localStorage.removeItem('kkphim_history'); 
-                    memHistory = []; 
-                } catch(e) { 
-                    memHistory = []; 
+                memHistory = [];
+                if (!useMemoryOnly) {
+                    try { localStorage.removeItem('kkphim_history'); } catch(e) {}
                 }
                 if(state.currentView === 'history') renderHistory(document.getElementById('app-content'));
             }
@@ -862,32 +874,48 @@
             };
             playBtn.addEventListener('click', togglePlay);
             
-            video.addEventListener('play', () => playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>');
-            video.addEventListener('pause', () => playBtn.innerHTML = '<i class="fa-solid fa-play"></i>');
+            // Hàm theo dõi & lưu thông tin phim (Instant Tracker)
+            const updateHistoryTracker = () => {
+                if (state.currentMovie) {
+                    saveToHistory({
+                        slug: state.currentMovie.slug,
+                        name: state.currentMovie.name,
+                        origin_name: state.currentMovie.origin_name,
+                        year: state.currentMovie.year,
+                        poster_url: state.currentMovie.poster_url || state.currentMovie.thumb_url,
+                        episode_name: epName,
+                        episode_link: sourceUrl,
+                        currentTime: video.currentTime || 0,
+                        duration: video.duration || 0
+                    });
+                }
+            };
+
+            // Lưu lịch sử ngay khi phim bắt đầu chạy hoặc khi bấm dừng
+            video.addEventListener('play', () => {
+                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                updateHistoryTracker();
+            });
+            
+            video.addEventListener('pause', () => {
+                playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                updateHistoryTracker();
+            });
+            
             video.addEventListener('waiting', () => videoLoader.classList.remove('hidden'));
             video.addEventListener('playing', () => videoLoader.classList.add('hidden'));
 
-            let lastSaveTime = -5; // Force immediate save on initial play
+            let lastSaveTime = 0; 
             video.addEventListener('timeupdate', () => {
                 if (isCasting()) return; // Để Cast xử lý đồng bộ thời gian
                 const percent = (video.currentTime / video.duration) * 100;
                 progressFilled.style.width = `${percent}%`;
                 timeDisplay.innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
 
-                // Tracker Lịch sử: Lưu lại mỗi 5 giây
-                if (state.currentMovie && video.currentTime > 0 && Math.abs(video.currentTime - lastSaveTime) > 5) {
+                // Tracker Lịch sử: Lưu lại mỗi 5 giây khi đang xem
+                if (video.currentTime > 0 && Math.abs(video.currentTime - lastSaveTime) > 5) {
                     lastSaveTime = video.currentTime;
-                    saveToHistory({
-                        slug: state.currentMovie.slug,
-                        name: state.currentMovie.name,
-                        origin_name: state.currentMovie.origin_name,
-                        year: state.currentMovie.year,
-                        poster_url: state.currentMovie.poster_url,
-                        episode_name: epName,
-                        episode_link: sourceUrl,
-                        currentTime: video.currentTime,
-                        duration: video.duration || 0
-                    });
+                    updateHistoryTracker();
                 }
             });
 
