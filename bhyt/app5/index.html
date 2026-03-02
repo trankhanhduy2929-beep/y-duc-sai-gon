@@ -415,27 +415,35 @@
                 });
                 // B3
                 b3Data.forEach((r, idx) => {
-                    const bs = normalizeID(r["MA_BAC_SI"]), th = normalizeID(r["NGUOI_THUC_HIEN"]);
+                    const bs = normalizeID(r["MA_BAC_SI"]);
+                    const th = normalizeID(r["NGUOI_THUC_HIEN"]);
+                    
+                    // Vai trò B3 Chỉ định: Luôn bắt theo NGAY_YL
                     if (bs === selectedDoctorId) {
                         acts.push({
                             type: 'DICH_VU', maLk: r["MA_LK"],
                             patient: patientsMap[r["MA_LK"]]?.ten || "Không có tên",
-                            content: r["TEN_DICH_VU"], time: String(r["NGAY_YL"] || ""),
+                            content: r["TEN_DICH_VU"], 
+                            time: String(r["NGAY_YL"] || ""),
                             detail: `SL: ${r["SO_LUONG"]}`, role: 'Chỉ định', idx: idx + '_bs'
                         });
                     }
+                    
+                    // Vai trò Thực hiện: Luôn bắt theo NGAY_TH_YL (Độc lập, không gộp)
                     if (th === selectedDoctorId) {
                         acts.push({
                             type: 'DICH_VU', maLk: r["MA_LK"],
                             patient: patientsMap[r["MA_LK"]]?.ten || "Không có tên",
-                            content: r["TEN_DICH_VU"], time: String(r["NGAY_TH_YL"] || r["NGAY_YL"] || ""), 
+                            content: r["TEN_DICH_VU"], 
+                            time: String(r["NGAY_TH_YL"] || ""), 
                             timeResult: String(r["NGAY_KQ"] || ""),
-                            detail: `KQ: ${r["MO_TA"] || 'Có KQ'}`, role: 'Thực hiện', idx: idx + '_th'
+                            detail: `Thực hiện DV: ${r["TEN_DICH_VU"]}`, role: 'Thực hiện', idx: idx + '_th'
                         });
                     }
                 });
                 // B4
                 b4Data.forEach((r, idx) => {
+                    // Vai trò B4 Đọc KQ: Luôn bắt theo NGAY_KQ
                     if (normalizeID(r["MA_BS_DOC_KQ"]) === selectedDoctorId) {
                         let content = r["TEN_CHI_SO"];
                         let detail = r["KET_LUAN"] || r["MO_TA"] || r["GIA_TRI"];
@@ -446,7 +454,7 @@
                             content: content,
                             time: String(r["NGAY_KQ"] || ""), 
                             timeResult: String(r["NGAY_KQ"] || ""),
-                            detail: detail, role: 'Đọc KQ', idx
+                            detail: detail, role: 'Đọc KQ', idx: idx + '_b4'
                         });
                     }
                 });
@@ -472,9 +480,11 @@
                 let min = "999999999999", max = "000000000000";
                 
                 filteredActs.forEach(a => {
-                    if(a.time && a.time < min) min = a.time;
-                    if(a.time && a.time > max) max = a.time;
-                    if(a.timeResult && a.timeResult > max) max = a.timeResult;
+                    // Bắt buộc CHỈ tính max/min dựa trên thời gian chính (a.time) của role đó
+                    if(a.time && a.time.length >= 12) {
+                        if(a.time < min) min = a.time;
+                        if(a.time > max) max = a.time;
+                    }
                 });
 
                 // Calculate duration
