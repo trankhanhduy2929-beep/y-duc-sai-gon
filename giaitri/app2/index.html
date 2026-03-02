@@ -92,6 +92,12 @@
         .snap-center-item { scroll-snap-align: center; }
         .snap-start-item { scroll-snap-align: start; }
 
+        /* Custom thin scrollbar cho danh sách tập phim */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #e50914; }
+
         /* Smooth Image Loading */
         .img-smooth { opacity: 0; transition: opacity 0.5s ease-in-out; }
         .img-smooth.loaded { opacity: 1; }
@@ -793,6 +799,40 @@
                 const cats = (movie.category || []).map(c => c.name).join(', ');
                 const countries = (movie.country || []).map(c => c.name).join(', ');
 
+                // --- Tạo danh sách tập phim nhóm theo Bản dịch / Server (Vietsub, Thuyết minh...) ---
+                let episodesListHtml = '';
+                if (hasEpisodes) {
+                    let serversBlocks = episodes.map((srv, sIdx) => {
+                        let epsHtml = srv.server_data.map((ep, eIdx) => {
+                            // Highlight tập đang xem dở nếu có
+                            let isActive = (history && history.serverIdx == sIdx && history.episodeIdx == eIdx);
+                            return `<a href="#xem/${movie.slug}/${sIdx}-${eIdx}" class="w-12 h-10 flex items-center justify-center rounded text-sm font-medium transition-all ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/50' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'}">${ep.name}</a>`;
+                        }).join('');
+
+                        return `
+                            <div class="mb-6 last:mb-0">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <i class="fa-solid fa-server text-primary"></i>
+                                    <span class="text-sm font-bold text-white uppercase">${srv.server_name}</span>
+                                    <span class="text-xs text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full">${srv.server_data.length} tập</span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    ${epsHtml}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    episodesListHtml = `
+                        <div class="relative z-10 px-6 md:px-10 pb-8 mt-4">
+                            <h3 class="text-xl font-bold mb-6 border-l-4 border-primary pl-3">Chọn Tập Phim</h3>
+                            <div class="bg-black/20 rounded-xl p-4 md:p-6 border border-gray-800 backdrop-blur-md">
+                                ${serversBlocks}
+                            </div>
+                        </div>
+                    `;
+                }
+
                 container.innerHTML = document.getElementById('tpl-movie-details').innerHTML;
                 document.getElementById('details-container').innerHTML = `
                     <div class="relative rounded-2xl overflow-hidden bg-panel border border-gray-800 shadow-2xl mb-10">
@@ -821,7 +861,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="relative z-10 px-6 md:px-10 pb-10">
+
+                        ${episodesListHtml}
+
+                        <div class="relative z-10 px-6 md:px-10 pb-10 pt-4 border-t border-gray-800/50">
                             <h3 class="text-xl font-bold mb-4 border-l-4 border-primary pl-3">Nội Dung Phim</h3>
                             <div class="text-gray-300 leading-relaxed text-sm md:text-base opacity-90 content-formatted" id="movie-content">${movie.content || 'Đang cập nhật nội dung...'}</div>
                         </div>
@@ -847,25 +890,49 @@
                 
                 this.renderWatchInfo(); this.initPlayer();
             },
-            renderWatchInfo() { /* Code render watch info như cũ, bỏ qua chi tiết để focus vào search */
+            renderWatchInfo() { 
                 const infoContainer = document.getElementById('watch-info');
                 const movie = this.state.currentMovie.movie;
                 const episodes = this.state.currentMovie.episodes;
                 const currentEpData = episodes[this.state.currentServerIdx].server_data[this.state.currentEpisodeIdx];
 
-                let serversHtml = episodes.map((srv, idx) => `<button class="px-4 py-2 rounded text-sm font-medium transition-colors ${idx === this.state.currentServerIdx ? 'bg-primary text-white shadow-lg' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}" onclick="app.changeServer(${idx})">${srv.server_name}</button>`).join('');
-                let epsHtml = episodes[this.state.currentServerIdx].server_data.map((ep, idx) => `<a href="#xem/${movie.slug}/${this.state.currentServerIdx}-${idx}" class="w-12 h-10 flex items-center justify-center rounded text-sm font-medium transition-all ${idx === this.state.currentEpisodeIdx ? 'bg-primary text-white shadow-md scale-110 z-10' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}">${ep.name}</a>`).join('');
+                let allServersHtml = episodes.map((srv, sIdx) => {
+                    let epsHtml = srv.server_data.map((ep, eIdx) => {
+                        const isActive = (sIdx === this.state.currentServerIdx && eIdx === this.state.currentEpisodeIdx);
+                        return `<a href="#xem/${movie.slug}/${sIdx}-${eIdx}" class="w-12 h-10 flex items-center justify-center rounded text-sm font-medium transition-all ${isActive ? 'bg-primary text-white shadow-md scale-110 z-10 ring-2 ring-primary/50' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'}">${ep.name}</a>`;
+                    }).join('');
+
+                    return `
+                        <div class="mb-6 last:mb-0">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fa-solid fa-server text-primary"></i>
+                                <span class="text-sm font-bold text-white uppercase">${srv.server_name}</span>
+                                <span class="text-xs text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full">${srv.server_data.length} tập</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                ${epsHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
 
                 infoContainer.innerHTML = `
                     <div>
                         <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">${movie.name}</h1>
-                        <h2 class="text-lg text-gray-400 mb-4">${movie.origin_name} - Tập ${currentEpData.name}</h2>
-                        <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-800 pb-4"><a href="#phim/${movie.slug}" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-sm flex items-center gap-2"><i class="fa-solid fa-info-circle"></i> Info</a></div>
+                        <h2 class="text-lg text-gray-400 mb-4">${movie.origin_name} - Tập ${currentEpData.name} (${episodes[this.state.currentServerIdx].server_name})</h2>
+                        <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-800 pb-4"><a href="#phim/${movie.slug}" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm transition-colors flex items-center gap-2"><i class="fa-solid fa-info-circle"></i> Về Trang Thông Tin</a></div>
                     </div>
-                    <div class="bg-panel rounded-xl p-4 md:p-6 border border-gray-800"><div class="flex gap-3 mb-8">${serversHtml}</div><div class="flex flex-wrap gap-2 max-h-60 overflow-y-auto">${epsHtml}</div></div>
+                    <div class="bg-panel rounded-xl p-4 md:p-6 border border-gray-800 shadow-xl">
+                        <div class="flex items-center justify-between mb-4 border-b border-gray-800 pb-4">
+                            <div class="flex items-center gap-4">
+                                <i class="fa-solid fa-list-ol text-gray-500"></i>
+                                <span class="text-base font-bold text-white">DANH SÁCH TẬP</span>
+                            </div>
+                        </div>
+                        ${allServersHtml}
+                    </div>
                 `;
             },
-            changeServer(idx) { window.location.hash = `xem/${this.state.currentMovie.movie.slug}/${idx}-${this.state.currentEpisodeIdx}`; },
             playNextEpisode() {
                 const sIdx = this.state.currentServerIdx; const eIdx = this.state.currentEpisodeIdx;
                 const eps = this.state.currentMovie.episodes[sIdx].server_data;
