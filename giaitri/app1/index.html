@@ -1056,6 +1056,40 @@
 
             fetchAndRenderFilterResults();
         };
+        
+        // 4. HISTORY VIEW (TRANG LỊCH SỬ)
+        const renderHistory = (container) => {
+            const history = getHistory();
+            
+            container.innerHTML = `
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 border-b border-gray-800 pb-4">
+                        <h1 class="text-3xl font-bold text-white border-l-4 border-yellow-400 pl-4"><i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch Sử Xem Phim</h1>
+                        ${history.length > 0 ? `
+                        <button onclick="clearHistory()" class="bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/50 px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold">
+                            <i class="fa-solid fa-trash"></i> Xóa tất cả
+                        </button>` : ''}
+                    </div>
+
+                    ${history.length === 0 ? `
+                        <div class="text-center py-20 bg-cardbg rounded-xl border border-gray-800">
+                            <i class="fa-solid fa-film text-6xl text-gray-600 mb-4"></i>
+                            <h2 class="text-xl font-bold text-gray-400">Bạn chưa xem bộ phim nào!</h2>
+                            <p class="text-gray-500 mt-2 mb-6">Hãy chọn một bộ phim hấp dẫn để bắt đầu trải nghiệm.</p>
+                            <button onclick="navigate('home')" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-bold transition-colors">
+                                Khám phá ngay
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+                            ${history.map(movie => createMovieCard(movie, true)).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            lazyLoadImages();
+        };
 
         window.fetchAndRenderFilterResults = async (append = false) => {
             const grid = document.getElementById('filter-results');
