@@ -212,7 +212,9 @@
             // Variables for Google Cast
             currentMediaUrl: '',
             currentMediaTitle: '',
-            currentMediaPoster: ''
+            currentMediaPoster: '',
+            currentMovie: null,
+            currentEpisodes: []
         };
 
         // --- GOOGLE CAST API SETUP ---
@@ -594,8 +596,10 @@
             }
 
             const movie = data.movie;
-            const episodes = data.episodes?.[0]?.server_data || [];
-            const firstEpLink = episodes.length > 0 ? episodes[0].link_m3u8 : '';
+            state.currentEpisodes = data.episodes || [];
+            
+            const firstServer = state.currentEpisodes[0]?.server_data || [];
+            const firstEpLink = firstServer.length > 0 ? firstServer[0].link_m3u8 : '';
 
             // Update state for Casting info & History Tracking
             state.currentMediaTitle = movie.name;
@@ -605,16 +609,21 @@
             // Kiểm tra xem có lịch sử đang xem dở phim này không
             const history = getHistory().find(h => h.slug === movie.slug);
             let targetEpLink = firstEpLink;
-            let targetEpName = episodes.length > 0 ? episodes[0].name : '';
+            let targetEpName = firstServer.length > 0 ? firstServer[0].name : '';
             let savedTime = 0;
+            let activeServerIndex = 0;
 
             if (history) {
-                const foundEp = episodes.find(e => e.link_m3u8 === history.episode_link);
-                if (foundEp) {
-                    targetEpLink = foundEp.link_m3u8;
-                    targetEpName = foundEp.name;
-                    savedTime = history.currentTime;
-                }
+                // Quét qua tất cả các server (Vietsub, Thuyết minh...) để tìm tập đang xem dở
+                state.currentEpisodes.forEach((server, sIdx) => {
+                    const foundEp = server.server_data.find(e => e.link_m3u8 === history.episode_link);
+                    if (foundEp) {
+                        targetEpLink = foundEp.link_m3u8;
+                        targetEpName = foundEp.name;
+                        savedTime = history.currentTime;
+                        activeServerIndex = sIdx;
+                    }
+                });
             }
 
             container.innerHTML = `
@@ -707,20 +716,22 @@
                         <div class="lg:col-span-1">
                             <div class="bg-cardbg rounded-xl p-5 border border-gray-800 sticky top-24">
                                 <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
-                                    <span>Danh sách tập</span>
-                                    <span class="text-xs bg-primary px-2 py-1 rounded-full text-white">${episodes.length} Tập</span>
+                                    <span>Chọn Server / Tập</span>
                                 </h3>
-                                <div class="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-2" id="episodeList">
-                                    ${episodes.length === 0 ? '<p class="text-gray-500 text-sm">Chưa có tập phim nào.</p>' : ''}
-                                    ${episodes.map((ep, index) => {
-                                        const isCurrent = ep.link_m3u8 === targetEpLink;
-                                        // Xử lý chuỗi tên tập phim để tránh lỗi dấu nháy đơn
-                                        const safeEpName = ep.name.replace(/'/g, "\\'");
-                                        return `
-                                        <button onclick="playEpisode('${ep.link_m3u8}', this, '${safeEpName}')" class="ep-btn w-full text-left px-4 py-3 rounded-lg border transition-all ${isCurrent ? 'bg-primary/20 border-primary text-primary font-bold' : 'border-gray-700 text-gray-300 bg-gray-800 hover:border-primary hover:bg-primary/10'}">
-                                            <i class="fa-solid fa-play-circle mr-2 opacity-70"></i> Tập ${ep.name}
+                                
+                                <!-- Tabs cho Server (Vietsub / Thuyết Minh) -->
+                                ${state.currentEpisodes.length > 1 ? `
+                                <div class="flex flex-wrap gap-2 mb-4 pb-2 border-b border-gray-800">
+                                    ${state.currentEpisodes.map((srv, idx) => `
+                                        <button onclick="switchServer(${idx})" class="server-tab px-3 py-1.5 text-sm rounded-md font-bold border transition-colors ${idx === activeServerIndex ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700'}">
+                                            ${srv.server_name}
                                         </button>
-                                    `}).join('')}
+                                    `).join('')}
+                                </div>
+                                ` : ''}
+
+                                <div class="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-2" id="episodeList">
+                                    <!-- Rendered dynamically by switchServer JS -->
                                 </div>
                             </div>
                         </div>
@@ -728,9 +739,43 @@
                 </div>
             `;
 
+            // Gọi hàm render danh sách tập của Server đang Active
+            switchServer(activeServerIndex, targetEpLink);
+
             if (targetEpLink) {
                 initPlayer(targetEpLink, targetEpName, savedTime);
             }
+        };
+
+        window.switchServer = (serverIndex, highlightLink = null) => {
+            // Cập nhật hiệu ứng UI cho Tabs
+            document.querySelectorAll('.server-tab').forEach((tab, idx) => {
+                if(idx === serverIndex) {
+                    tab.classList.add('bg-primary', 'border-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
+                    tab.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-400');
+                } else {
+                    tab.classList.remove('bg-primary', 'border-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
+                    tab.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-400');
+                }
+            });
+
+            // Lấy dữ liệu tập phim của Server được chọn
+            const serverData = state.currentEpisodes[serverIndex]?.server_data || [];
+            
+            // Generate HTML danh sách tập
+            const epListHtml = serverData.length === 0 ? '<p class="text-gray-500 text-sm">Chưa có tập phim nào.</p>' : serverData.map((ep) => {
+                const isCurrent = ep.link_m3u8 === (highlightLink || state.currentMediaUrl);
+                const safeEpName = ep.name.replace(/'/g, "\\'");
+                return `
+                <button onclick="playEpisode('${ep.link_m3u8}', this, '${safeEpName}')" class="ep-btn w-full text-left px-4 py-3 rounded-lg border transition-all ${isCurrent ? 'bg-primary/20 border-primary text-primary font-bold shadow-inner' : 'border-gray-700 text-gray-300 bg-gray-800 hover:border-primary hover:bg-primary/10'}">
+                    <i class="fa-solid fa-play-circle mr-2 opacity-70"></i> Tập ${ep.name}
+                </button>
+                `;
+            }).join('');
+
+            // Đổ HTML vào khung
+            const epListContainer = document.getElementById('episodeList');
+            if(epListContainer) epListContainer.innerHTML = epListHtml;
         };
 
         // Player Logic
