@@ -416,14 +416,14 @@
                             if (!checkTime(dTH, dayIdx)) errors.push(`Giờ TH (${dTH.getHours()}:${String(dTH.getMinutes()).padStart(2,'0')}) sai khung`);
                         }
                         
-                        // --- LOGIC MỚI: CHECK 20 PHÚT ĐIỆN CHÂM ---
+                        // --- LOGIC MỚI: CHECK 25 PHÚT ĐIỆN CHÂM ---
                         if (isDienCham && dKQ) {
                             const diffMs = dKQ.getTime() - dTH.getTime();
                             const diffMins = Math.floor(diffMs / 60000); // 1 phút = 60000ms
                             
-                            // Yêu cầu: Phải đúng 20 phút
-                            if (diffMins !== 20) {
-                                errors.push(`Sai thời gian: ${diffMins}p (Yêu cầu: 20p)`);
+                            // Yêu cầu: Phải đúng 25 phút
+                            if (diffMins !== 25) {
+                                errors.push(`Sai thời gian: ${diffMins}p (Yêu cầu: 25p)`);
                             }
                         }
 
@@ -740,5 +740,6 @@
     </script>
 </body>
 </html>
+
 
 
