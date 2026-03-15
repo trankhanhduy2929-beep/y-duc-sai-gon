@@ -459,12 +459,13 @@
 
             const apps = useMemo(() => [
                 // GIẢI TRÍ
-                { id: 300, dept: 'giaitri', name: "Xem phim KKPHIM", description: "Xem phim miễn phí KKPHIM", icon: "Movie", link: "./giaitri/app1/index.html", color: "from-rose-500 to-red-700", tag: "Tool" },
-                { id: 301, dept: 'giaitri', name: "Xem phim OPHIM", description: "Xem phim miễn phí OPHIM", icon: "Movie", link: "./giaitri/app2/index.html", color: "from-rose-500 to-red-700", tag: "Tool" },
-                { id: 302, dept: 'giaitri', name: "Đọc truyện tranh", description: "Đọc truyện tranh miễn phí", icon: "Notebook", link: "https://truyentranhnet.free.nf", color: "from-rose-500 to-red-700", tag: "Tool" },
-                { id: 303, dept: 'giaitri', name: "Hang Truyện", description: "Đọc truyện tranh miễn phí", icon: "Notebook", link: "https://hangtruyen.indevs.in", color: "from-rose-500 to-red-700", tag: "Tool" },                           
+                { id: 600, dept: 'giaitri', name: "Xem phim KKPHIM", description: "Xem phim miễn phí KKPHIM", icon: "Movie", link: "./giaitri/app1/index.html", color: "from-rose-500 to-red-700", tag: "Tool" },
+                { id: 601, dept: 'giaitri', name: "Xem phim OPHIM", description: "Xem phim miễn phí OPHIM", icon: "Movie", link: "./giaitri/app2/index.html", color: "from-rose-500 to-red-700", tag: "Tool" },
+                { id: 602, dept: 'giaitri', name: "Đọc truyện tranh", description: "Đọc truyện tranh miễn phí", icon: "Notebook", link: "https://truyentranhnet.free.nf", color: "from-rose-500 to-red-700", tag: "Tool" },
+                { id: 603, dept: 'giaitri', name: "Hang Truyện", description: "Đọc truyện tranh miễn phí", icon: "Notebook", link: "https://hangtruyen.indevs.in", color: "from-rose-500 to-red-700", tag: "Tool" },                           
                 // CSKH
-                { id: 1, dept: 'cskh', name: "Đối Soát CSKH", description: "Phân tích hồ sơ bệnh án, lọc BHYT & Dịch vụ chuyên dụng.", icon: "PhoneCall", link: "./cskh/index.html", color: "from-blue-500 to-blue-700", tag: "CSKH" },
+                { id: 501, dept: 'cskh', name: "Đối Soát CSKH", description: "Phân tích hồ sơ bệnh án, lọc BHYT & Dịch vụ chuyên dụng.", icon: "PhoneCall", link: "./cskh/app1/index.html", color: "from-blue-500 to-blue-700", tag: "CSKH" },
+                { id: 502, dept: 'cskh', name: "Tính tuổi - BMI", description: "Hỗ trợ tính tuổi - BMI nhanh chóng", icon: "PhoneCall", link: "./cskh/app2/index.html", color: "from-blue-500 to-blue-700",
                 // BHYT
                 { id: 2, dept: 'bhyt', name: "Dò số lượng bảng kê cổng", description: "Dò số lượng bệnh BHYT từ VNPT HIS so với cổng giám định.", icon: "FileSearch", link: "./bhyt/app1/index.html", color: "from-indigo-500 to-indigo-700", tag: "App 1" },
                 { id: 3, dept: 'bhyt', name: "Dò điện châm", description: "Hệ thống đối soát chỉ định điện châm YHCT, thiếu mã máy, người thực hiện.", icon: "Syringe", link: "./bhyt/app2/index.html", color: "from-cyan-500 to-blue-700", tag: "App 2" },
@@ -485,11 +486,11 @@
                 { id: 102, dept: 'ungdung', name: "Tính lương - Chấm công cá nhân", description: "Hệ thống tính toán lương - chấm công cá nhân", icon: "Calculator", link: "./ungdung/app3/index.html", color: "from-emerald-500 to-teal-700", tag: "Tool" },
                 { id: 103, dept: 'ungdung', name: "Tele Drive", description: "Cloud lưu trữ data không giới hạn", icon: "Table", link: "https://teledrivexlab.vercel.app", color: "from-emerald-500 to-teal-700", tag: "Tool" },
                 { id: 104, dept: 'ungdung', name: "Nhập thuốc DỊCH VỤ VNCARE", description: "Hỗ trợ tạo thuốc Dịch vụ nhanh", icon: "Table", link: "./ungdung/app5/index.html", color: "from-emerald-500 to-teal-700", tag: "Tool" },
-                { id: 105, dept: 'ungdung', name: "Mẫu in điện châm", description: "Hỗ trợ in tự động xuất file doc điện châm", icon: "Table", link: "./ungdung/app6/index.html", color: "from-emerald-500 to-teal-700", tag: "Tool" },
+                { id: 105, dept: 'ungdung', name: "Mẫu in điện châm - cấy chỉ", description: "Hỗ trợ in tự động xuất file doc điện châm - cấy chỉ", icon: "Table", link: "./ungdung/app7/index.html", color: "from-emerald-500 to-teal-700", tag: "Tool" },
                 // TRUYỀN THÔNG / KHÁC
-                { id: 200, dept: 'media', name: "Website Chính", description: "Quản lý tài nguyên hình ảnh & phản hồi MXH.", icon: "Radio", link: "https://phongkhamyducsaigon.com/", color: "from-rose-500 to-red-700", tag: "Web" },
-                { id: 300, dept: 'cskh', name: "Chỉ Số Hài Lòng", description: "Báo cáo mức độ hài lòng người bệnh.", icon: "Users", link: "#", color: "from-amber-500 to-orange-600", tag: "Survey" },
-                { id: 301, dept: 'media', name: "Tin Tức Y Đức", description: "Bảng tin nội bộ & thông báo điều hành.", icon: "Notebook", link: "https://phongkhamyducsaigon.com/", color: "from-slate-500 to-gray-700", tag: "News" }
+                { id: 300, dept: 'media', name: "Website Chính", description: "Quản lý tài nguyên hình ảnh & phản hồi MXH.", icon: "Radio", link: "https://phongkhamyducsaigon.com/", color: "from-rose-500 to-red-700", tag: "Web" },
+                { id: 301, dept: 'cskh', name: "Chỉ Số Hài Lòng", description: "Báo cáo mức độ hài lòng người bệnh.", icon: "Users", link: "#", color: "from-amber-500 to-orange-600", tag: "Survey" },
+                { id: 302, dept: 'media', name: "Tin Tức Y Đức", description: "Bảng tin nội bộ & thông báo điều hành.", icon: "Notebook", link: "https://phongkhamyducsaigon.com/", color: "from-slate-500 to-gray-700", tag: "News" }
             ], []);
 
             const filteredApps = useMemo(() => {
