@@ -353,9 +353,27 @@
         }
 
         function calculateAge(ngaySinhStr, ngayVaoStr) {
-            ngaySinhStr = String(ngaySinhStr); ngayVaoStr = String(ngayVaoStr);
+            ngaySinhStr = String(ngaySinhStr).trim(); 
+            ngayVaoStr = String(ngayVaoStr).trim();
             if(!ngaySinhStr || !ngayVaoStr || ngaySinhStr.length < 4 || ngayVaoStr.length < 4) return "";
-            return parseInt(ngayVaoStr.substring(0, 4)) - parseInt(ngaySinhStr.substring(0, 4));
+            
+            let sinhNam = parseInt(ngaySinhStr.substring(0, 4));
+            let vaoNam = parseInt(ngayVaoStr.substring(0, 4));
+            let age = vaoNam - sinhNam;
+
+            // Kiểm tra chi tiết đến tháng và ngày nếu chuỗi có đủ độ dài
+            if (ngaySinhStr.length >= 8 && ngayVaoStr.length >= 8) {
+                let sinhThang = parseInt(ngaySinhStr.substring(4, 6));
+                let sinhNgay = parseInt(ngaySinhStr.substring(6, 8));
+                let vaoThang = parseInt(ngayVaoStr.substring(4, 6));
+                let vaoNgay = parseInt(ngayVaoStr.substring(6, 8));
+
+                // Nếu tháng vào nhỏ hơn tháng sinh, HOẶC cùng tháng nhưng ngày vào nhỏ hơn ngày sinh
+                if (vaoThang < sinhThang || (vaoThang === sinhThang && vaoNgay < sinhNgay)) {
+                    age--; // Chưa đủ tháng đủ ngày thì trừ 1 tuổi
+                }
+            }
+            return age < 0 ? 0 : age;
         }
 
         async function processData() {
