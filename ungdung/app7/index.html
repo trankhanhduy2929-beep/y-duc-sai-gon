@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Trích Xuất PTTT Y Đức Sài Gòn PRO</title>
+    
+    <!-- Các thư viện siêu mạnh cho Excel, Word, Zip -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.37.11/build/docxtemplater.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .btn-active { background-color: #2563eb !important; color: white !important; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4); }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+        .upload-zone:hover { border-color: #3b82f6; background-color: #eff6ff; }
+        .file-loaded { border-color: #10b981 !important; background-color: #f0fdf4 !important; }
+
+        /* Animation cho Table load mượt */
+        @keyframes fadeInRow {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-row { animation: fadeInRow 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden">
+
+    <!-- Màn Hình Đăng Nhập Overlay -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center transition-opacity duration-500">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm mx-4 transform transition-all scale-100" id="login-box">
+            <div class="text-center mb-6">
+                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">Y Đức Sài Gòn</h2>
+                <p class="text-gray-500 text-sm mt-1">Hệ Thống Trích Xuất PTTT</p>
+            </div>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="mb-5">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition duration-200 shadow-sm" placeholder="Nhập mật khẩu (1402)..." required autofocus>
+                    </div>
+                </div>
+                <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-bold rounded-lg text-sm px-5 py-3 text-center shadow-lg shadow-blue-500/30 transition duration-300 transform hover:-translate-y-0.5">
+                    Đăng Nhập
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Khu Vực App Chính -->
+    <div id="app-wrapper" class="min-h-screen pb-20 hidden opacity-0 transition-opacity duration-500">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-md shadow-blue-500/20"><i class="fa-solid fa-notes-medical text-lg"></i></div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-800 leading-tight">Y Đức Sài Gòn</h1>
+                        <p class="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Trích Xuất Điện Châm & Cấy Chỉ</p>
+                    </div>
+                </div>
+                <button onclick="clearPrintHistory()" class="text-xs text-red-500 hover:text-red-700 font-medium transition flex items-center gap-1.5 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md">
+                    <i class="fa-solid fa-trash-can"></i> Xóa lịch sử đã xuất
+                </button>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Khu vực tải file -->
+            <div class="glass-panel rounded-2xl shadow-sm border border-gray-100 p-6 mb-8 transition-all hover:shadow-md">
+                <h2 class="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i> Nhập dữ liệu và Mẫu Word
+                </h2>
+                
+                <!-- Hàng 1: Dữ liệu -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="upload-zone relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center group h-24 bg-gray-50">
+                        <input type="file" id="file-bang1" accept=".csv, .xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(this, 'name-bang1')"/>
+                        <p class="font-bold text-gray-700 text-xs tracking-wide"><i class="fa-solid fa-file-excel text-blue-500 mr-1"></i> 1. BẢNG 1</p>
+                        <p id="name-bang1" class="text-[11px] text-gray-500 mt-1 truncate w-full px-2">Kéo thả / click</p>
+                    </div>
+                    
+                    <div class="upload-zone relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center group h-24 bg-gray-50">
+                        <input type="file" id="file-bang3" accept=".csv, .xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(this, 'name-bang3')"/>
+                        <p class="font-bold text-gray-700 text-xs tracking-wide"><i class="fa-solid fa-file-invoice text-green-500 mr-1"></i> 2. BẢNG 3</p>
+                        <p id="name-bang3" class="text-[11px] text-gray-500 mt-1 truncate w-full px-2">Kéo thả / click</p>
+                    </div>
+
+                    <div class="upload-zone relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center group h-24 bg-gray-50">
+                        <input type="file" id="file-cchn" accept=".csv, .xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(this, 'name-cchn')"/>
+                        <p class="font-bold text-gray-700 text-xs tracking-wide"><i class="fa-solid fa-user-doctor text-purple-500 mr-1"></i> 3. DS CCHN</p>
+                        <p id="name-cchn" class="text-[11px] text-gray-500 mt-1 truncate w-full px-2">Kéo thả / click</p>
+                    </div>
+                </div>
+
+                <!-- Hàng 2: Các Mẫu Word -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-100 pt-4">
+                    <div class="upload-zone relative border-2 border-dashed border-blue-200 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center group h-24 bg-blue-50/50 hover:bg-blue-50">
+                        <input type="file" id="file-docx-dc" accept=".docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(this, 'name-dc'); loadTemplate(this, 'DIEN_CHAM')"/>
+                        <p class="font-bold text-blue-800 text-xs tracking-wide"><i class="fa-solid fa-file-word text-blue-500 mr-1"></i> MẪU ĐIỆN CHÂM</p>
+                        <p id="name-dc" class="text-[11px] text-blue-600/70 mt-1 truncate w-full px-2">Tải file .docx</p>
+                    </div>
+
+                    <div class="upload-zone relative border-2 border-dashed border-emerald-200 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center group h-24 bg-emerald-50/50 hover:bg-emerald-50">
+                        <input type="file" id="file-docx-cl" accept=".docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(this, 'name-cl'); loadTemplate(this, 'CAY_CHI_LUNG')"/>
+                        <p class="font-bold text-emerald-800 text-xs tracking-wide"><i class="fa-solid fa-file-word text-emerald-500 mr-1"></i> MẪU CẤY CHỈ LƯNG</p>
+                        <p id="name-cl" class="text-[11px] text-emerald-600/70 mt-1 truncate w-full px-2">Tải file .docx</p>
+                    </div>
+
+                    <div class="upload-zone relative border-2 border-dashed border-purple-200 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center group h-24 bg-purple-50/50 hover:bg-purple-50">
+                        <input type="file" id="file-docx-cv" accept=".docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(this, 'name-cv'); loadTemplate(this, 'CAY_CHI_VAI')"/>
+                        <p class="font-bold text-purple-800 text-xs tracking-wide"><i class="fa-solid fa-file-word text-purple-500 mr-1"></i> MẪU CẤY CHỈ VAI GÁY</p>
+                        <p id="name-cv" class="text-[11px] text-purple-600/70 mt-1 truncate w-full px-2">Tải file .docx</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button onclick="processData()" class="bg-gray-900 hover:bg-black text-white font-semibold py-2.5 px-8 rounded-lg shadow-md hover:shadow-lg transition duration-300 transform hover:-translate-y-0.5 flex items-center gap-2 mx-auto text-sm">
+                        <i class="fa-solid fa-bolt text-yellow-400"></i> Phân Tích Dữ Liệu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bảng Dữ Liệu -->
+            <div id="result-section" class="hidden">
+                <!-- Thống kê & Filter -->
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center gap-4 mb-3 md:mb-0 divide-x divide-gray-100">
+                        <div class="text-center px-4">
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Tổng cộng</p>
+                            <p class="text-xl font-bold text-gray-800 leading-tight" id="stat-total">0</p>
+                        </div>
+                        <div class="text-center px-4">
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Đã Xuất</p>
+                            <p class="text-xl font-bold text-green-600 leading-tight" id="stat-printed">0</p>
+                        </div>
+                        <div class="text-center px-4">
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Chưa Xuất</p>
+                            <p class="text-xl font-bold text-red-500 leading-tight" id="stat-unprinted">0</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-1.5 bg-gray-100 p-1 rounded-lg">
+                        <button id="filter-all" onclick="applyFilter('all')" class="filter-btn btn-active text-gray-600 px-4 py-1.5 rounded-md font-medium text-xs transition">Tất cả</button>
+                        <button id="filter-unprinted" onclick="applyFilter('unprinted')" class="filter-btn text-gray-600 px-4 py-1.5 rounded-md font-medium text-xs transition">Chưa Xuất</button>
+                        <button id="filter-printed" onclick="applyFilter('printed')" class="filter-btn text-gray-600 px-4 py-1.5 rounded-md font-medium text-xs transition">Đã Xuất</button>
+                    </div>
+                </div>
+
+                <!-- Bảng -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
+                        <table class="min-w-full table-auto text-left whitespace-nowrap relative">
+                            <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                                <tr>
+                                    <th class="px-4 py-3 w-12 text-center bg-gray-50"><input type="checkbox" id="check-all" onchange="selectAllVisible()" class="w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer"></th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50">Loại Dịch Vụ</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50">Trạng thái</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50">Bệnh Nhân (Mã LK)</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50">Thời gian TH</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50">Thủ thuật viên</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50 text-right">Tác vụ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patient-table-body" class="divide-y divide-gray-100 text-sm">
+                                <!-- Dữ liệu nạp siêu tốc vào đây -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Action Bar -->
+        <div id="action-bar" class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.1)] p-4 transform translate-y-full transition-transform duration-300 z-50 hidden">
+            <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+                <div class="text-sm font-medium text-gray-600 hidden md:flex items-center gap-2">
+                    <div class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center font-bold" id="selected-count">0</div> 
+                    <span>phiếu được chọn</span>
+                </div>
+                <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 justify-end flex-1">
+                    <!-- Nút Xuất Word Gộp -->
+                    <button onclick="downloadMergedWord()" class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md shadow-blue-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap text-sm">
+                        <i class="fa-solid fa-file-word"></i> Xuất Word (Gộp chung để in)
+                    </button>
+                    <!-- Nút Tải ZIP -->
+                    <button onclick="downloadZipWord()" class="flex-1 md:flex-none bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md shadow-indigo-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap text-sm">
+                        <i class="fa-solid fa-file-zipper"></i> Tải ZIP (Từng File Rời)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- XỬ LÝ ĐĂNG NHẬP ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('password').value;
+            if (pass === '1402') {
+                sessionStorage.setItem('isAppUnlocked', 'true');
+                unlockApp();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Mật khẩu sai!', timer: 1500 });
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function unlockApp() {
+            const overlay = document.getElementById('login-overlay');
+            const app = document.getElementById('app-wrapper');
+            overlay.classList.add('opacity-0');
+            app.classList.remove('hidden');
+            setTimeout(() => { overlay.style.display = 'none'; app.classList.remove('opacity-0'); }, 300);
+        }
+
+        window.onload = () => {
+            if(sessionStorage.getItem('isAppUnlocked') === 'true') {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-wrapper').classList.remove('hidden', 'opacity-0');
+            }
+        }
+
+        // --- CÁC BIẾN TOÀN CỤC ---
+        let bang1Data = {};
+        let cchnData = {};
+        let printJobs = [];
+        let currentFilter = 'all';
+        const STORAGE_KEY = 'dienChamPrintHistory';
+
+        // Cấu trúc quản lý Mẫu (Templates)
+        const TEMPLATES = {
+            'DIEN_CHAM': { name: 'Điện Châm', buffer: null, color: 'blue', label: 'Điện Châm' },
+            'CAY_CHI_LUNG': { name: 'Cấy Chỉ Lưng', buffer: null, color: 'emerald', label: 'CC Lưng' },
+            'CAY_CHI_VAI': { name: 'Cấy Chỉ Vai', buffer: null, color: 'purple', label: 'CC Vai Gáy' }
+        };
+
+        function handleFileSelect(input, textId) {
+            const fileNameElem = document.getElementById(textId);
+            const dropZone = input.parentElement;
+            if (input.files.length > 0) {
+                fileNameElem.innerText = input.files[0].name;
+                fileNameElem.classList.remove('text-gray-500', 'text-blue-600/70', 'text-emerald-600/70', 'text-purple-600/70');
+                fileNameElem.classList.add('text-green-700', 'font-bold');
+                dropZone.classList.add('file-loaded');
+            } else {
+                fileNameElem.innerText = "Kéo thả / click";
+                fileNameElem.classList.remove('text-green-700', 'font-bold');
+                dropZone.classList.remove('file-loaded');
+            }
+        }
+
+        function loadTemplate(input, type) {
+            if(input.files.length > 0) {
+                let reader = new FileReader();
+                reader.onload = function(evt) { TEMPLATES[type].buffer = evt.target.result; };
+                reader.readAsArrayBuffer(input.files[0]);
+            } else TEMPLATES[type].buffer = null;
+        }
+
+        function getPrintHistory() { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+        function savePrintHistory(historyObj) { localStorage.setItem(STORAGE_KEY, JSON.stringify(historyObj)); }
+        
+        function markJobsAsPrinted(jobs) {
+            let history = getPrintHistory();
+            jobs.forEach(job => history[job.uniqueId] = true);
+            savePrintHistory(history);
+            renderTable();
+        }
+
+        function toggleSingleJobStatus(uniqueId) {
+            let history = getPrintHistory();
+            if (history[uniqueId]) delete history[uniqueId]; else history[uniqueId] = true;
+            savePrintHistory(history);
+            renderTable();
+        }
+
+        function clearPrintHistory() {
+            Swal.fire({
+                title: 'Xóa lịch sử?',
+                text: "Tất cả phiếu sẽ trở lại trạng thái 'Chưa Xuất'.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#9ca3af',
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    if(printJobs.length > 0) renderTable();
+                    Swal.fire({title: 'Đã xóa!', icon: 'success', timer: 1500, showConfirmButton: false});
+                }
+            });
+        }
+
+        async function readSpreadsheet(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        resolve(XLSX.utils.sheet_to_json(worksheet, {defval: ""}));
+                    } catch (err) { reject(err); }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function getVal(row, possibleKeys) {
+            const rowKeys = Object.keys(row);
+            for (let k of possibleKeys) {
+                if (row[k] !== undefined && row[k] !== "") return row[k];
+                let foundKey = rowKeys.find(key => key.trim().toUpperCase() === k.toUpperCase());
+                if (foundKey && row[foundKey] !== undefined && row[foundKey] !== "") return row[foundKey];
+            }
+            return "";
+        }
+
+        function parseDateTimeString(str) {
+            str = String(str);
+            if (!str || str.length < 12) return {hour:"...", minute:"...", day:"...", month:"...", year:"..."};
+            return { year: str.substring(0, 4), month: str.substring(4, 6), day: str.substring(6, 8), hour: str.substring(8, 10), minute: str.substring(10, 12) };
+        }
+
+        function calculateAge(ngaySinhStr, ngayVaoStr) {
+            ngaySinhStr = String(ngaySinhStr); ngayVaoStr = String(ngayVaoStr);
+            if(!ngaySinhStr || !ngayVaoStr || ngaySinhStr.length < 4 || ngayVaoStr.length < 4) return "";
+            return parseInt(ngayVaoStr.substring(0, 4)) - parseInt(ngaySinhStr.substring(0, 4));
+        }
+
+        async function processData() {
+            const file1 = document.getElementById('file-bang1').files[0];
+            const file3 = document.getElementById('file-bang3').files[0];
+            const fileCchn = document.getElementById('file-cchn').files[0];
+
+            if (!file1 || !file3 || !fileCchn) {
+                Swal.fire({icon: 'warning', title: 'Thiếu dữ liệu', text: 'Vui lòng nạp đủ 3 file Bảng 1, Bảng 3 và DS CCHN.'});
+                return;
+            }
+
+            Swal.fire({ title: 'Đang trích xuất...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+            setTimeout(async () => {
+                try {
+                    const [data1, data3, dataCchn] = await Promise.all([
+                        readSpreadsheet(file1), readSpreadsheet(file3), readSpreadsheet(fileCchn)
+                    ]);
+
+                    cchnData = {};
+                    for (let i = 0; i < dataCchn.length; i++) {
+                        let row = dataCchn[i];
+                        let maCchn = getVal(row, ['MA_CCHN', 'MA CCHN', 'MÃ CCHN']);
+                        let tenBs = getVal(row, ['TEN_BS', 'TEN BS', 'TÊN BS']);
+                        if (maCchn && tenBs) cchnData[maCchn.toString().trim()] = tenBs.toString().trim();
+                    }
+
+                    bang1Data = {};
+                    for (let i = 0; i < data1.length; i++) {
+                        let row = data1[i];
+                        let maLK = getVal(row, ['MA_LK', 'MÃ LK', 'MÃ_LK']);
+                        if (maLK) bang1Data[maLK.toString().trim()] = row;
+                    }
+
+                    printJobs = [];
+                    for (let i = 0; i < data3.length; i++) {
+                        let row = data3[i];
+                        let tenDichVu = getVal(row, ['TEN_DICH_VU', 'TÊN DỊCH VỤ']).toString().toLowerCase();
+                        
+                        // Xác định loại dịch vụ
+                        let type = null;
+                        if (tenDichVu.includes("điện châm")) type = 'DIEN_CHAM';
+                        else if (tenDichVu.includes("cấy chỉ điều trị đau lưng")) type = 'CAY_CHI_LUNG';
+                        else if (tenDichVu.includes("cấy chỉ điều trị hội chứng vai gáy") || tenDichVu.includes("cấy chỉ điều trị hc vai gáy")) type = 'CAY_CHI_VAI';
+
+                        if (type) {
+                            let maLK = getVal(row, ['MA_LK', 'MÃ LK']).toString().trim();
+                            let bnInfo = bang1Data[maLK];
+                            
+                            if (bnInfo) {
+                                let ngayThucHien = getVal(row, ['NGAY_TH_YL', 'NGÀY TH']);
+                                let uniqueId = `${type}_${maLK}_${ngayThucHien}`.replace(/[^a-zA-Z0-9_]/g, '');
+
+                                printJobs.push({
+                                    id: Math.random().toString(36).substr(2, 9),
+                                    uniqueId: uniqueId,
+                                    type: type,
+                                    maLK: maLK,
+                                    hoTen: getVal(bnInfo, ['HO_TEN', 'HỌ TÊN', 'HO TEN']),
+                                    gioiTinh: getVal(bnInfo, ['GIOI_TINH', 'GIỚI TÍNH', 'GIOI TINH']), 
+                                    ngaySinh: getVal(bnInfo, ['NGAY_SINH', 'NGÀY SINH']),
+                                    chanDoan: getVal(bnInfo, ['CHAN_DOAN_VAO', 'CHAN_DOAN_RV', 'CHẨN ĐOÁN']) || "Y học cổ truyền",
+                                    ngayVao: getVal(bnInfo, ['NGAY_VAO', 'NGÀY VÀO', 'NGAY_VAO_NOI_TRU', 'NGÀY VÀO NỘI TRÚ']),
+                                    ngayThucHien: ngayThucHien,
+                                    maBacSi: getVal(row, ['MA_BAC_SI', 'MÃ BÁC SĨ']),
+                                    maThucHien: getVal(row, ['NGUOI_THUC_HIEN', 'NGƯỜI THỰC HIỆN'])
+                                });
+                            }
+                        }
+                    }
+
+                    Swal.close();
+                    if (printJobs.length === 0) { Swal.fire('Không có dữ liệu', 'Không tìm thấy thủ thuật Điện châm hoặc Cấy chỉ nào.', 'info'); return; }
+
+                    document.getElementById('result-section').classList.remove('hidden');
+                    document.getElementById('action-bar').classList.remove('hidden', 'translate-y-full');
+                    renderTable();
+                } catch (error) {
+                    Swal.close(); console.error(error);
+                    Swal.fire('Lỗi', 'Định dạng file Excel bị lỗi.', 'error');
+                }
+            }, 50);
+        }
+
+        function applyFilter(filterType) {
+            currentFilter = filterType;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('btn-active', 'bg-blue-600', 'text-white', 'shadow');
+                btn.classList.add('text-gray-600');
+            });
+            let activeBtn = document.getElementById(`filter-${filterType}`);
+            activeBtn.classList.remove('text-gray-600');
+            activeBtn.classList.add('btn-active', 'bg-blue-600', 'text-white', 'shadow');
+            requestAnimationFrame(() => { renderTable(); });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('patient-table-body');
+            tbody.innerHTML = ""; 
+            
+            let history = getPrintHistory();
+            let hasVisibleUnprinted = false;
+            let statTotal = printJobs.length;
+            let statPrinted = 0;
+
+            const fragment = document.createDocumentFragment();
+
+            for (let i = 0; i < printJobs.length; i++) {
+                let job = printJobs[i];
+                let isPrinted = history[job.uniqueId] === true;
+                if (isPrinted) statPrinted++;
+                if (currentFilter === 'unprinted' && isPrinted) continue;
+                if (currentFilter === 'printed' && !isPrinted) continue;
+
+                let age = calculateAge(job.ngaySinh, job.ngayVao);
+                let gtText = job.gioiTinh == "1" ? "Nam" : (job.gioiTinh == "2" ? "Nữ" : "KXD");
+                let tT = parseDateTimeString(job.ngayThucHien);
+                let tenTTV = cchnData[job.maThucHien] || job.maThucHien;
+                
+                let statusBadge = isPrinted 
+                    ? `<span class="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-[10px] uppercase font-bold px-2 py-0.5 rounded"><i class="fa-solid fa-check"></i> Đã Xuất</span>`
+                    : `<span class="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 text-[10px] uppercase font-bold px-2 py-0.5 rounded"><i class="fa-solid fa-clock"></i> Chưa Xuất</span>`;
+                
+                let tpl = TEMPLATES[job.type];
+                let typeBadge = `<span class="bg-${tpl.color}-100 text-${tpl.color}-700 border border-${tpl.color}-200 text-[10px] uppercase font-bold px-2 py-0.5 rounded">${tpl.label}</span>`;
+
+                let isChecked = isPrinted ? "" : "checked";
+                if (!isPrinted) hasVisibleUnprinted = true;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition duration-150 animate-row";
+                tr.style.animationDelay = `${Math.min(i * 0.02, 0.5)}s`; 
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-center border-b border-gray-100">
+                        <input type="checkbox" class="job-checkbox w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition" value="${job.id}" ${isChecked} onchange="updateSelectedCount()">
+                    </td>
+                    <td class="px-4 py-3 border-b border-gray-100">${typeBadge}</td>
+                    <td class="px-4 py-3 border-b border-gray-100">${statusBadge}</td>
+                    <td class="px-4 py-3 border-b border-gray-100">
+                        <div class="font-bold text-gray-800 uppercase text-[12px]">${job.hoTen}</div>
+                        <div class="text-[11px] text-gray-500 font-medium mt-0.5">Mã LK: ${job.maLK} • ${age}T • ${gtText}</div>
+                    </td>
+                    <td class="px-4 py-3 text-[12px] font-medium text-gray-700 border-b border-gray-100">${tT.hour}:${tT.minute} <span class="text-gray-400 text-[11px] font-normal">${tT.day}/${tT.month}/${tT.year}</span></td>
+                    <td class="px-4 py-3 text-[12px] text-gray-600 truncate max-w-[150px] border-b border-gray-100" title="${tenTTV}">${tenTTV}</td>
+                    <td class="px-4 py-3 text-right border-b border-gray-100">
+                        <button onclick="toggleSingleJobStatus('${job.uniqueId}')" class="w-7 h-7 rounded-full bg-gray-50 hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition flex items-center justify-center ml-auto" title="Đảo trạng thái">
+                            <i class="fa-solid fa-rotate text-xs"></i>
+                        </button>
+                    </td>
+                `;
+                fragment.appendChild(tr);
+            }
+
+            tbody.appendChild(fragment);
+
+            document.getElementById('stat-total').innerText = statTotal;
+            document.getElementById('stat-printed').innerText = statPrinted;
+            document.getElementById('stat-unprinted').innerText = statTotal - statPrinted;
+            document.getElementById('check-all').checked = hasVisibleUnprinted;
+            updateSelectedCount();
+        }
+
+        function selectAllVisible() {
+            let chkAll = document.getElementById('check-all');
+            document.querySelectorAll('.job-checkbox').forEach(cb => cb.checked = chkAll.checked);
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.job-checkbox:checked').length;
+            const elem = document.getElementById('selected-count');
+            elem.innerText = count;
+            elem.classList.remove('scale-100');
+            elem.classList.add('scale-125');
+            setTimeout(() => { elem.classList.remove('scale-125'); elem.classList.add('scale-100'); }, 150);
+        }
+
+        function getSelectedJobs() {
+            let checkboxes = document.querySelectorAll('.job-checkbox:checked');
+            if (checkboxes.length === 0) { Swal.fire({icon: 'info', title: 'Chưa chọn', text: 'Vui lòng tick chọn bệnh nhân.', timer: 1500}); return null; }
+            let selectedIds = Array.from(checkboxes).map(cb => cb.value);
+            return printJobs.filter(job => selectedIds.includes(job.id));
+        }
+
+        function getJobDataForTemplate(job) {
+            let age = calculateAge(job.ngaySinh, job.ngayVao);
+            let vV = parseDateTimeString(job.ngayVao);
+            let tT = parseDateTimeString(job.ngayThucHien);
+            let tenBS = cchnData[job.maBacSi] || job.maBacSi;
+            let tenTTV = cchnData[job.maThucHien] || job.maThucHien;
+
+            let gtStr = String(job.gioiTinh).trim();
+            let txtGioiTinh = gtStr === "1" ? "Nam" : (gtStr === "2" ? "Nữ" : "");
+            let xmlNam = gtStr === "1" ? `<w:r><w:t>Nam</w:t></w:r>` : `<w:r><w:rPr><w:strike w:val="true"/></w:rPr><w:t>Nam</w:t></w:r>`;
+            let xmlNu = gtStr === "2" ? `<w:r><w:t>Nữ</w:t></w:r>` : `<w:r><w:rPr><w:strike w:val="true"/></w:rPr><w:t>Nữ</w:t></w:r>`;
+
+            return {
+                hoTen: job.hoTen, HO_TEN: job.hoTen, tuoi: age, TUOI: age,
+                gioiTinh: txtGioiTinh, GIOI_TINH: txtGioiTinh,
+                nam: xmlNam, nu: xmlNu,
+                chanDoan: job.chanDoan, CHAN_DOAN: job.chanDoan,
+                gioVV: vV.hour, phutVV: vV.minute, ngayVV: vV.day, thangVV: vV.month, namVV: vV.year,
+                gioTT: tT.hour, phutTT: tT.minute, ngayTT: tT.day, thangTT: tT.month, namTT: tT.year,
+                bsChiDinh: tenBS, pttTVien: tenTTV
+            };
+        }
+
+        // =======================================================================
+        // CHỨC NĂNG 1: XUẤT WORD GỘP (Nhóm theo loại dịch vụ)
+        // =======================================================================
+        function downloadMergedWord() {
+            let jobsToPrint = getSelectedJobs();
+            if (!jobsToPrint) return;
+
+            // Phân nhóm theo Loại Dịch Vụ
+            let groupedJobs = { 'DIEN_CHAM': [], 'CAY_CHI_LUNG': [], 'CAY_CHI_VAI': [] };
+            jobsToPrint.forEach(job => groupedJobs[job.type].push(job));
+
+            // Kiểm tra xem đã up Mẫu cho các loại được chọn chưa
+            for (let type in groupedJobs) {
+                if (groupedJobs[type].length > 0 && !TEMPLATES[type].buffer) {
+                    Swal.fire('Thiếu Mẫu', `Bạn có chọn phiếu [${TEMPLATES[type].label}] nhưng chưa tải file Word mẫu ở bước 4!`, 'warning');
+                    return;
+                }
+            }
+
+            Swal.fire({ title: 'Đang gộp file...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+            setTimeout(() => {
+                try {
+                    // Xử lý xuất file cho từng nhóm
+                    for (let type in groupedJobs) {
+                        let jobs = groupedJobs[type];
+                        if (jobs.length === 0) continue;
+
+                        let zip = new PizZip(TEMPLATES[type].buffer);
+                        let xml = zip.file("word/document.xml").asText();
+                        
+                        xml = xml.replace(/<w:body([^>]*)>/, '<w:body$1><w:p><w:r><w:t>{#jobs}</w:t></w:r></w:p>');
+                        let lastSectPrIndex = xml.lastIndexOf('<w:sectPr');
+                        let endTag = '<w:p><w:r><w:br w:type="page"/><w:t>{/jobs}</w:t></w:r></w:p>';
+                        
+                        if (lastSectPrIndex !== -1) xml = xml.substring(0, lastSectPrIndex) + endTag + xml.substring(lastSectPrIndex);
+                        else xml = xml.replace('</w:body>', endTag + '</w:body>');
+                        
+                        zip.file("word/document.xml", xml);
+
+                        let doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true, nullGetter: function() { return ""; }});
+                        let jobsData = jobs.map(j => getJobDataForTemplate(j));
+                        
+                        doc.render({ jobs: jobsData });
+                        let content = doc.getZip().generate({ type: "blob" });
+                        
+                        // Đặt tên file ứng với Loại (Ví dụ: Gop_DienCham_5_Nguoi.docx)
+                        let prefix = type === 'DIEN_CHAM' ? 'DienCham' : (type === 'CAY_CHI_LUNG' ? 'CayChiLung' : 'CayChiVai');
+                        saveAs(content, `Gop_${prefix}_${jobs.length}_Nguoi.docx`);
+                    }
+
+                    Swal.fire({ icon: 'success', title: 'Hoàn tất tải file!', timer: 2000, showConfirmButton: false });
+                    markJobsAsPrinted(jobsToPrint);
+                } catch (error) { 
+                    Swal.close(); console.error(error); 
+                    Swal.fire('Lỗi', 'Lỗi khi tạo file Word!', 'error'); 
+                }
+            }, 100);
+        }
+
+        // =======================================================================
+        // CHỨC NĂNG 2: XUẤT THÀNH FILE ZIP (Tự động chọn mẫu)
+        // =======================================================================
+        function downloadZipWord() {
+            let jobsToPrint = getSelectedJobs();
+            if (!jobsToPrint) return;
+
+            // Kiểm tra Mẫu
+            let missingTemplates = new Set();
+            jobsToPrint.forEach(job => { if(!TEMPLATES[job.type].buffer) missingTemplates.add(TEMPLATES[job.type].label); });
+            
+            if (missingTemplates.size > 0) {
+                Swal.fire('Thiếu Mẫu', `Vui lòng tải mẫu Word cho: ${Array.from(missingTemplates).join(', ')}`, 'warning');
+                return;
+            }
+
+            Swal.fire({ title: 'Đang nén ZIP...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+            setTimeout(() => {
+                let outZip = new PizZip();
+                try {
+                    jobsToPrint.forEach((job) => {
+                        let zip = new PizZip(TEMPLATES[job.type].buffer);
+                        let doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true, nullGetter: function() { return ""; }});
+                        doc.render(getJobDataForTemplate(job));
+                        
+                        let filledBuffer = doc.getZip().generate({ type: "arraybuffer" });
+                        let safeName = job.hoTen.replace(/[^a-zA-Z0-À-ỹ ]/g, "").trim().replace(/\s+/g, "_");
+                        let prefix = job.type === 'DIEN_CHAM' ? 'DC' : (job.type === 'CAY_CHI_LUNG' ? 'CCL' : 'CCV');
+                        
+                        outZip.file(`${prefix}_${safeName}_${job.maLK}.docx`, filledBuffer);
+                    });
+
+                    let content = outZip.generate({type:"blob"});
+                    saveAs(content, `TapTin_PTTT_${jobsToPrint.length}_Phieu.zip`);
+
+                    Swal.fire({ icon: 'success', title: 'Đã tải ZIP!', timer: 2000, showConfirmButton: false });
+                    markJobsAsPrinted(jobsToPrint);
+                } catch (error) {
+                    Swal.close(); console.error(error); 
+                    Swal.fire('Lỗi', 'Lỗi khi tạo file ZIP!', 'error'); 
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>
