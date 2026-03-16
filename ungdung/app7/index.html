@@ -64,7 +64,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-lock text-gray-400"></i>
                         </div>
-                        <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition duration-200 shadow-sm" placeholder="Nhập mật khẩu" required autofocus>
+                        <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition duration-200 shadow-sm" placeholder="Nhập mật khẩu (1402)..." required autofocus>
                     </div>
                 </div>
                 <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-bold rounded-lg text-sm px-5 py-3 text-center shadow-lg shadow-blue-500/30 transition duration-300 transform hover:-translate-y-0.5">
@@ -521,9 +521,14 @@
                     <td class="px-4 py-3 text-[12px] font-medium text-gray-700 border-b border-gray-100">${tT.hour}:${tT.minute} <span class="text-gray-400 text-[11px] font-normal">${tT.day}/${tT.month}/${tT.year}</span></td>
                     <td class="px-4 py-3 text-[12px] text-gray-600 truncate max-w-[150px] border-b border-gray-100" title="${tenTTV}">${tenTTV}</td>
                     <td class="px-4 py-3 text-right border-b border-gray-100">
-                        <button onclick="toggleSingleJobStatus('${job.uniqueId}')" class="w-7 h-7 rounded-full bg-gray-50 hover:bg-blue-100 text-gray-400 hover:text-blue-600 transition flex items-center justify-center ml-auto" title="Đảo trạng thái">
-                            <i class="fa-solid fa-rotate text-xs"></i>
-                        </button>
+                        <div class="flex justify-end gap-1.5">
+                            <button onclick="downloadSingleWord('${job.id}')" class="w-7 h-7 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-800 transition flex items-center justify-center shadow-sm" title="In Nhanh (Tải ngay file Word của ca này)">
+                                <i class="fa-solid fa-print text-xs"></i>
+                            </button>
+                            <button onclick="toggleSingleJobStatus('${job.uniqueId}')" class="w-7 h-7 rounded-full bg-gray-50 hover:bg-gray-200 text-gray-500 hover:text-blue-600 transition flex items-center justify-center shadow-sm" title="Đảo trạng thái Xuất/Chưa Xuất">
+                                <i class="fa-solid fa-rotate text-xs"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 fragment.appendChild(tr);
@@ -581,6 +586,39 @@
                 gioTT: tT.hour, phutTT: tT.minute, ngayTT: tT.day, thangTT: tT.month, namTT: tT.year,
                 bsChiDinh: tenBS, pttTVien: tenTTV
             };
+        }
+
+        // =======================================================================
+        // CHỨC NĂNG MỚI: IN NHANH 1 CA (Tải file Word trực tiếp của 1 dòng)
+        // =======================================================================
+        function downloadSingleWord(jobId) {
+            let job = printJobs.find(j => j.id === jobId);
+            if (!job) return;
+
+            if (!TEMPLATES[job.type].buffer) {
+                Swal.fire('Thiếu Mẫu', `Vui lòng tải file Word mẫu cho: ${TEMPLATES[job.type].label} ở bước 4!`, 'warning');
+                return;
+            }
+
+            try {
+                let zip = new PizZip(TEMPLATES[job.type].buffer);
+                let doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true, nullGetter: function() { return ""; }});
+                doc.render(getJobDataForTemplate(job));
+
+                let content = doc.getZip().generate({ type: "blob" });
+                
+                let safeName = job.hoTen.replace(/[^a-zA-Z0-À-ỹ ]/g, "").trim().replace(/\s+/g, "_");
+                let prefix = job.type === 'DIEN_CHAM' ? 'DC' : (job.type === 'CAY_CHI_LUNG' ? 'CCL' : 'CCV');
+
+                saveAs(content, `Phieu_${prefix}_${safeName}_${job.maLK}.docx`);
+
+                // Đánh dấu dòng này là đã in
+                markJobsAsPrinted([job]);
+
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Lỗi', 'Lỗi khi tạo file Word!', 'error');
+            }
         }
 
         // =======================================================================
