@@ -479,7 +479,7 @@
 
                         if (record.tTH && record.tKQ) {
                             let diffThKq = (record.tKQ - record.tTH) / 60000;
-                            if (diffThKq >= 0 && diffThKq !== 7) record.errors.push(`Thực hiện -> KQ: <b>${diffThKq} phút</b> (Quy định: Đúng 7p).`);
+                            if (diffThKq >= 0 && diffThKq !== 4) record.errors.push(`Thực hiện -> KQ: <b>${diffThKq} phút</b> (Quy định: Đúng 4p).`);
                         }
                     }
 
@@ -494,7 +494,7 @@
                     let diffTh = (recordsWithTh[i].tTH - recordsWithTh[i-1].tTH) / 60000;
                     if (diffTh >= 0 && diffTh < 4) {
                         let target = xrayRecords.find(r => r.originalRowId === recordsWithTh[i].originalRowId);
-                        target.errors.push(`Giờ Thực hiện đụng BN trước (${recordsWithTh[i-1].tenBn}). Cách: <b>${diffTh} phút</b> (Quy định: >= 4p).`);
+                        target.errors.push(`Giờ Thực hiện đụng BN trước (${recordsWithTh[i-1].tenBn}). Cách: <b>${diffTh} phút</b> (Quy định: >= 2p).`);
                     }
                 }
             }
@@ -505,7 +505,7 @@
                     let diffKq = (recordsWithKq[i].tKQ - recordsWithKq[i-1].tKQ) / 60000;
                     if (diffKq >= 0 && diffKq < 4) {
                         let target = xrayRecords.find(r => r.originalRowId === recordsWithKq[i].originalRowId);
-                        target.errors.push(`Giờ Đọc KQ đụng BN trước (${recordsWithKq[i-1].tenBn}). Cách: <b>${diffKq} phút</b> (Quy định: >= 4p).`);
+                        target.errors.push(`Giờ Đọc KQ đụng BN trước (${recordsWithKq[i-1].tenBn}). Cách: <b>${diffKq} phút</b> (Quy định: >= 2p).`);
                     }
                 }
             }
