@@ -492,7 +492,7 @@
             for (let i = 1; i < recordsWithTh.length; i++) {
                 if (recordsWithTh[i-1].maLk !== recordsWithTh[i].maLk) {
                     let diffTh = (recordsWithTh[i].tTH - recordsWithTh[i-1].tTH) / 60000;
-                    if (diffTh >= 0 && diffTh < 4) {
+                    if (diffTh >= 0 && diffTh < 2) {
                         let target = xrayRecords.find(r => r.originalRowId === recordsWithTh[i].originalRowId);
                         target.errors.push(`Giờ Thực hiện đụng BN trước (${recordsWithTh[i-1].tenBn}). Cách: <b>${diffTh} phút</b> (Quy định: >= 2p).`);
                     }
@@ -503,7 +503,7 @@
             for (let i = 1; i < recordsWithKq.length; i++) {
                 if (recordsWithKq[i-1].maLk !== recordsWithKq[i].maLk) {
                     let diffKq = (recordsWithKq[i].tKQ - recordsWithKq[i-1].tKQ) / 60000;
-                    if (diffKq >= 0 && diffKq < 4) {
+                    if (diffKq >= 0 && diffKq < 2) {
                         let target = xrayRecords.find(r => r.originalRowId === recordsWithKq[i].originalRowId);
                         target.errors.push(`Giờ Đọc KQ đụng BN trước (${recordsWithKq[i-1].tenBn}). Cách: <b>${diffKq} phút</b> (Quy định: >= 2p).`);
                     }
