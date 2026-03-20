@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần Mềm Dò Lỗi BHYT Pro - Khoa Tai Mũi Họng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5',
+                        secondary: '#0ea5e9',
+                        dark: '#0f172a'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                        'bounce-slight': 'bounceSlight 2s infinite'
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        bounceSlight: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-5px)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom UI Elements */
+        body { background-color: #f1f5f9; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+        }
+        .modal-open { overflow: hidden; }
+        
+        /* Gradient Text */
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #4f46e5, #0ea5e9);
+        }
+    </style>
+</head>
+<body class="text-slate-800 font-sans antialiased overflow-x-hidden selection:bg-indigo-200 selection:text-indigo-900">
+
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-dark to-slate-800 animate-fade-in">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[100px]"></div>
+            <div class="absolute top-[60%] -right-[10%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-[100px]"></div>
+        </div>
+        
+        <div class="relative glass-panel rounded-3xl p-10 w-full max-w-md text-center transform transition-all shadow-2xl">
+            <div class="mx-auto w-20 h-20 bg-gradient-to-tr from-primary to-secondary rounded-2xl flex items-center justify-center shadow-lg mb-6 animate-bounce-slight">
+                <i class="fas fa-shield-halved text-white text-4xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-800 mb-2">Hệ Thống Dò Lỗi BHYT</h1>
+            <p class="text-slate-500 text-sm mb-8">Khoa Tai Mũi Họng - Vui lòng đăng nhập</p>
+            
+            <div class="relative mb-6">
+                <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                <input type="password" id="pwdInput" placeholder="Nhập mật khẩu..." 
+                    class="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-white/50 focus:bg-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none"
+                    onkeypress="if(event.key === 'Enter') checkLogin()">
+            </div>
+            
+            <button onclick="checkLogin()" class="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-lg hover:shadow-xl hover:opacity-90 transition-all transform hover:-translate-y-0.5">
+                Đăng Nhập <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+            <p id="loginError" class="text-red-500 text-sm mt-4 hidden animate-fade-in"><i class="fas fa-circle-exclamation mr-1"></i> Mật khẩu không chính xác!</p>
+        </div>
+    </div>
+
+    <!-- ==================== MAIN APP SCREEN ==================== -->
+    <div id="appScreen" class="hidden min-h-screen flex flex-col">
+        
+        <!-- Header -->
+        <header class="glass-panel sticky top-0 z-30 border-b border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-primary to-secondary rounded-xl flex items-center justify-center shadow-md">
+                        <i class="fas fa-stethoscope text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800 leading-tight">Dò Lỗi BHYT <span class="text-gradient">PRO</span></h1>
+                        <p class="text-xs text-slate-500 font-medium">Chuyên khoa Tai Mũi Họng</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="openSuggestionModal()" class="flex items-center gap-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-4 py-2 rounded-lg font-semibold text-sm transition shadow-sm border border-emerald-100">
+                        <i class="fas fa-lightbulb"></i> Gợi ý kết quả
+                    </button>
+                    <div class="text-sm bg-slate-100 px-3 py-2 rounded-lg text-slate-600 font-medium border border-slate-200">
+                        <i class="fas fa-user-doctor mr-1"></i> Xin chào, Bác sĩ
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 w-full animate-slide-up">
+            
+            <!-- Upload Section -->
+            <div class="glass-panel rounded-2xl p-6 md:p-8 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-bold text-slate-800"><i class="fas fa-cloud-arrow-up mr-2 text-primary"></i>Nhập liệu Hệ thống</h2>
+                    <span class="text-xs font-semibold px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100">Hỗ trợ .XLSX, .XLS, .CSV</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Bảng 1 -->
+                    <div class="relative group border-2 border-dashed border-slate-300 rounded-xl p-5 hover:border-primary hover:bg-indigo-50/50 transition duration-300">
+                        <div class="absolute top-3 right-3 text-slate-300 group-hover:text-primary transition"><i class="fas fa-file-excel text-xl"></i></div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Bảng 1</label>
+                        <p class="text-xs text-slate-500 mb-3">Thông tin bệnh nhân & Chẩn đoán</p>
+                        <input type="file" id="fileBang1" accept=".csv, .xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-100 file:text-primary hover:file:bg-indigo-200 cursor-pointer transition"/>
+                    </div>
+
+                    <!-- Bảng 4 -->
+                    <div class="relative group border-2 border-dashed border-slate-300 rounded-xl p-5 hover:border-emerald-500 hover:bg-emerald-50/50 transition duration-300">
+                        <div class="absolute top-3 right-3 text-slate-300 group-hover:text-emerald-500 transition"><i class="fas fa-file-medical text-xl"></i></div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Bảng 4</label>
+                        <p class="text-xs text-slate-500 mb-3">Chỉ định & Kết quả Cận lâm sàng</p>
+                        <input type="file" id="fileBang4" accept=".csv, .xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer transition"/>
+                    </div>
+
+                    <!-- Danh sách CCHN -->
+                    <div class="relative group border-2 border-dashed border-slate-300 rounded-xl p-5 hover:border-amber-500 hover:bg-amber-50/50 transition duration-300">
+                        <div class="absolute top-3 right-3 text-slate-300 group-hover:text-amber-500 transition"><i class="fas fa-id-card text-xl"></i></div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Danh sách CCHN</label>
+                        <p class="text-xs text-slate-500 mb-3">Dùng để map Tên Bác sĩ khám</p>
+                        <input type="file" id="fileCCHN" accept=".csv, .xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 cursor-pointer transition"/>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex flex-col items-center">
+                    <button id="btnProcess" class="bg-gradient-to-r from-primary to-secondary hover:from-indigo-600 hover:to-blue-600 text-white font-bold py-3 px-10 rounded-xl shadow-[0_8px_20px_rgba(79,70,229,0.3)] hover:shadow-[0_10px_25px_rgba(79,70,229,0.4)] transition-all transform hover:-translate-y-1 flex items-center gap-3 text-lg">
+                        <i class="fas fa-radar text-xl"></i> Bắt đầu Quét Lỗi
+                    </button>
+                    <!-- Alert box -->
+                    <div id="alertBox" class="hidden mt-4 px-4 py-3 rounded-lg text-sm font-medium transition-all w-full max-w-2xl text-center"></div>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div id="statsSection" class="hidden grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-fade-in">
+                <div class="glass-panel rounded-2xl p-6 flex items-center justify-between border-b-4 border-b-blue-500 hover:-translate-y-1 transition transform">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tổng Hồ Sơ</p>
+                        <p id="statTotal" class="text-3xl font-black text-slate-800 mt-1">0</p>
+                    </div>
+                    <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-inner"><i class="fas fa-folder-open text-2xl"></i></div>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 flex items-center justify-between border-b-4 border-b-rose-500 hover:-translate-y-1 transition transform">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Hồ Sơ Vi Phạm</p>
+                        <p id="statErrors" class="text-3xl font-black text-rose-600 mt-1">0</p>
+                    </div>
+                    <div class="w-14 h-14 bg-rose-100 rounded-full flex items-center justify-center text-rose-600 shadow-inner"><i class="fas fa-triangle-exclamation text-2xl"></i></div>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 flex items-center justify-between border-b-4 border-b-emerald-500 hover:-translate-y-1 transition transform">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Tỷ Lệ Lỗi</p>
+                        <p id="statRate" class="text-3xl font-black text-emerald-600 mt-1">0%</p>
+                    </div>
+                    <div class="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-inner"><i class="fas fa-chart-pie text-2xl"></i></div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div id="resultSection" class="hidden glass-panel rounded-2xl overflow-hidden shadow-lg animate-slide-up">
+                <div class="px-6 py-5 border-b border-slate-200 bg-white/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-list-check mr-2 text-primary"></i>Danh sách hồ sơ cần điều chỉnh Kết quả</h3>
+                        <p class="text-xs text-slate-500 mt-1">Chẩn đoán Xoang/Mũi + Chụp Blondeau + Kết quả ghi bình thường</p>
+                    </div>
+                    <span class="text-xs font-bold bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg border border-rose-200 shadow-sm flex items-center">
+                        <i class="fas fa-circle-exclamation mr-1.5"></i> Nguy cơ xuất toán
+                    </span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50/80">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">STT</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Bệnh Nhân</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">BS Khám</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-1/4">Chẩn đoán (Bảng 1)</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-1/4">Kết luận X-Quang (Bảng 4)</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="bg-white divide-y divide-slate-100">
+                            <!-- Rows -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Empty state -->
+                <div id="emptyState" class="hidden py-16 text-center bg-white/50">
+                    <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                        <i class="fas fa-check text-5xl text-emerald-500"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Tuyệt vời! Không phát hiện lỗi</h3>
+                    <p class="text-slate-500 text-sm">Tất cả các hồ sơ đều hợp lệ và khớp nguyên tắc.</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ==================== MODAL CHI TIẾT LỖI ==================== -->
+    <div id="detailModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeModal()"></div>
+            
+            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full animate-slide-up border border-slate-200">
+                
+                <div class="bg-gradient-to-r from-slate-50 to-white px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-500"><i class="fas fa-file-waveform"></i></div>
+                        <h3 class="text-xl font-bold text-slate-800" id="modal-title">Chi tiết Hồ sơ lỗi</h3>
+                    </div>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 hover:bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center transition">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="px-6 py-6 sm:p-8 bg-slate-50/50">
+                    <!-- Bệnh nhân Info -->
+                    <div class="mb-6 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-wrap md:flex-nowrap gap-6 items-center">
+                        <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0">
+                            <i id="md-icon-gender" class="fas fa-user text-3xl"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <h4 id="md-hoten" class="text-xl font-extrabold text-slate-800 uppercase tracking-wide mb-1"></h4>
+                            <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
+                                <div><i class="fas fa-calendar-alt w-4 text-slate-400"></i> Năm sinh: <span id="md-namsinh" class="font-semibold text-slate-800"></span></div>
+                                <div><i class="fas fa-venus-mars w-4 text-slate-400"></i> Giới tính: <span id="md-gioitinh" class="font-semibold text-slate-800"></span></div>
+                                <div><i class="fas fa-fingerprint w-4 text-slate-400"></i> Mã LK: <span id="md-malk" class="font-mono bg-slate-100 px-1 rounded text-slate-700"></span></div>
+                            </div>
+                        </div>
+                        <div class="border-l border-slate-200 pl-6 hidden md:block">
+                            <p class="text-xs text-slate-500 mb-1 uppercase tracking-wider font-semibold">Bác sĩ khám</p>
+                            <p id="md-tenbs" class="font-bold text-primary flex items-center gap-2"><i class="fas fa-user-doctor"></i> </p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Chẩn đoán -->
+                        <div>
+                            <h4 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="fas fa-notes-medical text-rose-500"></i>Chẩn đoán lâm sàng (Bảng 1)</h4>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-slate-700 h-full leading-relaxed" id="md-chandoan"></div>
+                        </div>
+
+                        <!-- Cận lâm sàng -->
+                        <div>
+                            <div class="flex justify-between items-end mb-3">
+                                <h4 class="font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-microscope text-emerald-500"></i>Kết quả Cận lâm sàng (Bảng 4)</h4>
+                                <button onclick="openSuggestionModal()" class="text-xs font-semibold text-primary hover:text-indigo-700 hover:underline flex items-center gap-1">
+                                    <i class="fas fa-magic"></i> Sửa KQ
+                                </button>
+                            </div>
+                            <div class="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                    <thead class="bg-slate-50 sticky top-0">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left font-bold text-slate-600">Tên Chỉ Định</th>
+                                            <th class="px-4 py-3 text-left font-bold text-slate-600">Kết Luận</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="md-b4-body" class="divide-y divide-slate-100">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal()" class="px-6 py-2 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition border border-slate-200">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL GỢI Ý KẾT QUẢ ==================== -->
+    <div id="suggestionModal" class="hidden fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeSuggestionModal()"></div>
+            
+            <div class="inline-block align-bottom bg-slate-50 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full border border-slate-200">
+                
+                <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex justify-between items-center shadow-md">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-lightbulb text-white text-2xl animate-pulse"></i>
+                        <h3 class="text-xl font-bold text-white">Thư viện Gợi ý Điền Kết quả X-Quang</h3>
+                    </div>
+                    <button onclick="closeSuggestionModal()" class="text-emerald-100 hover:text-white transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="px-6 py-6 max-h-[75vh] overflow-y-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="suggestionGrid">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CẤU HÌNH TỪ KHÓA ---
+        const KEYWORDS_DISEASE = ["xoang", "mũi"];
+        const KEYWORDS_SERVICE = ["blondeau", "x-quang blondeau", "x quang blondeau"];
+        const KEYWORDS_NORMAL_RESULT = ["chưa ghi nhận bất thường", "không bất thường", "hiện tại chưa ghi nhận bất thường trên phim", "bình thường", "không thấy bất thường"];
+
+        // --- CẤU HÌNH GỢI Ý (6 MẪU) ---
+        const SUGGESTIONS = [
+            {
+                title: "1. Viêm mũi xoang cấp tính (Có mủ/dịch)",
+                mota: "Hình ảnh mờ đặc hoặc có hình ảnh \"mức nước - hơi\" (mức dịch - khí) tại xoang hàm / xoang trán [trái / phải / hai bên]. Niêm mạc các xoang kề cận có dấu hiệu phản ứng dày mờ.",
+                ketluan: "Hình ảnh viêm xoang hàm / trán [trái / phải / hai bên] cấp tính (có dịch trong xoang)."
+            },
+            {
+                title: "2. Viêm mũi xoang mạn tính / Viêm đa xoang",
+                mota: "Khung xương mặt cân đối. Hình ảnh mờ viền, dày niêm mạc thành xoang hàm / xoang trán / xoang sàng [trái / phải / hai bên]. Hốc xoang giảm độ sáng tự nhiên, không thấy mức nước hơi.",
+                ketluan: "Hình ảnh dày niêm mạc xoang / Viêm đa xoang mạn tính."
+            },
+            {
+                title: "3. Nang tuyến nhầy / Polyp mũi xoang",
+                mota: "Các xoang mặt sáng. Khung xương mặt không thấy bất thường. Riêng tại lòng xoang hàm [trái / phải] có hình ảnh bóng mờ dạng bán cầu (dạng vòm), bờ đều, rõ nét, đồng nhất, xuất phát từ đáy xoang (thành dưới xoang hàm) nhô lên.",
+                ketluan: "Theo dõi hình ảnh nang nhầy (hoặc Polyp) xoang hàm [trái / phải]."
+            },
+            {
+                title: "4. Dị hình cấu trúc vách ngăn và cuốn mũi",
+                mota: "Hình ảnh vách ngăn mũi vẹo sang [trái / phải] (hoặc có hình ảnh gai / mào vách ngăn). Hình ảnh bóng mờ quá phát cuốn mũi dưới [trái / phải / hai bên], làm hẹp khe hốc mũi tương ứng. Các hốc xoang hiện tại sáng đều.",
+                ketluan: "Vẹo / Gai vách ngăn mũi. Phì đại cuốn mũi [trái / phải]."
+            },
+            {
+                title: "5. Chấn thương hàm mặt (Tai nạn, va đập)",
+                mota: "Mất liên tục bờ xương / lún thành trước hoặc thành ngoài xoang hàm [trái / phải]. Hình ảnh mờ đặc lòng xoang hàm cùng bên (nghi ngờ máu tụ trong xoang). Có / Không kèm theo vỡ lún xương chính mũi, gãy bờ dưới ổ mắt.",
+                ketluan: "Chấn thương vỡ thành xoang hàm [trái / phải] - Tụ máu trong xoang. Đề nghị kết hợp CT-Scanner hàm mặt để đánh giá chi tiết tổn thương xương."
+            },
+            {
+                title: "6. Nghi ngờ Khối u vùng mũi xoang",
+                mota: "Hình ảnh đám mờ đặc, không đồng nhất chiếm toàn bộ xoang hàm / xoang sàng [trái / phải]. Có dấu hiệu tiêu ngót, phá hủy thành xương kề cận (mất liên tục bờ xương màng trong, trần xoang hàm).",
+                ketluan: "Đám mờ bất thường xoang [trái / phải] có dấu hiệu hủy xương, theo dõi khối u mũi xoang (Đề nghị chỉ định chụp CT/MRI và nội soi sinh thiết chẩn đoán xác định)."
+            }
+        ];
+
+        let globalErrors = [];
+
+        // --- XỬ LÝ ĐĂNG NHẬP ---
+        function checkLogin() {
+            const pwd = document.getElementById('pwdInput').value;
+            if (pwd === '1402') {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('appScreen').classList.remove('hidden');
+                renderSuggestions(); // Render thư viện gợi ý
+            } else {
+                const err = document.getElementById('loginError');
+                err.classList.remove('hidden');
+                // Lắc nhẹ input
+                const inp = document.getElementById('pwdInput');
+                inp.classList.add('border-red-500', 'bg-red-50');
+                setTimeout(() => inp.classList.remove('border-red-500', 'bg-red-50'), 1000);
+            }
+        }
+
+        // --- HÀM COPY TO CLIPBOARD ---
+        function copyText(text, btnElement) {
+            // Tạo hidden textarea để copy (Hỗ trợ tốt cho mọi trình duyệt/iframe)
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                // Đổi icon nút sang check mark
+                const originalHTML = btnElement.innerHTML;
+                btnElement.innerHTML = `<i class="fas fa-check"></i> Đã Copy`;
+                btnElement.classList.replace('bg-slate-100', 'bg-green-100');
+                btnElement.classList.replace('text-slate-600', 'text-green-700');
+                setTimeout(() => {
+                    btnElement.innerHTML = originalHTML;
+                    btnElement.classList.replace('bg-green-100', 'bg-slate-100');
+                    btnElement.classList.replace('text-green-700', 'text-slate-600');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- RENDER GỢI Ý ---
+        function renderSuggestions() {
+            const grid = document.getElementById('suggestionGrid');
+            grid.innerHTML = '';
+            SUGGESTIONS.forEach((sug, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition";
+                
+                const textToCopy = `Mô tả: ${sug.mota}\nKết luận: ${sug.ketluan}`;
+
+                card.innerHTML = `
+                    <div class="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex justify-between items-center">
+                        <h4 class="font-bold text-emerald-800 text-sm w-3/4 truncate" title="${sug.title}">${sug.title}</h4>
+                        <button onclick="copyText(\`${textToCopy}\`, this)" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-1.5 px-3 rounded-md transition flex items-center gap-1 border border-slate-200 shadow-sm">
+                            <i class="far fa-copy"></i> Copy KQ
+                        </button>
+                    </div>
+                    <div class="p-4 text-sm">
+                        <div class="mb-3">
+                            <span class="font-bold text-slate-700 block mb-1">Mô tả hình ảnh:</span>
+                            <span class="text-slate-600 leading-relaxed">${sug.mota}</span>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                            <span class="font-bold text-amber-800 block mb-1">Kết luận:</span>
+                            <span class="text-amber-700 font-medium">${sug.ketluan}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openSuggestionModal() { document.getElementById('suggestionModal').classList.remove('hidden'); document.body.classList.add('modal-open'); }
+        function closeSuggestionModal() { document.getElementById('suggestionModal').classList.add('hidden'); document.body.classList.remove('modal-open'); }
+
+        // --- ĐỌC FILE BẰNG SHEETJS ---
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                if(!file) resolve([]);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        let jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                        jsonData = jsonData.filter(row => row.length > 0 && row.join('').trim() !== '');
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(new Error(`Lỗi đọc file ${file.name}. Vui lòng kiểm tra định dạng.`));
+                    }
+                };
+                reader.onerror = (error) => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // --- UI ALERT ---
+        function showAlert(msg, type = 'error') {
+            const box = document.getElementById('alertBox');
+            box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-blue-100', 'text-blue-700', 'border-red-200', 'border-blue-200');
+            if (type === 'error') {
+                box.classList.add('bg-red-100', 'text-red-700', 'border', 'border-red-200');
+                box.innerHTML = `<i class="fas fa-circle-xmark mr-2 text-lg align-middle"></i> ${msg}`;
+            } else {
+                box.classList.add('bg-blue-100', 'text-blue-700', 'border', 'border-blue-200');
+                box.innerHTML = `<i class="fas fa-spinner fa-spin mr-2 text-lg align-middle"></i> ${msg}`;
+            }
+        }
+        function hideAlert() { document.getElementById('alertBox').classList.add('hidden'); }
+
+        // --- HÀM XỬ LÝ CHÍNH ---
+        document.getElementById('btnProcess').addEventListener('click', async () => {
+            const file1 = document.getElementById('fileBang1').files[0];
+            const file4 = document.getElementById('fileBang4').files[0];
+            const fileCCHN = document.getElementById('fileCCHN').files[0];
+
+            if (!file1 || !file4) {
+                showAlert("Vui lòng tải lên ít nhất Bảng 1 và Bảng 4 để phần mềm có thể đối chiếu.");
+                return;
+            }
+
+            showAlert("Hệ thống đang nạp và phân tích dữ liệu...", "loading");
+            document.getElementById('btnProcess').disabled = true;
+
+            try {
+                const [data1, data4, dataCCHN] = await Promise.all([
+                    readExcelFile(file1),
+                    readExcelFile(file4),
+                    readExcelFile(fileCCHN)
+                ]);
+
+                if (data1.length < 2 || data4.length < 2) throw new Error("File Bảng 1 hoặc Bảng 4 rỗng/không đúng chuẩn.");
+
+                // 1. Map Dữ liệu CCHN
+                const dictCCHN = {};
+                if (dataCCHN && dataCCHN.length > 0) {
+                    let cchnMaIdx = -1, cchnTenIdx = -1;
+                    // Tìm dòng Header trong file CCHN
+                    for(let r=0; r<Math.min(10, dataCCHN.length); r++) {
+                        let row = dataCCHN[r];
+                        for(let c=0; c<row.length; c++) {
+                            let val = String(row[c] || "").trim().toUpperCase();
+                            if(val.includes("MA CCHN") || val.includes("MÃ CCHN") || val === "MA_CCHN") cchnMaIdx = c;
+                            if(val.includes("TEN BS") || val.includes("TÊN BS") || val === "TEN_BS" || val.includes("HỌ TÊN")) cchnTenIdx = c;
+                        }
+                        if(cchnMaIdx !== -1 && cchnTenIdx !== -1) break;
+                    }
+
+                    if(cchnMaIdx !== -1 && cchnTenIdx !== -1) {
+                        for(let i=1; i<dataCCHN.length; i++) {
+                            let ma = String(dataCCHN[i][cchnMaIdx] || "").trim();
+                            let ten = String(dataCCHN[i][cchnTenIdx] || "").trim();
+                            if(ma && ten) dictCCHN[ma] = ten;
+                        }
+                    }
+                }
+
+                // 2. Parse Headers Bảng 1 & 4
+                const header1 = data1[0].map(h => String(h).trim().toUpperCase());
+                const header4 = data4[0].map(h => String(h).trim().toUpperCase());
+
+                const idx1_MaLK = header1.indexOf("MA_LK");
+                const idx1_HoTen = header1.indexOf("HO_TEN");
+                const idx1_ChanDoan = header1.indexOf("CHAN_DOAN_RV");
+                const idx1_NgaySinh = header1.indexOf("NGAY_SINH");
+                const idx1_GioiTinh = header1.indexOf("GIOI_TINH");
+                // Tìm cột Mã BS trong Bảng 1
+                let idx1_MaBS = header1.indexOf("MA_BAC_SI");
+                if (idx1_MaBS === -1) idx1_MaBS = header1.findIndex(h => h.includes("BAC_SI") || h.includes("CCHN"));
+
+                const idx4_MaLK = header4.indexOf("MA_LK");
+                const idx4_TenChiSo = header4.indexOf("TEN_CHI_SO"); 
+                const idx4_KetLuan = header4.indexOf("KET_LUAN");
+
+                if (idx1_MaLK === -1 || idx1_ChanDoan === -1) throw new Error("Bảng 1 thiếu cột MA_LK hoặc CHAN_DOAN_RV.");
+                if (idx4_MaLK === -1 || idx4_TenChiSo === -1 || idx4_KetLuan === -1) throw new Error("Bảng 4 thiếu cột MA_LK, TEN_CHI_SO hoặc KET_LUAN.");
+
+                // 3. Nhóm Bảng 4 theo MA_LK
+                const b4Dict = {};
+                for (let i = 1; i < data4.length; i++) {
+                    const maLK = String(data4[i][idx4_MaLK] || "").trim();
+                    if (!maLK) continue;
+                    if (!b4Dict[maLK]) b4Dict[maLK] = [];
+                    b4Dict[maLK].push({
+                        tenChiSo: String(data4[i][idx4_TenChiSo] || ""),
+                        ketLuan: String(data4[i][idx4_KetLuan] || "")
+                    });
+                }
+
+                const errors = [];
+                let totalPatients = 0;
+
+                // 4. Quét lỗi từ Bảng 1
+                for (let i = 1; i < data1.length; i++) {
+                    const row = data1[i];
+                    const maLK = String(row[idx1_MaLK] || "").trim();
+                    if (!maLK) continue;
+                    totalPatients++;
+
+                    const chanDoan = String(row[idx1_ChanDoan] || "").toLowerCase();
+                    const hasSinusDisease = KEYWORDS_DISEASE.some(kw => chanDoan.includes(kw));
+                    
+                    if (hasSinusDisease) {
+                        const dlsRecords = b4Dict[maLK] || [];
+                        let isError = false;
+                        let errorTenChiSo = "", errorKetLuan = "";
+
+                        for (const b4 of dlsRecords) {
+                            const ten = b4.tenChiSo.toLowerCase();
+                            const kl = b4.ketLuan.toLowerCase();
+
+                            if (KEYWORDS_SERVICE.some(kw => ten.includes(kw))) {
+                                if (KEYWORDS_NORMAL_RESULT.some(kw => kl.includes(kw))) {
+                                    isError = true;
+                                    errorTenChiSo = b4.tenChiSo;
+                                    errorKetLuan = b4.ketLuan;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (isError) {
+                            // Xử lý năm sinh
+                            let strNS = String(row[idx1_NgaySinh] || "").trim();
+                            let namSinh = strNS.length >= 4 ? strNS.substring(0,4) : "N/A";
+                            
+                            // Xử lý giới tính (1: Nam, 2: Nữ)
+                            let valGT = String(row[idx1_GioiTinh] || "").trim();
+                            let gioiTinh = valGT === "1" ? "Nam" : (valGT === "2" ? "Nữ" : "KXD");
+
+                            // Xử lý Tên BS
+                            let maBS = idx1_MaBS !== -1 ? String(row[idx1_MaBS] || "").trim() : "";
+                            let tenBS = dictCCHN[maBS] ? dictCCHN[maBS] : (maBS ? maBS : "Không xác định");
+
+                            errors.push({
+                                maLK: maLK,
+                                hoTen: String(row[idx1_HoTen] || "N/A"),
+                                namSinh: namSinh,
+                                gioiTinh: gioiTinh,
+                                tenBS: tenBS,
+                                chanDoan: String(row[idx1_ChanDoan] || ""),
+                                errorTenChiSo: errorTenChiSo,
+                                errorKetLuan: errorKetLuan,
+                                allB4Records: dlsRecords 
+                            });
+                        }
+                    }
+                }
+
+                globalErrors = errors;
+                updateDashboard(totalPatients, errors.length);
+                renderTable(errors);
+                hideAlert();
+
+            } catch (err) {
+                showAlert(err.message);
+                console.error(err);
+            } finally {
+                document.getElementById('btnProcess').disabled = false;
+            }
+        });
+
+        // --- RENDER GIAO DIỆN KẾT QUẢ ---
+        function updateDashboard(total, errorsCount) {
+            document.getElementById('statsSection').classList.remove('hidden');
+            document.getElementById('statTotal').innerText = total.toLocaleString('vi-VN');
+            document.getElementById('statErrors').innerText = errorsCount.toLocaleString('vi-VN');
+            const rate = total > 0 ? ((errorsCount / total) * 100).toFixed(2) : 0;
+            document.getElementById('statRate').innerText = `${rate}%`;
+        }
+
+        function highlightKeywords(text, keywords) {
+            if(!text) return '';
+            let result = text;
+            keywords.forEach(kw => {
+                const regex = new RegExp(`(${kw})`, 'gi');
+                result = result.replace(regex, '<span class="bg-yellow-200 text-yellow-900 font-bold px-0.5 rounded">$1</span>');
+            });
+            return result;
+        }
+
+        function renderTable(errors) {
+            document.getElementById('resultSection').classList.remove('hidden');
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            tbody.innerHTML = '';
+
+            if (errors.length === 0) {
+                tbody.parentElement.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            tbody.parentElement.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            errors.forEach((err, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-indigo-50/50 transition duration-200 cursor-pointer group";
+                tr.onclick = () => openModal(index);
+                
+                let hlChanDoan = highlightKeywords(err.chanDoan, KEYWORDS_DISEASE);
+                let hlKetLuan = highlightKeywords(err.errorKetLuan, KEYWORDS_NORMAL_RESULT);
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">${index + 1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="font-extrabold text-slate-800 uppercase">${err.hoTen}</div>
+                        <div class="text-xs text-slate-500 mt-1"><i class="fas fa-calendar-alt mr-1"></i>${err.namSinh} | <i class="fas ${err.gioiTinh === 'Nam' ? 'fa-mars text-blue-500' : 'fa-venus text-pink-500'} mr-1"></i>${err.gioiTinh}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            <i class="fas fa-user-doctor mr-1.5 opacity-70"></i> ${err.tenBS}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600 line-clamp-3 leading-relaxed">${hlChanDoan}</td>
+                    <td class="px-6 py-4 text-sm text-slate-600">
+                        <span class="block font-bold text-xs text-indigo-700 mb-1.5 pb-1.5 border-b border-slate-100 uppercase">${err.errorTenChiSo}</span>
+                        ${hlKetLuan}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <button onclick="openModal(${index}); event.stopPropagation();" class="text-primary hover:text-white bg-indigo-50 hover:bg-primary px-4 py-2 rounded-lg text-xs font-bold transition duration-300 shadow-sm border border-indigo-100 group-hover:border-primary">
+                            Chi tiết <i class="fas fa-arrow-right ml-1"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- MODAL CHI TIẾT ---
+        function openModal(index) {
+            const err = globalErrors[index];
+            if (!err) return;
+
+            // Set info
+            document.getElementById('md-hoten').innerText = err.hoTen;
+            document.getElementById('md-namsinh').innerText = err.namSinh;
+            document.getElementById('md-gioitinh').innerText = err.gioiTinh;
+            document.getElementById('md-malk').innerText = err.maLK;
+            document.getElementById('md-tenbs').innerHTML = `<i class="fas fa-user-doctor mr-1"></i> ${err.tenBS}`;
+            
+            const iconGender = document.getElementById('md-icon-gender');
+            iconGender.className = err.gioiTinh === 'Nam' ? 'fas fa-mars text-blue-500 text-3xl' : 'fas fa-venus text-pink-500 text-3xl';
+
+            document.getElementById('md-chandoan').innerHTML = highlightKeywords(err.chanDoan, KEYWORDS_DISEASE);
+
+            // Bảng Cận Lâm Sàng
+            const b4Tbody = document.getElementById('md-b4-body');
+            b4Tbody.innerHTML = '';
+
+            err.allB4Records.forEach(b4 => {
+                const tr = document.createElement('tr');
+                const isBlondeau = KEYWORDS_SERVICE.some(kw => b4.tenChiSo.toLowerCase().includes(kw));
+                const isNormal = KEYWORDS_NORMAL_RESULT.some(kw => b4.ketLuan.toLowerCase().includes(kw));
+                
+                if (isBlondeau && isNormal) {
+                    tr.className = "bg-rose-50 border-l-4 border-rose-500";
+                } else {
+                    tr.className = "hover:bg-slate-50 transition border-l-4 border-transparent";
+                }
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-sm font-semibold text-slate-800 border-r border-slate-100">${b4.tenChiSo}</td>
+                    <td class="px-4 py-3 text-sm text-slate-600 leading-relaxed">${b4.ketLuan ? highlightKeywords(b4.ketLuan, KEYWORDS_NORMAL_RESULT) : '<span class="italic text-slate-400">Không ghi nhận kết luận</span>'}</td>
+                `;
+                b4Tbody.appendChild(tr);
+            });
+
+            document.body.classList.add('modal-open');
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.body.classList.remove('modal-open');
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
