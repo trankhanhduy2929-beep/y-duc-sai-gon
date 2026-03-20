@@ -346,7 +346,7 @@
         // --- CẤU HÌNH TỪ KHÓA ---
         const KEYWORDS_DISEASE = ["xoang", "mũi"];
         const KEYWORDS_SERVICE = ["blondeau", "x-quang blondeau", "x quang blondeau"];
-        const KEYWORDS_NORMAL_RESULT = ["chưa ghi nhận bất thường", "không bất thường", "hiện tại chưa ghi nhận bất thường trên phim", "bình thường", "không thấy bất thường"];
+        const KEYWORDS_NORMAL_RESULT = ["chưa ghi nhận bất thường", "không bất thường", "hiện tại chưa ghi nhận bất thường trên phim", "bình thường", "không thấy bất thường", "chưa ghi nhận"];
 
         // --- CẤU HÌNH GỢI Ý (6 MẪU) ---
         const SUGGESTIONS = [
@@ -722,7 +722,8 @@
                 const regex = new RegExp(`(${kw})`, 'gi');
                 result = result.replace(regex, '<span class="bg-yellow-200 text-yellow-900 font-bold px-0.5 rounded">$1</span>');
             });
-            return result;
+            // Giữ nguyên định dạng xuống dòng của mẫu kết quả gốc
+            return result.replace(/\n/g, '<br>');
         }
 
         function renderTable(errors) {
