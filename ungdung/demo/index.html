@@ -46,12 +46,12 @@
 
     <!-- Header -->
     <header class="bg-medical-700 text-white shadow-lg sticky top-0 z-40">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <i class="fa-solid fa-notes-medical text-3xl text-medical-100"></i>
+        <div class="container mx-auto px-4 py-3 sm:py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <i class="fa-solid fa-notes-medical text-2xl sm:text-3xl text-medical-100"></i>
                 <div>
-                    <h1 class="text-xl font-bold leading-tight">Đánh Giá Năng Lực Ứng Dụng ChatGPT</h1>
-                    <p class="text-sm text-medical-100 opacity-90">Phòng Khám Đa Khoa Y Đức Sài Gòn</p>
+                    <h1 class="text-base sm:text-xl font-bold leading-tight">Đánh Giá Năng Lực Ứng Dụng ChatGPT</h1>
+                    <p class="text-xs sm:text-sm text-medical-100 opacity-90">Phòng Khám Đa Khoa Y Đức Sài Gòn</p>
                 </div>
             </div>
             <div class="hidden md:flex items-center gap-2 bg-medical-900/50 px-4 py-2 rounded-full text-sm">
@@ -98,14 +98,14 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
-                            <th class="px-6 py-4 font-semibold">STT</th>
-                            <th class="px-6 py-4 font-semibold">Họ và Tên</th>
-                            <th class="px-6 py-4 font-semibold">Phòng Ban</th>
-                            <th class="px-6 py-4 font-semibold text-center">Trắc Nghiệm (30)</th>
-                            <th class="px-6 py-4 font-semibold text-center">Tự Luận (70)</th>
-                            <th class="px-6 py-4 font-semibold text-center">Tổng (100)</th>
-                            <th class="px-6 py-4 font-semibold text-center">Hành động</th>
+                        <tr class="bg-slate-50 text-slate-500 text-xs sm:text-sm uppercase tracking-wider">
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 font-semibold">STT</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 font-semibold">Họ và Tên</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 font-semibold">Phòng Ban</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center whitespace-nowrap">Trắc Nghiệm (30)</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center whitespace-nowrap">Tự Luận (70)</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center whitespace-nowrap">Tổng (100)</th>
+                            <th class="px-4 sm:px-6 py-3 sm:py-4 font-semibold text-center">Hành động</th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody" class="divide-y divide-slate-100">
@@ -120,58 +120,58 @@
     <!-- Modal Xem Chi Tiết -->
     <div id="detailModal" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div class="relative bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-3xl w-full flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-center min-h-screen px-2 pt-4 pb-20 text-center sm:px-4 sm:p-0">
+            <div class="relative bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-3xl w-full flex flex-col max-h-[95vh] sm:max-h-[90vh]">
                 
                 <!-- Modal Header -->
-                <div class="bg-medical-50 px-6 py-4 border-b border-medical-100 flex justify-between items-center sticky top-0 z-10">
-                    <div>
-                        <h3 class="text-xl font-bold text-medical-900" id="modalName">Tên Nhân Viên</h3>
-                        <p class="text-sm text-medical-600 font-medium" id="modalDept"><i class="fa-solid fa-tag mr-1"></i> Phòng ban</p>
+                <div class="bg-medical-50 px-4 py-3 sm:px-6 sm:py-4 border-b border-medical-100 flex justify-between items-center sticky top-0 z-10">
+                    <div class="pr-4">
+                        <h3 class="text-lg sm:text-xl font-bold text-medical-900 leading-tight" id="modalName">Tên Nhân Viên</h3>
+                        <p class="text-xs sm:text-sm text-medical-600 font-medium mt-0.5" id="modalDept"><i class="fa-solid fa-tag mr-1"></i> Phòng ban</p>
                     </div>
-                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm shrink-0">
                         <i class="fa-solid fa-times"></i>
                     </button>
                 </div>
 
                 <!-- Modal Body (Scrollable) -->
-                <div class="px-6 py-6 overflow-y-auto flex-1">
+                <div class="px-4 py-4 sm:px-6 sm:py-6 overflow-y-auto flex-1">
                     <!-- Điểm số -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-                            <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Trắc Nghiệm</p>
-                            <p class="text-2xl font-bold text-slate-800"><span id="modalTN">0</span><span class="text-sm text-slate-400 font-normal">/30</span></p>
+                    <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+                        <div class="bg-slate-50 rounded-xl p-2 sm:p-4 text-center border border-slate-100 flex flex-col justify-center">
+                            <p class="text-[10px] sm:text-xs text-slate-500 uppercase font-semibold mb-1">Trắc Nghiệm</p>
+                            <p class="text-lg sm:text-2xl font-bold text-slate-800"><span id="modalTN">0</span><span class="text-xs sm:text-sm text-slate-400 font-normal">/30</span></p>
                         </div>
-                        <div class="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-                            <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Tự Luận</p>
-                            <p class="text-2xl font-bold text-slate-800"><span id="modalTL">0</span><span class="text-sm text-slate-400 font-normal">/70</span></p>
+                        <div class="bg-slate-50 rounded-xl p-2 sm:p-4 text-center border border-slate-100 flex flex-col justify-center">
+                            <p class="text-[10px] sm:text-xs text-slate-500 uppercase font-semibold mb-1">Tự Luận</p>
+                            <p class="text-lg sm:text-2xl font-bold text-slate-800"><span id="modalTL">0</span><span class="text-xs sm:text-sm text-slate-400 font-normal">/70</span></p>
                         </div>
-                        <div class="bg-medical-50 rounded-xl p-4 text-center border border-medical-100">
-                            <p class="text-xs text-medical-600 uppercase font-semibold mb-1">Tổng Điểm</p>
-                            <p class="text-3xl font-bold text-medical-700" id="modalTotal">0</p>
+                        <div class="bg-medical-50 rounded-xl p-2 sm:p-4 text-center border border-medical-100 flex flex-col justify-center">
+                            <p class="text-[10px] sm:text-xs text-medical-600 uppercase font-semibold mb-1">Tổng Điểm</p>
+                            <p class="text-2xl sm:text-3xl font-bold text-medical-700 leading-none" id="modalTotal">0</p>
                         </div>
                     </div>
 
                     <!-- Bài làm Tự Luận -->
-                    <div class="mb-6">
-                        <h4 class="text-sm uppercase font-bold text-slate-500 mb-2 flex items-center"><i class="fa-solid fa-pen-nib mr-2"></i>Câu Lệnh (Prompt) Đã Viết</h4>
-                        <div class="bg-slate-800 text-slate-100 p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap font-mono shadow-inner border-l-4 border-medical-500" id="modalPrompt">
+                    <div class="mb-5 sm:mb-6">
+                        <h4 class="text-xs sm:text-sm uppercase font-bold text-slate-500 mb-2 flex items-center"><i class="fa-solid fa-pen-nib mr-2"></i>Câu Lệnh Đã Viết</h4>
+                        <div class="bg-slate-800 text-slate-100 p-3 sm:p-4 rounded-xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-mono shadow-inner border-l-4 border-medical-500 max-h-60 overflow-y-auto" id="modalPrompt">
                             <!-- Nội dung bài làm -->
                         </div>
                     </div>
 
                     <!-- Đánh giá -->
                     <div>
-                        <h4 class="text-sm uppercase font-bold text-slate-500 mb-2 flex items-center"><i class="fa-solid fa-clipboard-check mr-2"></i>Nhận Xét Từ Ban Giám Khảo</h4>
-                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 text-slate-800 text-sm leading-relaxed" id="modalFeedback">
+                        <h4 class="text-xs sm:text-sm uppercase font-bold text-slate-500 mb-2 flex items-center"><i class="fa-solid fa-clipboard-check mr-2"></i>Nhận Xét</h4>
+                        <div class="bg-amber-50 p-3 sm:p-4 rounded-xl border border-amber-100 text-slate-800 text-xs sm:text-sm leading-relaxed" id="modalFeedback">
                             <!-- Nội dung nhận xét -->
                         </div>
                     </div>
                 </div>
                 
                 <!-- Modal Footer -->
-                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 text-right">
-                    <button onclick="closeModal()" class="px-6 py-2 bg-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-300 transition-colors">Đóng</button>
+                <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 text-right">
+                    <button onclick="closeModal()" class="px-5 py-2 sm:px-6 sm:py-2 bg-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-300 transition-colors text-sm sm:text-base w-full sm:w-auto">Đóng</button>
                 </div>
             </div>
         </div>
@@ -327,25 +327,25 @@
                 const scoreBadgeClass = getScoreColorClass(emp.total);
 
                 tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-500">${emp.stt}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="font-bold text-slate-800">${emp.name}</div>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-slate-500">${emp.stt}</td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div class="font-bold text-slate-800 text-sm sm:text-base">${emp.name}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-medium rounded-full bg-slate-100 text-slate-600">
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <span class="px-2 sm:px-3 py-1 inline-flex text-[10px] sm:text-xs leading-5 font-medium rounded-full bg-slate-100 text-slate-600">
                             ${emp.dept}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">${emp.tn}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">${emp.tl}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <span class="px-3 py-1 font-bold rounded border ${scoreBadgeClass}">
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center text-sm">${emp.tn}</td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center text-sm">${emp.tl}</td>
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center">
+                        <span class="px-2 sm:px-3 py-1 font-bold rounded border ${scoreBadgeClass} text-xs sm:text-sm">
                             ${emp.total}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                        <button class="text-medical-600 hover:text-medical-800 bg-medical-50 hover:bg-medical-100 px-3 py-1.5 rounded transition-colors">
-                            <i class="fa-solid fa-eye"></i> Xem
+                    <td class="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-center text-sm">
+                        <button class="text-medical-600 hover:text-medical-800 bg-medical-50 hover:bg-medical-100 w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 rounded transition-colors inline-flex items-center justify-center gap-1 mx-auto">
+                            <i class="fa-solid fa-eye"></i> <span class="hidden sm:inline">Xem</span>
                         </button>
                     </td>
                 `;
