@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Đánh Giá Năng Lực AI - Y Đức Sài Gòn</title>
+    <!-- Tailwind CSS cho Giao diện -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js cho Biểu đồ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome cho Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Tùy chỉnh thanh cuộn cho đẹp */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- Header -->
+    <header class="bg-medical-700 text-white shadow-lg sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-notes-medical text-3xl text-medical-100"></i>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Đánh Giá Năng Lực Ứng Dụng ChatGPT</h1>
+                    <p class="text-sm text-medical-100 opacity-90">Phòng Khám Đa Khoa Y Đức Sài Gòn</p>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center gap-2 bg-medical-900/50 px-4 py-2 rounded-full text-sm">
+                <i class="fa-solid fa-clock"></i> Cập nhật: Tháng 3/2026
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        
+        <!-- Tổng quan KPIs -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="kpi-container">
+            <!-- Rendered via JS -->
+        </section>
+
+        <!-- Charts Section -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Biểu đồ phân bố điểm -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="text-lg font-bold text-slate-700 mb-4"><i class="fa-solid fa-chart-pie mr-2 text-medical-500"></i>Phân Bố Tổng Điểm</h3>
+                <div class="relative h-64">
+                    <canvas id="scoreDistributionChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Biểu đồ điểm theo phòng ban -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="text-lg font-bold text-slate-700 mb-4"><i class="fa-solid fa-building-user mr-2 text-medical-500"></i>Điểm Trung Bình Theo Phòng Ban</h3>
+                <div class="relative h-64">
+                    <canvas id="deptScoreChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bảng danh sách nhân viên -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h3 class="text-lg font-bold text-slate-700"><i class="fa-solid fa-users mr-2 text-medical-500"></i>Danh Sách Nhân Sự & Kết Quả</h3>
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" placeholder="Tìm tên hoặc bộ phận..." class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500 text-sm">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
+                            <th class="px-6 py-4 font-semibold">STT</th>
+                            <th class="px-6 py-4 font-semibold">Họ và Tên</th>
+                            <th class="px-6 py-4 font-semibold">Phòng Ban</th>
+                            <th class="px-6 py-4 font-semibold text-center">Trắc Nghiệm (30)</th>
+                            <th class="px-6 py-4 font-semibold text-center">Tự Luận (70)</th>
+                            <th class="px-6 py-4 font-semibold text-center">Tổng (100)</th>
+                            <th class="px-6 py-4 font-semibold text-center">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody" class="divide-y divide-slate-100">
+                        <!-- Rendered via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Xem Chi Tiết -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div class="relative bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-3xl w-full flex flex-col max-h-[90vh]">
+                
+                <!-- Modal Header -->
+                <div class="bg-medical-50 px-6 py-4 border-b border-medical-100 flex justify-between items-center sticky top-0 z-10">
+                    <div>
+                        <h3 class="text-xl font-bold text-medical-900" id="modalName">Tên Nhân Viên</h3>
+                        <p class="text-sm text-medical-600 font-medium" id="modalDept"><i class="fa-solid fa-tag mr-1"></i> Phòng ban</p>
+                    </div>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body (Scrollable) -->
+                <div class="px-6 py-6 overflow-y-auto flex-1">
+                    <!-- Điểm số -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
+                            <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Trắc Nghiệm</p>
+                            <p class="text-2xl font-bold text-slate-800"><span id="modalTN">0</span><span class="text-sm text-slate-400 font-normal">/30</span></p>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
+                            <p class="text-xs text-slate-500 uppercase font-semibold mb-1">Tự Luận</p>
+                            <p class="text-2xl font-bold text-slate-800"><span id="modalTL">0</span><span class="text-sm text-slate-400 font-normal">/70</span></p>
+                        </div>
+                        <div class="bg-medical-50 rounded-xl p-4 text-center border border-medical-100">
+                            <p class="text-xs text-medical-600 uppercase font-semibold mb-1">Tổng Điểm</p>
+                            <p class="text-3xl font-bold text-medical-700" id="modalTotal">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Bài làm Tự Luận -->
+                    <div class="mb-6">
+                        <h4 class="text-sm uppercase font-bold text-slate-500 mb-2 flex items-center"><i class="fa-solid fa-pen-nib mr-2"></i>Câu Lệnh (Prompt) Đã Viết</h4>
+                        <div class="bg-slate-800 text-slate-100 p-4 rounded-xl text-sm leading-relaxed whitespace-pre-wrap font-mono shadow-inner border-l-4 border-medical-500" id="modalPrompt">
+                            <!-- Nội dung bài làm -->
+                        </div>
+                    </div>
+
+                    <!-- Đánh giá -->
+                    <div>
+                        <h4 class="text-sm uppercase font-bold text-slate-500 mb-2 flex items-center"><i class="fa-solid fa-clipboard-check mr-2"></i>Nhận Xét Từ Ban Giám Khảo</h4>
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 text-slate-800 text-sm leading-relaxed" id="modalFeedback">
+                            <!-- Nội dung nhận xét -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 text-right">
+                    <button onclick="closeModal()" class="px-6 py-2 bg-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-300 transition-colors">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dữ liệu & Logic JavaScript -->
+    <script>
+        // Dữ liệu JSON được trích xuất từ file kết quả
+        const clinicData = [
+            { stt: 1, name: "Trần khánh duy", dept: "Bảo hiểm", tn: 30, tl: 70, total: 100, prompt: "Đóng vai nhân viên CSKH của Phòng khám Y Đức Sài Gòn. Hãy soạn một tin nhắn trả lời khách hàng trên Fanpage. Khách hàng đang muốn đưa ba mẹ (hơn 60 tuổi) đi khám sức khỏe tổng quát nhưng sợ người già phải chờ đợi lâu mệt mỏi và lo lắng chi phí cao. Giọng văn của bạn cần ân cần, đồng cảm và lịch sự. Nội dung tin nhắn cần trấn an khách hàng rằng phòng khám có dịch vụ đặt lịch hẹn trước để ưu tiên khám ngay không cần chờ, và chi phí luôn được minh bạch rõ ràng. Giới hạn: Viết ngắn gọn dưới 150 chữ, không báo giá trực tiếp mà hãy kêu gọi khách hàng kiểm tra tin nhắn inbox hoặc để lại số điện thoại để tư vấn chi tiết", feedback: "Rất xuất sắc; đạt chuẩn điểm tối đa; có giới hạn từ (<150 chữ) và nhắc AI không báo giá trực tiếp." },
+            { stt: 2, name: "Vương Trúc Huỳnh", dept: "YHCT", tn: 30, tl: 70, total: 100, prompt: "Hãy đóng vai nhân viên chăm sóc khách hàng của một phòng khám đa khoa chuyên nghiệp. Viết một tin nhắn trả lời khách hàng đã nhắn vào Fanpage. Yêu cầu:\n• Giọng văn lịch sự, thân thiện, thể hiện sự quan tâm đến người lớn tuổi\n• Giải thích rõ về dịch vụ khám tổng quát cho người lớn tuổi\n• Nhấn mạnh các tiện ích giúp hạn chế chờ đợi\n• Tư vấn sơ bộ về chi phí theo hướng minh bạch, hợp lý\n• Kêu gọi khách hàng để lại thông tin hoặc đặt lịch\n• Tin nhắn ngắn gọn, dễ hiểu, phù hợp trả lời Fanpage", feedback: "Xuất sắc; lệnh chi tiết; bám sát tâm lý người lớn tuổi và yêu cầu AI minh bạch chi phí." },
+            { stt: 3, name: "Phạm tuánAnh", dept: "Điều dưỡng", tn: 30, tl: 70, total: 100, prompt: "Hãy đóng vai nhân viên chăm sóc khách hàng của một phòng khám đa khoa uy tín, soạn một tin nhắn trả lời khách hàng đã nhắn vào fanpage với nội dung: “Chào phòng khám, ba mẹ tôi năm nay hơn 60 tuổi, dạo này hay kêu mệt mỏi, đau nhức xương khớp. Tôi muốn đưa ông bà đi khám tổng quát nhưng sợ ba mẹ lớn tuổi chờ đợi lâu mệt mỏi, và không biết chi phí có đắt không. Phòng khám tư vấn giúp tôi nhé.”\nGiọng văn thân thiện, lịch sự, thể hiện sự quan tâm đến người lớn tuổi. Giải thích rõ về dịch vụ khám tổng quát, nhấn mạnh quy trình nhanh gọn, hạn chế chờ đợi. Đề cập chi phí ở mức hợp lý. Gợi ý khách để lại thông tin. Nội dung ngắn gọn, dễ hiểu.", feedback: "Xuất sắc; đưa trực tiếp câu hỏi của khách vào làm ngữ cảnh; yêu cầu mạch lạc rõ ràng." },
+            { stt: 4, name: "Trần Tiến Đạt", dept: "Bảo hiểm", tn: 30, tl: 70, total: 100, prompt: "Bạn là một chuyên viên Chăm sóc khách hàng tận tâm tại một phòng khám đa khoa uy tín. Hãy soạn một tin nhắn phản hồi cho khách hàng dựa trên tình huống sau: [Khách muốn khám cho ba mẹ già]. Yêu cầu:\n1. Văn phong: Lễ phép, đồng cảm, ấm áp.\n2. Cấu trúc tin nhắn: Chào hỏi, thấu hiểu, giải quyết nỗi lo chờ đợi, giải quyết nỗi lo chi phí, kêu gọi hành động.\n3. Định dạng: Ngắn gọn, dễ đọc, sử dụng icon phù hợp.", feedback: "Cấu trúc cực kỳ chuyên nghiệp; hướng dẫn AI từng bước giải quyết nỗi lo của bệnh nhân." },
+            { stt: 5, name: "Nguyễn Xuân Huỳnh", dept: "Bảo hiểm", tn: 30, tl: 70, total: 100, prompt: "Bạn là một chuyên gia chăm sóc khách hàng. Hãy giúp tôi soạn thảo 1 tin nhắn dựa trên thông tin sau:\nNgữ cảnh: Khách hàng muốn đưa ba mẹ hơn 60 tuổi bị mệt mỏi...\nNhiệm vụ: Trấn an khách hàng...\nĐối tượng người đọc: Con cái đang quan tâm sức khỏe ba mẹ\nGiọng văn: Ân cần, lễ phép, chuyên nghiệp\nĐịnh dạng: Tin nhắn ngắn gọn có chia đoạn", feedback: "Mẫu mực; phân chia rõ rệt: Ngữ cảnh - Nhiệm vụ - Đối tượng - Giọng văn - Định dạng." },
+            { stt: 6, name: "Chung Ngọc Anh Thư", dept: "Dược", tn: 29, tl: 70, total: 99, prompt: "Bạn là nhân viên chăm sóc khách hàng... Nội dung cần xử lý: Khách hàng có ba mẹ trên 60 tuổi...\nYêu cầu nội dung trả lời:\n• Thể hiện sự quan tâm\n• Giải thích ngắn gọn\n• Nhấn mạnh điểm mạnh phòng khám (quy trình nhanh)\n• Cung cấp thông tin chi phí minh bạch\n• Kêu gọi hành động\nĐộ dài: khoảng 5-7 câu. Giọng điệu: chuyên nghiệp.", feedback: "Dùng gạch đầu dòng rất trực quan; giúp AI dễ hiểu và thực thi yêu cầu chính xác." },
+            { stt: 7, name: "Mã Hoàng Bảo Yến", dept: "Dược sĩ", tn: 29, tl: 70, total: 99, prompt: "Bạn là nhân viên chăm sóc khách hàng của một phòng khám đa khoa uy tín... Yêu cầu trả lời: Thể hiện sự quan tâm, giải thích lợi ích, nhấn mạnh quy trình nhanh gọn ưu tiên người cao tuổi, thông tin khái quát chi phí, kêu gọi hành động. Độ dài 5-7 câu. Giọng điệu tận tâm.", feedback: "Lệnh chi tiết; trình bày khoa học và bám sát tuyệt đối tình huống của bài kiểm tra." },
+            { stt: 8, name: "Trần Thị Bích Trâm", dept: "Điện tim", tn: 30, tl: 70, total: 100, prompt: "Hãy đóng vai nhân viên chăm sóc khách hàng... Khách hàng nhắn tin với nội dung: [Tình huống]. Hãy soạn tin nhắn: Giọng văn lịch sự, tư vấn phù hợp người lớn tuổi, giải thích quy trình nhanh, đề cập chi phí hợp lý, có lời kêu gọi hành động. Độ dài 5-7 câu, dễ đọc trên Zalo/Facebook.", feedback: "Gọn gàng nhưng đáp ứng xuất sắc 100% barem điểm chấm thi." },
+            { stt: 9, name: "Phạm Mai Thị Nhã Trân", dept: "Tiếp nhận", tn: 29, tl: 70, total: 99, prompt: "Bạn là nhân viên Tiếp nhận của Phòng khám Đa khoa Y Đức Sài Gòn. Nhiệm vụ: soạn tin nhắn trả lời khách hỏi đưa ba mẹ đi khám. Ngữ cảnh: Phòng khám có đặt lịch trước, phòng chờ cho người lớn tuổi, có khám BHYT... Đối tượng: không có chuyên môn y tế. Giọng văn: lịch sự. Định dạng: 1 đoạn ngắn.", feedback: "Tư duy thực tế rất cao; chủ động đưa thêm chi tiết 'khám BHYT' vào để AI tư vấn sát thực tiễn phòng khám." },
+            { stt: 10, name: "Nguyễn Trúc Linh", dept: "CSKH", tn: 30, tl: 70, total: 100, prompt: "Bạn là nhân viên chăm sóc khách hàng... Nhiệm vụ: soạn tin nhắn trả lời Fanpage... Ngữ cảnh: Trấn an thời gian chờ. Đối tượng: khách hàng quan tâm sức khỏe ba mẹ. Giọng văn: Thân thiện.\nYêu cầu định dạng: 5-7 dòng, có lời kêu gọi.\nGiới hạn: Không dùng từ chuyên môn, Không cam kết chữa khỏi bệnh, Không đưa số chi phí cụ thể.", feedback: "Rất thông minh khi biết sử dụng giới hạn 'Không được làm' (Negative Prompting) như 'không cam kết chữa khỏi bệnh' cho AI." },
+            { stt: 11, name: "Yến Nhi", dept: "Điều dưỡng", tn: 29, tl: 70, total: 99, prompt: "Hãy đóng vai nhân viên CSKH/Tiếp nhận tại Phòng khám Y Đức Sài Gòn. Soạn một tin nhắn trả lời khách hàng trên Fanpage... Viết bằng ngôn ngữ thân thiện, dễ hiểu, xoa dịu lo lắng, cung cấp thông tin ưu tiên đặt lịch nhanh, dịch vụ hỗ trợ người lớn tuổi và chi phí tham khảo, đọc nhanh trong 1 phút.", feedback: "Ngắn gọn; súc tích; mạch lạc. Đạt điểm tối đa." },
+            { stt: 12, name: "Nguyễn Thị Diệu Trinh", dept: "Dược", tn: 30, tl: 70, total: 100, prompt: "Bạn là nhân viên chăm sóc khách hàng... Nội dung cần xử lý: ba mẹ trên 60 tuổi... Yêu cầu: Thể hiện quan tâm, Giải thích ngắn gọn, Nhấn mạnh điểm mạnh, Chi phí linh hoạt, Kêu gọi hành động. Độ dài: 5-7 câu. Giọng điệu: chuyên nghiệp.", feedback: "Cấu trúc gạch đầu dòng chi tiết; đầy đủ 4 tiêu chí chuẩn mực." },
+            { stt: 13, name: "Trương Diễm My", dept: "Bảo hiểm", tn: 30, tl: 70, total: 100, prompt: "Bạn là nhân viên chăm sóc khách hàng... Hãy soạn tin nhắn trả lời khách hàng qua Fanpage với giọng điệu thân thiện, súc tích 5-7 câu. Nội dung: tư vấn ba mẹ trên 60 tuổi đau nhức; trấn an việc chờ đợi, gợi ý gói dịch vụ, thông tin chi phí tham khảo và khuyến khích đặt lịch.", feedback: "Trình bày rất gọn gàng; súc tích; bao hàm đủ các tiêu chí mà không hề lan man." },
+            { stt: 14, name: "Vương Hoàng Tính", dept: "Thư ký Y Khoa", tn: 29, tl: 70, total: 99, prompt: "Bạn là nhân viên tư vấn... Hãy viết tin trả lời khách hàng có nội dung: [Tình huống]. Yêu cầu: Lịch sự thân thiện; Giải thích quy trình nhanh; Cung cấp khung giá gói khám; Khuyến khích để lại SĐT; Gợi ý đặt lịch hẹn.", feedback: "Liệt kê yêu cầu dạng gạch đầu dòng rõ ràng; bao quát tốt toàn bộ vấn đề của bệnh nhân." },
+            { stt: 15, name: "Nguyễn Thị Thúy Ái", dept: "IT", tn: 30, tl: 70, total: 100, prompt: "Bạn là nhân viên CSKH tại Y Đức Sài Gòn. Soạn phản hồi trên Fanpage. Ý chính: Thấu hiểu đồng cảm; Nhấn mạnh hỗ trợ đặt lịch trước; Trấn an chi phí, không vẽ vời thu phí không phù hợp; Khuyến khích để lại thông tin. Giọng văn gần gũi. Không dùng từ khó hiểu. Bố cục rõ ràng dưới 250 từ.", feedback: "Rất thấu hiểu tâm lý khách hàng; dặn dò AI nghiêm cấm việc 'vẽ vời những khoản phí không phù hợp'." },
+            { stt: 16, name: "LÊ HỒNG NGÂN", dept: "Hành chính", tn: 30, tl: 70, total: 100, prompt: "Hãy đóng vai nhân viên CSKH... Nhiệm vụ: soạn tin nhắn trả lời khách có ba mẹ 60 tuổi... Ngữ cảnh: phòng khám ưu tiên người cao tuổi. Yêu cầu: giọng ân cần, trấn an, khuyến khích đặt lịch. Ngôn ngữ đơn giản, dài 5-7 câu, có CTA. Định dạng: 1 tin nhắn hoàn chỉnh.", feedback: "Văn phong viết lệnh ngắn gọn; chuyên nghiệp và đáp ứng trọn vẹn yêu cầu." },
+            { stt: 17, name: "Trần Thuỳ Trang", dept: "Thư ký Y Khoa", tn: 29, tl: 63, total: 92, prompt: "Hãy soạn tin nhắn trả lời người khách hàng với vai trò (CSKH phòng khám), Ngữ cảnh (khách hỏi cho ba mẹ lớn tuổi), Đối tượng (người con), Giọng văn (ân cần, chuyên nghiệp), CTA (kêu gọi đặt lịch).", feedback: "Khá tốt! Đã biết dùng cấu trúc từ khóa (Vai trò, Ngữ cảnh...) nhưng phần diễn giải bên trong hơi vắn tắt, AI có thể viết hơi sơ sài." },
+            { stt: 18, name: "Trịnh Duy Đăng", dept: "Tiếp nhận", tn: 30, tl: 63, total: 93, prompt: "Vai trò (CSKH phòng khám)\nNhiệm vụ (viết tin nhắn trả lời)\nNgữ cảnh (khách hỏi cho ba mẹ lớn tuổi)\nĐối tượng (người con)\nGiọng văn (ân cần, chuyên nghiệp)\nCTA (kêu gọi đặt lịch)", feedback: "Tương tự bạn Trang, liệt kê từ khóa cấu trúc tốt; nhưng nên bổ sung chi tiết yêu cầu vào từng mục để AI viết mượt mà hơn." },
+            { stt: 19, name: "Lê Vĩ Phú", dept: "Tiếp nhận", tn: 30, tl: 63, total: 93, prompt: "bạn là nhân viên phòng khám; hãy viết câu trả lời cho Tình huống : Có một khách hàng nhắn tin vào Fanpage... là một nhân viên chăm sóc khách hàng chuyên nghiệp với 2 năm kinh nghiệm; tư vấn cho khách hàng không có chuyên môn y học; giọng đọc nhẹ nhàng, chuyên nghiệp; đoạn văn dưới 80 chữ.", feedback: "Bao gồm đủ tình huống; giọng đọc và giới hạn chữ. Trình bày khá liền mạch." },
+            { stt: 20, name: "Trần trọn", dept: "Điều dưỡng", tn: 29, tl: 63, total: 92, prompt: "Bạn là nhân viên CSKH tại phòng khám đa khoa Y Đức Sài Gòn. Bạn hãy soạn tin nhắn tư vấn cho khách hàng có ba mẹ trên 60 tuổi... Nội dung cần: thể hiện sự đồng cảm, gợi ý khám tổng quát... đề cập chi phí. Lời nói nhẹ nhàng, khoảng 100 đến 130 từ.", feedback: "Đủ các ý chính; gọn gàng nhưng các phần bị gộp chung thành đoạn văn nên hơi khó phân tách ý cho AI." },
+            { stt: 21, name: "Nguyễn Hồng Thía", dept: "Tiếp nhận", tn: 29, tl: 56, total: 85, prompt: "AI hãy đóng vai là nhân viên chăm sóc khách hàng và giúp tôi viết một đoạn tin nhắn ngắn gọn, dùng từ ngữ dễ hiểu, tạo sự yên tâm để tư vấn với nội dung tin nhắn của khách hàng: [Tình huống]", feedback: "Có đủ vai trò, ngữ cảnh nhưng thiếu giới hạn về định dạng độ dài và quên nhắc AI phải có lời kêu gọi hành động (CTA)." },
+            { stt: 22, name: "Nguyễn Kiều Trang", dept: "Thư ký Y Khoa", tn: 28, tl: 56, total: 84, prompt: "Bạn là: chuyên gia tư vấn CSKH. Hãy viết 1 bài tư vấn cho người nhà bệnh nhân tại phòng khám Đa khoa Y Đức SG. Bối cảnh: bài này dùng để tư vấn về vấn đề sức khoẻ đau nhức... Đối tượng: Nam nữ 30-50 tuổi... Giọng văn: Chuyên nghiệp. Định dạng: 3 đoạn ngắn.", feedback: "Đủ cấu trúc 4 phần của Prompt chuẩn, nhưng tình huống 'viết bài tư vấn chung' chưa sát với yêu cầu đề bài là 'Reply tin nhắn Fanpage'." },
+            { stt: 23, name: "Nguyễn Thảo Phương Thuỳ", dept: "Xét nghiệm", tn: 30, tl: 52.5, total: 82.5, prompt: "Bạn là một nhân viên đang làm ở bộ phận CSKH, viết đoạn văn tư vấn chi phí khám sức khoẻ cho khách hàng, hướng dẫn ngắn gọn quy trình khám bệnh tại phòng khám. Bằng giọng văn lịch sự, nhẹ nhàng, hạn chế sử dụng từ ngữ chuyên môn. Đoạn văn không dài quá 100 từ.", feedback: "Làm tốt vai trò, giọng văn, nhưng phần ngữ cảnh thiếu hẳn trọng tâm cốt lõi là giải quyết nỗi lo 'chờ đợi lâu' của người già." },
+            { stt: 24, name: "Ngô Hạ Vy", dept: "Thu phí", tn: 30, tl: 49, total: 79, prompt: "Hay đóng vai là một nhân viên chăm sóc khách hàng có hơn 10 năm kinh nghiệm... Hiện tại có một bệnh nhân có ba mẹ đã hơn 60 tuổi... Mong muốn đưa ông bà đi khám nhưng sợ chờ đợi... Hay đưa ra câu trả lời, tư vấn ngắn ngọn dễ hiểu nhất đến bệnh nhân.", feedback: "Đưa ra bối cảnh bệnh nhân tốt nhưng phần thiết lập giọng văn chuyên sâu và định dạng trình bày cho AI còn sơ sài." },
+            { stt: 25, name: "Lê Thị Ái Nhân", dept: "Thư ký Y Khoa", tn: 29, tl: 49, total: 78, prompt: "Tôi là chăm sóc khách hàng... Hãy viết một bảng tóm tắt về chi phí khám chữa bệnh và sự ưu tiên đối với người già... Đối tượng tất cả nam/nữ... Giọng văn: chuyên nghiệp. Giới hạn: khoảng 200 đến 250 từ.", feedback: "Làm tốt giới hạn chữ và giọng văn nhưng sai bối cảnh bài thi (yêu cầu làm bảng tóm tắt chung chung thay vì Reply tin nhắn Fanpage cụ thể)." },
+            { stt: 26, name: "Nguyễn Minh Khang", dept: "Điều dưỡng", tn: 29, tl: 49, total: 78, prompt: "Tôi là một chuyên gia chăm sóc khách hàng ngành y tế, hãy viết cho tôi một đoạn ngắn trình bày chi phí khám và thời gian khám... bài này nhằm giải thích cho người bệnh... đối tượng 30 đến 70 tuổi... giọng văn chuyên nghiệp... viết 2 đoạn ngắn.", feedback: "Yêu cầu AI viết đoạn tư vấn chung chung; bỏ sót ngữ cảnh phải trấn an trực tiếp khách hàng đang nhắn tin." },
+            { stt: 27, name: "NGUYỄN TRUNG BỬU", dept: "X-Quang", tn: 30, tl: 49, total: 79, prompt: "Tôi là KTV Xquang, đang làm việc tại bộ phận CSKH/ Tiếp nhận. Hãy tạo một bài viết về hướng dẫn cho người nhà bệnh nhân có bà mẹ hơn 60 tuổi... chuyên nghiên - gần rủi - dễ hiểu... 3 đoạn ngắn, khoảng 150 - 200... Viết thêm 2 câu bình luận mẫu.", feedback: "Đặt sai vai trò thành KTV Xquang (đề yêu cầu nhân viên CSKH); lệnh tập trung viết bài hướng dẫn thay vì trả lời tin nhắn Fanpage." },
+            { stt: 28, name: "Dương Tấn Lộc", dept: "Tiếp nhận", tn: 30, tl: 49, total: 79, prompt: "bạn là nhân viên phòng khám; hãy viết câu trả lời cho Tình huống : Có một khách hàng nhắn tin... là một nhân viên chăm sóc khách hàng chuyên nghiệp với 2 năm kinh nghiệm; tư vấn cho khách hàng không có chuyên môn y học; giọng đọc nhẹ nhàng,chuyên", feedback: "Lệnh tương đối ổn; bám sát đề thi nhưng lúc nộp bài bị cắt ngang ý ở đoạn cuối (chưa viết xong)." },
+            { stt: 29, name: "Trần Văn Định", dept: "X-Quang", tn: 30, tl: 49, total: 79, prompt: "Tôi là KTV Xquang, đang làm việc tại bộ phận CSKH/ Tiếp nhận. Hãy tạo một bài viết về hướng dẫn... chuyên nghiên - gần rủi - dễ hiểu... 3 đoạn ngắn... Viết thêm 2 câu bình luận mẫu.", feedback: "Cấu trúc lệnh và lỗi sai hoàn toàn giống với bài của bạn Trung Bửu (Viết bài hướng dẫn thay vì Reply tin nhắn)." },
+            { stt: 30, name: "Nguyễn Thị Diểm Thương", dept: "Điều dưỡng", tn: 30, tl: 49, total: 79, prompt: "Tôi là một chuyên gia CSKH nghành y tế hãy viết cho tôi bài viết tư vấn người bệnh đến khám chữa bệnh... Bài viết này được dùng để trả lời tin nhắn... Bài viết phải viết bằng giọng văn dể hiểu... khoảng 2-3 đoạn ngắn.", feedback: "Cấu trúc lệnh khá tốt nhưng thiếu đi trọng tâm là tình huống người già 60 tuổi sợ chờ lâu trong đề bài." },
+            { stt: 31, name: "Tăng Xuân Hy", dept: "Thư ký Y Khoa", tn: 30, tl: 42, total: 72, prompt: "Trong vai nhân viên chăm sóc khách hàng viết một đoạn văn giải thích về quy trìng khám của phòng khám bằng ngôn ngữ bình dân gần gủi để bệnh nhân dễ hiểu tóm gọn từ 3-5 dòng", feedback: "Lệnh quá ngắn; bỏ sót hoàn toàn các yêu cầu giải quyết chi tiết về người già, thời gian chờ đợi và chi phí." },
+            { stt: 32, name: "Nguyễn Phụng Tường", dept: "Dược", tn: 25, tl: 42, total: 67, prompt: "Xin chào Al , hãy đóng vai là một người CSKH , soạn một đoạn văn ngắn khoảng 100 chữ , quá trình đến khám chữa bệnh tại phòng khám YĐSG , ưu tiên cho người lớn tuổi khám trước , chi phí cho việc khám chữa bệnh tại đây .", feedback: "Ngữ cảnh còn chung chung ('quá trình đến khám'); chưa chỉ thị AI xử lý triệt để bài toán trấn an tâm lý cho khách." },
+            { stt: 33, name: "Võ Hiếu Vy", dept: "Xét nghiệm", tn: 30, tl: 42, total: 72, prompt: "Bạn là một chuyên viên chăm sóc khách hàng chuyên nghiệp tại một phòng khám đa khoa uy tín. Hãy giúp tôi soạn một tin nhắn phản hồi cho khách hàng dựa trên tình huống sau: [Nội dung tin nhắn khách hàng]", feedback: "Cung cấp câu hỏi của khách rất rõ cho AI nhưng lại quên đưa ra định hướng, quy tắc hay giới hạn để AI biết cách trả lời cho đúng ý phòng khám." },
+            { stt: 34, name: "Đoàn Ngọc Giàu", dept: "Thu ngân", tn: 30, tl: 42, total: 72, prompt: "Bạn là chuyên viên chăm sóc khách hàng có nhiều năm kinh nghiệm. Hãy viết một bài quảng cáo về dịch vụ tiêm prp và khám tổng quát... Bối cành: dùng để trả lời khách về việc khám tổng quát, tiêm prp... Giọng văn chuyên nghiệp... 3 đoạn ngắn.", feedback: "Cấu trúc Prompt rất tốt và rành mạch nhưng bị lạc đề hoàn toàn (yêu cầu viết bài quảng cáo tiêm PRP thay vì giải quyết tình huống Fanpage)." },
+            { stt: 35, name: "Dương Như Huỳnh", dept: "Siêu âm", tn: 30, tl: 35, total: 65, prompt: "Tôi muốn bạn đóng vai trò là 1 nhân viên chăm sóc khách hàng hoặc điều dưỡng quản lý Page của phòng khám... Yêu cầu của đầu tiên của tôi là 'Tôi cần bạn giúp soạn thông tin chi tiết về bệnh đau nhức ở người lớn tuổi và các hướng dẫn chi tiết khi người bệnh đến khám bệnh tại phòng khám'", feedback: "Yêu cầu AI soạn kiến thức bệnh học (đau nhức); sai hoàn toàn với bối cảnh chăm sóc khách hàng của đề bài." },
+            { stt: 36, name: "Quách Thuỳ linh", dept: "Xét nghiệm", tn: 29, tl: 35, total: 64, prompt: "Tôi muốn bạn đóng vai trò là 1 nhân viên chăm sóc khách hàng hoặc điều dưỡng quản lý Page của phòng khám... Tôi cần bạn giúp soạn thông tin chi tiết về bệnh đau nhức ở người lớn tuổi...", feedback: "Câu lệnh nộp giống hệt bài của bạn Dương Như Huỳnh; vướng lỗi sai bối cảnh đề bài." },
+            { stt: 37, name: "Phạm Khả Vy", dept: "Xét nghiệm", tn: 30, tl: 35, total: 65, prompt: "Tôi muốn bạn đóng vai trò là 1 nhân viên chăm sóc khách hàng hoặc điều dưỡng quản lý Page của phòng khám... Tôi cần bạn giúp soạn thông tin chi tiết về bệnh đau nhức ở người lớn tuổi...", feedback: "Câu lệnh tiếp tục giống hệt hai bài trên; chưa đi sát vào tình huống thực tế của Fanpage." },
+            { stt: 38, name: "Nguyễn Đức Duy", dept: "X-Quang", tn: 30, tl: 35, total: 65, prompt: "Hãy tạo cho tôi 1 bài viết hướng dẫn người nhà bệnh nhân có ba mẹ trong năm nay hơn 60 tuổi bị đau nhức xương khớp và khám bệnh tổng quát nhưng sợ ba mẹ lớn tuổi đợi lâu, mệt mỏi. Kèm theo chi phí khám chữa bệnh có bảo hiểm và không có bảo hiểm một cách đơn giản nhất để người nhà tham khảo", feedback: "Chỉ đưa cho AI mỗi ngữ cảnh yêu cầu; hoàn toàn vắng bóng việc phân công Vai trò, Giọng văn và Định dạng độ dài." },
+            { stt: 39, name: "Nguyễn Hồng Nghi", dept: "Sản", tn: 29, tl: 21, total: 50, prompt: "Đoạn hội thoại khoảng 50 từ, \"tôi muốn khám tổng quát\", \"thời gian bao lâu\", \"chi phí bao nhiêu tiền\"?", feedback: "Lệnh quá sơ sài, giống như đang gõ tìm kiếm Google; thiếu hoàn toàn cấu trúc giao việc chuẩn cho Trợ lý AI." },
+            { stt: 40, name: "Trần Thị Cẩm Tiên", dept: "Thư ký Y Khoa", tn: 26, tl: 7, total: 33, prompt: "Al, nội dung...tư vấn giúp tôi nhé.", feedback: "Lệnh quá vắn tắt; AI sẽ không có đủ dữ liệu từ bạn để hiểu rõ yêu cầu công việc là gì." },
+            { stt: 41, name: "Lê Hồng Yến", dept: "Điều dưỡng", tn: 29, tl: 0, total: 29, prompt: "Chào cô/chú ạ, phòng khám rất hiểu và thông cảm khi cô/chú lo lắng cho sức khỏe của ba mẹ mình . Hiện tại, khi đến khám tổng quát xương khớp... Tuy nhiên, phòng khám luôn cố gắng sắp xếp để thời gian chờ đợi ngắn nhất... Nếu cần, cô/chú có thể nhắn trước để phòng khám hỗ trợ đặt lịch giúp mình nhé ạ.", feedback: "Bạn đang hiểu nhầm bản chất câu hỏi: Bạn đã tự tay soạn câu trả lời gửi cho khách thay vì 'Viết câu lệnh (Prompt)' để sai khiến AI làm việc này thay bạn." },
+            { stt: 42, name: "Bé như", dept: "Điều dưỡng", tn: 29, tl: 0, total: 29, prompt: "Chào anh/chị, cảm ơn anh/chị đã quan tâm đến dịch vụ của phòng khám. Với người lớn tuổi, phòng khám có các gói khám tổng quát được thiết kế phù hợp... Anh/chị có thể để lại số điện thoại hoặc nhắn tin để bên em hỗ trợ đặt lịch nhanh chóng và phù hợp nhất cho ba mẹ nhé.", feedback: "Mắc lỗi tương tự bạn Lê Hồng Yến, tự đóng vai người trực Fanpage viết tin nhắn thay vì ra lệnh cho AI." },
+            { stt: 43, name: "Võ trọng trí", dept: "Điều dưỡng", tn: 28, tl: 0, total: 28, prompt: "Tìm tác dụng của thuốc / Học thuộc lòng", feedback: "Làm bài 2 lần nhưng câu lệnh nộp ở mục tự luận lạc đề hoàn toàn so với yêu cầu của kỳ thi." },
+            { stt: 44, name: "Đoàn Nhật Duy", dept: "Tiếp nhận", tn: 29, tl: 0, total: 29, prompt: "Gggg", feedback: "Không làm bài; chỉ gõ ký tự ngẫu nhiên vào ô trống." },
+            { stt: 45, name: "Thùy Dương", dept: "Dược", tn: 27, tl: 0, total: 27, prompt: "Tôi Là Điề", feedback: "Câu lệnh đang gõ dở dang và bị nộp sớm." }
+        ];
+
+        // Hàm lấy màu sắc dựa trên điểm số
+        function getScoreColorClass(score) {
+            if (score >= 90) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+            if (score >= 65) return 'text-amber-600 bg-amber-50 border-amber-200';
+            return 'text-rose-600 bg-rose-50 border-rose-200';
+        }
+        
+        function getScoreBgColor(score) {
+            if (score >= 90) return '#10b981'; // emerald-500
+            if (score >= 65) return '#f59e0b'; // amber-500
+            return '#ef4444'; // rose-500
+        }
+
+        // Khởi tạo Dashboard
+        function initDashboard() {
+            calculateKPIs();
+            renderTable();
+            renderCharts();
+            
+            // Tìm kiếm
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                renderTable(e.target.value);
+            });
+        }
+
+        // Tính toán và hiển thị KPI
+        function calculateKPIs() {
+            const totalEmployees = clinicData.length;
+            const avgTotal = (clinicData.reduce((sum, emp) => sum + emp.total, 0) / totalEmployees).toFixed(1);
+            const excellentCount = clinicData.filter(emp => emp.total >= 90).length;
+            const needImprovementCount = clinicData.filter(emp => emp.total < 60).length;
+
+            const kpiHtml = `
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-2xl">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Tổng Nhân Sự Tham Gia</p>
+                        <p class="text-3xl font-bold text-slate-800">${totalEmployees}</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 rounded-full bg-medical-50 flex items-center justify-center text-medical-600 text-2xl">
+                        <i class="fa-solid fa-star-half-stroke"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Điểm Trung Bình</p>
+                        <p class="text-3xl font-bold text-slate-800">${avgTotal} <span class="text-sm text-slate-400 font-normal">/100</span></p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 text-2xl">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Xuất Sắc (>=90đ)</p>
+                        <p class="text-3xl font-bold text-slate-800">${excellentCount}</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div class="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 text-2xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Cần Cải Thiện (<60đ)</p>
+                        <p class="text-3xl font-bold text-slate-800">${needImprovementCount}</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('kpi-container').innerHTML = kpiHtml;
+        }
+
+        // Render Bảng Nhân viên
+        function renderTable(searchTerm = '') {
+            const tbody = document.getElementById('employeeTableBody');
+            tbody.innerHTML = '';
+
+            const filteredData = clinicData.filter(emp => 
+                emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                emp.dept.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">Không tìm thấy kết quả phù hợp.</td></tr>`;
+                return;
+            }
+
+            filteredData.forEach(emp => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors cursor-pointer";
+                tr.onclick = () => openModal(emp);
+                
+                const scoreBadgeClass = getScoreColorClass(emp.total);
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-500">${emp.stt}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="font-bold text-slate-800">${emp.name}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-medium rounded-full bg-slate-100 text-slate-600">
+                            ${emp.dept}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">${emp.tn}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">${emp.tl}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span class="px-3 py-1 font-bold rounded border ${scoreBadgeClass}">
+                            ${emp.total}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                        <button class="text-medical-600 hover:text-medical-800 bg-medical-50 hover:bg-medical-100 px-3 py-1.5 rounded transition-colors">
+                            <i class="fa-solid fa-eye"></i> Xem
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Vẽ biểu đồ với Chart.js
+        function renderCharts() {
+            // Chart 1: Phân bố điểm
+            const scoreBins = { "Xuất sắc (90-100)": 0, "Khá giỏi (70-89)": 0, "Trung bình (50-69)": 0, "Cần cố gắng (<50)": 0 };
+            clinicData.forEach(emp => {
+                if (emp.total >= 90) scoreBins["Xuất sắc (90-100)"]++;
+                else if (emp.total >= 70) scoreBins["Khá giỏi (70-89)"]++;
+                else if (emp.total >= 50) scoreBins["Trung bình (50-69)"]++;
+                else scoreBins["Cần cố gắng (<50)"]++;
+            });
+
+            const ctxDist = document.getElementById('scoreDistributionChart').getContext('2d');
+            new Chart(ctxDist, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(scoreBins),
+                    datasets: [{
+                        data: Object.values(scoreBins),
+                        backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b', '#ef4444'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // Chart 2: Điểm trung bình theo phòng ban
+            const deptStats = {};
+            clinicData.forEach(emp => {
+                // Rút gọn tên phòng ban cho biểu đồ đẹp hơn
+                let dName = emp.dept;
+                if(dName.toLowerCase().includes('thư ký')) dName = 'TKYK';
+                if(dName.toLowerCase().includes('điều dưỡng')) dName = 'Điều dưỡng';
+                
+                if (!deptStats[dName]) deptStats[dName] = { sum: 0, count: 0 };
+                deptStats[dName].sum += emp.total;
+                deptStats[dName].count++;
+            });
+
+            const deptLabels = [];
+            const deptAvgs = [];
+            const deptColors = [];
+
+            // Lọc các phòng có >= 2 người để biểu đồ không bị vụn, hoặc cứ hiện hết
+            for (const [dept, data] of Object.entries(deptStats)) {
+                if(data.count > 0) { // Hiện tất cả
+                    const avg = (data.sum / data.count).toFixed(1);
+                    deptLabels.push(dept);
+                    deptAvgs.push(avg);
+                    deptColors.push(getScoreBgColor(avg));
+                }
+            }
+
+            const ctxDept = document.getElementById('deptScoreChart').getContext('2d');
+            new Chart(ctxDept, {
+                type: 'bar',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        label: 'Điểm Trung Bình',
+                        data: deptAvgs,
+                        backgroundColor: '#14b8a6',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { borderDash: [5, 5] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // Logic Modal
+        const modal = document.getElementById('detailModal');
+        
+        function openModal(employee) {
+            document.getElementById('modalName').textContent = employee.name;
+            document.getElementById('modalDept').innerHTML = `<i class="fa-solid fa-tag mr-1"></i> ${employee.dept}`;
+            document.getElementById('modalTN').textContent = employee.tn;
+            document.getElementById('modalTL').textContent = employee.tl;
+            
+            const totalEl = document.getElementById('modalTotal');
+            totalEl.textContent = employee.total;
+            totalEl.className = `text-3xl font-bold ${employee.total >= 90 ? 'text-emerald-600' : (employee.total >= 60 ? 'text-amber-600' : 'text-rose-600')}`;
+            
+            document.getElementById('modalPrompt').textContent = employee.prompt;
+            document.getElementById('modalFeedback').innerHTML = `<strong>Đánh giá:</strong> ${employee.feedback}`;
+
+            modal.classList.remove('hidden');
+            // Timeout nhỏ để hiệu ứng fade-in mượt mà
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+            }, 10);
+            
+            // Ngăn cuộn trang nền
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+            // Mở lại cuộn trang nền
+            document.body.style.overflow = 'auto';
+        }
+
+        // Đóng modal khi nhấn nút ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        // Chạy khi trang web load xong
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>
