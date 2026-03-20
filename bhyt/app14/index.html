@@ -120,20 +120,28 @@
                     <span class="text-xs font-semibold px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100">Hỗ trợ .XLSX, .XLS, .CSV</span>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                     <!-- Bảng 1 -->
                     <div class="relative group border-2 border-dashed border-slate-300 rounded-xl p-5 hover:border-primary hover:bg-indigo-50/50 transition duration-300">
                         <div class="absolute top-3 right-3 text-slate-300 group-hover:text-primary transition"><i class="fas fa-file-excel text-xl"></i></div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Bảng 1</label>
-                        <p class="text-xs text-slate-500 mb-3">Thông tin bệnh nhân & Chẩn đoán</p>
+                        <p class="text-xs text-slate-500 mb-3">Hành chính & Chẩn đoán</p>
                         <input type="file" id="fileBang1" accept=".csv, .xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-100 file:text-primary hover:file:bg-indigo-200 cursor-pointer transition"/>
+                    </div>
+
+                    <!-- Bảng 3 -->
+                    <div class="relative group border-2 border-dashed border-slate-300 rounded-xl p-5 hover:border-purple-500 hover:bg-purple-50/50 transition duration-300">
+                        <div class="absolute top-3 right-3 text-slate-300 group-hover:text-purple-500 transition"><i class="fas fa-file-invoice-dollar text-xl"></i></div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Bảng 3</label>
+                        <p class="text-xs text-slate-500 mb-3">Dịch vụ & BS Chỉ định</p>
+                        <input type="file" id="fileBang3" accept=".csv, .xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200 cursor-pointer transition"/>
                     </div>
 
                     <!-- Bảng 4 -->
                     <div class="relative group border-2 border-dashed border-slate-300 rounded-xl p-5 hover:border-emerald-500 hover:bg-emerald-50/50 transition duration-300">
                         <div class="absolute top-3 right-3 text-slate-300 group-hover:text-emerald-500 transition"><i class="fas fa-file-medical text-xl"></i></div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Bảng 4</label>
-                        <p class="text-xs text-slate-500 mb-3">Chỉ định & Kết quả Cận lâm sàng</p>
+                        <p class="text-xs text-slate-500 mb-3">Cận lâm sàng & BS Đọc</p>
                         <input type="file" id="fileBang4" accept=".csv, .xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer transition"/>
                     </div>
 
@@ -141,7 +149,7 @@
                     <div class="relative group border-2 border-dashed border-slate-300 rounded-xl p-5 hover:border-amber-500 hover:bg-amber-50/50 transition duration-300">
                         <div class="absolute top-3 right-3 text-slate-300 group-hover:text-amber-500 transition"><i class="fas fa-id-card text-xl"></i></div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Danh sách CCHN</label>
-                        <p class="text-xs text-slate-500 mb-3">Dùng để map Tên Bác sĩ khám</p>
+                        <p class="text-xs text-slate-500 mb-3">Dùng để map Tên Bác sĩ</p>
                         <input type="file" id="fileCCHN" accept=".csv, .xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 cursor-pointer transition"/>
                     </div>
                 </div>
@@ -197,7 +205,7 @@
                             <tr>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">STT</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Bệnh Nhân</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">BS Khám</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">BS Chỉ định & Ngày Khám</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-1/4">Chẩn đoán (Bảng 1)</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-1/4">Kết luận X-Quang (Bảng 4)</th>
                                 <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Thao tác</th>
@@ -250,11 +258,19 @@
                                 <div><i class="fas fa-calendar-alt w-4 text-slate-400"></i> Năm sinh: <span id="md-namsinh" class="font-semibold text-slate-800"></span></div>
                                 <div><i class="fas fa-venus-mars w-4 text-slate-400"></i> Giới tính: <span id="md-gioitinh" class="font-semibold text-slate-800"></span></div>
                                 <div><i class="fas fa-fingerprint w-4 text-slate-400"></i> Mã LK: <span id="md-malk" class="font-mono bg-slate-100 px-1 rounded text-slate-700"></span></div>
+                                <div class="w-full mt-1 pt-2 border-t border-slate-100"><i class="far fa-clock w-4 text-slate-400"></i> Ngày khám: <span id="md-ngaykham" class="font-semibold text-primary"></span></div>
                             </div>
                         </div>
                         <div class="border-l border-slate-200 pl-6 hidden md:block">
-                            <p class="text-xs text-slate-500 mb-1 uppercase tracking-wider font-semibold">Bác sĩ khám</p>
-                            <p id="md-tenbs" class="font-bold text-primary flex items-center gap-2"><i class="fas fa-user-doctor"></i> </p>
+                            <div class="mb-3">
+                                <p class="text-[10px] text-slate-400 mb-0.5 uppercase tracking-widest font-bold">BS Chỉ định</p>
+                                <div id="md-tenbscd" class="font-bold text-primary text-sm"></div>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-400 mb-0.5 uppercase tracking-widest font-bold">BS Đọc Kết Quả</p>
+                                <div id="md-tenbsdoc" class="font-bold text-emerald-600 text-sm"></div>
+                                <div id="md-thoigiandoc" class="text-[11px] font-medium text-slate-500 mt-1"></div>
+                            </div>
                         </div>
                     </div>
                     
@@ -368,6 +384,17 @@
 
         let globalErrors = [];
 
+        // --- HÀM FORMAT NGÀY GIỜ ---
+        function formatDateTime(rawString) {
+            if (!rawString || rawString.length < 12) return "Không rõ thời gian";
+            const year = rawString.substring(0, 4);
+            const month = rawString.substring(4, 6);
+            const day = rawString.substring(6, 8);
+            const hour = rawString.substring(8, 10);
+            const minute = rawString.substring(10, 12);
+            return `${day}/${month}/${year} ${hour}:${minute}`;
+        }
+
         // --- XỬ LÝ ĐĂNG NHẬP ---
         function checkLogin() {
             const pwd = document.getElementById('pwdInput').value;
@@ -387,14 +414,12 @@
 
         // --- HÀM COPY TO CLIPBOARD ---
         function copyText(text, btnElement) {
-            // Tạo hidden textarea để copy (Hỗ trợ tốt cho mọi trình duyệt/iframe)
             const textArea = document.createElement("textarea");
             textArea.value = text;
             document.body.appendChild(textArea);
             textArea.select();
             try {
                 document.execCommand('copy');
-                // Đổi icon nút sang check mark
                 const originalHTML = btnElement.innerHTML;
                 btnElement.innerHTML = `<i class="fas fa-check"></i> Đã Copy`;
                 btnElement.classList.replace('bg-slate-100', 'bg-green-100');
@@ -485,11 +510,12 @@
         // --- HÀM XỬ LÝ CHÍNH ---
         document.getElementById('btnProcess').addEventListener('click', async () => {
             const file1 = document.getElementById('fileBang1').files[0];
+            const file3 = document.getElementById('fileBang3').files[0];
             const file4 = document.getElementById('fileBang4').files[0];
             const fileCCHN = document.getElementById('fileCCHN').files[0];
 
-            if (!file1 || !file4) {
-                showAlert("Vui lòng tải lên ít nhất Bảng 1 và Bảng 4 để phần mềm có thể đối chiếu.");
+            if (!file1 || !file3 || !file4) {
+                showAlert("Vui lòng tải lên Bảng 1, Bảng 3 và Bảng 4 để phần mềm có thể đối chiếu chính xác.");
                 return;
             }
 
@@ -497,13 +523,14 @@
             document.getElementById('btnProcess').disabled = true;
 
             try {
-                const [data1, data4, dataCCHN] = await Promise.all([
+                const [data1, data3, data4, dataCCHN] = await Promise.all([
                     readExcelFile(file1),
+                    readExcelFile(file3),
                     readExcelFile(file4),
                     readExcelFile(fileCCHN)
                 ]);
 
-                if (data1.length < 2 || data4.length < 2) throw new Error("File Bảng 1 hoặc Bảng 4 rỗng/không đúng chuẩn.");
+                if (data1.length < 2 || data3.length < 2 || data4.length < 2) throw new Error("File Bảng 1, 3 hoặc 4 rỗng/không đúng chuẩn.");
 
                 // 1. Map Dữ liệu CCHN
                 const dictCCHN = {};
@@ -529,27 +556,48 @@
                     }
                 }
 
-                // 2. Parse Headers Bảng 1 & 4
+                // 2. Parse Headers
                 const header1 = data1[0].map(h => String(h).trim().toUpperCase());
+                const header3 = data3[0].map(h => String(h).trim().toUpperCase());
                 const header4 = data4[0].map(h => String(h).trim().toUpperCase());
 
+                // Indexes Bảng 1
                 const idx1_MaLK = header1.indexOf("MA_LK");
                 const idx1_HoTen = header1.indexOf("HO_TEN");
                 const idx1_ChanDoan = header1.indexOf("CHAN_DOAN_RV");
                 const idx1_NgaySinh = header1.indexOf("NGAY_SINH");
                 const idx1_GioiTinh = header1.indexOf("GIOI_TINH");
-                // Tìm cột Mã BS trong Bảng 1
-                let idx1_MaBS = header1.indexOf("MA_BAC_SI");
-                if (idx1_MaBS === -1) idx1_MaBS = header1.findIndex(h => h.includes("BAC_SI") || h.includes("CCHN"));
+                const idx1_NgayVao = header1.indexOf("NGAY_VAO");
+                
+                // Indexes Bảng 3
+                const idx3_MaLK = header3.indexOf("MA_LK");
+                const idx3_TenDichVu = header3.indexOf("TEN_DICH_VU");
+                const idx3_MaBacSi = header3.indexOf("MA_BAC_SI");
 
+                // Indexes Bảng 4
                 const idx4_MaLK = header4.indexOf("MA_LK");
                 const idx4_TenChiSo = header4.indexOf("TEN_CHI_SO"); 
                 const idx4_KetLuan = header4.indexOf("KET_LUAN");
+                const idx4_MaBsDocKq = header4.indexOf("MA_BS_DOC_KQ");
+                const idx4_NgayKq = header4.indexOf("NGAY_KQ");
 
                 if (idx1_MaLK === -1 || idx1_ChanDoan === -1) throw new Error("Bảng 1 thiếu cột MA_LK hoặc CHAN_DOAN_RV.");
+                if (idx3_MaLK === -1 || idx3_MaBacSi === -1) throw new Error("Bảng 3 thiếu cột MA_LK hoặc MA_BAC_SI.");
                 if (idx4_MaLK === -1 || idx4_TenChiSo === -1 || idx4_KetLuan === -1) throw new Error("Bảng 4 thiếu cột MA_LK, TEN_CHI_SO hoặc KET_LUAN.");
 
-                // 3. Nhóm Bảng 4 theo MA_LK
+                // 3. Nhóm Bảng 3 theo MA_LK (Để tìm Bác sĩ chỉ định)
+                const b3Dict = {};
+                for (let i = 1; i < data3.length; i++) {
+                    const maLK = String(data3[i][idx3_MaLK] || "").trim();
+                    if (!maLK) continue;
+                    if (!b3Dict[maLK]) b3Dict[maLK] = [];
+                    b3Dict[maLK].push({
+                        tenDichVu: idx3_TenDichVu !== -1 ? String(data3[i][idx3_TenDichVu] || "").toLowerCase() : "",
+                        maBs: String(data3[i][idx3_MaBacSi] || "").trim()
+                    });
+                }
+
+                // 4. Nhóm Bảng 4 theo MA_LK
                 const b4Dict = {};
                 for (let i = 1; i < data4.length; i++) {
                     const maLK = String(data4[i][idx4_MaLK] || "").trim();
@@ -557,14 +605,16 @@
                     if (!b4Dict[maLK]) b4Dict[maLK] = [];
                     b4Dict[maLK].push({
                         tenChiSo: String(data4[i][idx4_TenChiSo] || ""),
-                        ketLuan: String(data4[i][idx4_KetLuan] || "")
+                        ketLuan: String(data4[i][idx4_KetLuan] || ""),
+                        maBs: idx4_MaBsDocKq !== -1 ? String(data4[i][idx4_MaBsDocKq] || "").trim() : "",
+                        ngayKq: idx4_NgayKq !== -1 ? String(data4[i][idx4_NgayKq] || "").trim() : ""
                     });
                 }
 
                 const errors = [];
                 let totalPatients = 0;
 
-                // 4. Quét lỗi từ Bảng 1
+                // 5. Quét lỗi từ Bảng 1
                 for (let i = 1; i < data1.length; i++) {
                     const row = data1[i];
                     const maLK = String(row[idx1_MaLK] || "").trim();
@@ -577,7 +627,7 @@
                     if (hasSinusDisease) {
                         const dlsRecords = b4Dict[maLK] || [];
                         let isError = false;
-                        let errorTenChiSo = "", errorKetLuan = "";
+                        let errorTenChiSo = "", errorKetLuan = "", errorMaBsDocKq = "", errorNgayKq = "";
 
                         for (const b4 of dlsRecords) {
                             const ten = b4.tenChiSo.toLowerCase();
@@ -588,30 +638,52 @@
                                     isError = true;
                                     errorTenChiSo = b4.tenChiSo;
                                     errorKetLuan = b4.ketLuan;
+                                    errorMaBsDocKq = b4.maBs;
+                                    errorNgayKq = b4.ngayKq;
                                     break;
                                 }
                             }
                         }
 
                         if (isError) {
-                            // Xử lý năm sinh
+                            // Info bệnh nhân
                             let strNS = String(row[idx1_NgaySinh] || "").trim();
                             let namSinh = strNS.length >= 4 ? strNS.substring(0,4) : "N/A";
-                            
-                            // Xử lý giới tính (1: Nam, 2: Nữ)
                             let valGT = String(row[idx1_GioiTinh] || "").trim();
                             let gioiTinh = valGT === "1" ? "Nam" : (valGT === "2" ? "Nữ" : "KXD");
 
-                            // Xử lý Tên BS
-                            let maBS = idx1_MaBS !== -1 ? String(row[idx1_MaBS] || "").trim() : "";
-                            let tenBS = dictCCHN[maBS] ? dictCCHN[maBS] : (maBS ? maBS : "Không xác định");
+                            // Xử lý Ngày Khám (NGAY_VAO từ Bảng 1)
+                            let ngayKhamRaw = idx1_NgayVao !== -1 ? String(row[idx1_NgayVao] || "").trim() : "";
+                            let ngayKham = formatDateTime(ngayKhamRaw);
+
+                            // Xử lý Tên BS Đọc KQ từ Bảng 4
+                            let tenBSDoc = dictCCHN[errorMaBsDocKq] ? dictCCHN[errorMaBsDocKq] : (errorMaBsDocKq ? errorMaBsDocKq : "Không xác định");
+                            let thoiGian = formatDateTime(errorNgayKq);
+
+                            // Xử lý Tên BS Chỉ Định từ Bảng 3
+                            let maBsChiDinh = "";
+                            const b3Records = b3Dict[maLK] || [];
+                            // Ưu tiên dò dịch vụ nào trong Bảng 3 có chữ 'blondeau'
+                            const matchedSvc = b3Records.find(r => KEYWORDS_SERVICE.some(kw => r.tenDichVu.includes(kw)));
+                            
+                            if (matchedSvc && matchedSvc.maBs) {
+                                maBsChiDinh = matchedSvc.maBs;
+                            } else if (b3Records.length > 0) {
+                                // Nếu không dò được tên cụ thể, lấy bừa mã BS đầu tiên có mã trong Bảng 3 của bệnh nhân đó
+                                const fallbackSvc = b3Records.find(r => r.maBs !== "");
+                                maBsChiDinh = fallbackSvc ? fallbackSvc.maBs : "";
+                            }
+                            let tenBSChiDinh = dictCCHN[maBsChiDinh] ? dictCCHN[maBsChiDinh] : (maBsChiDinh ? maBsChiDinh : "Không xác định");
 
                             errors.push({
                                 maLK: maLK,
                                 hoTen: String(row[idx1_HoTen] || "N/A"),
                                 namSinh: namSinh,
                                 gioiTinh: gioiTinh,
-                                tenBS: tenBS,
+                                ngayKham: ngayKham,
+                                tenBsChiDinh: tenBSChiDinh,
+                                tenBsDocKq: tenBSDoc,
+                                thoiGian: thoiGian,
                                 chanDoan: String(row[idx1_ChanDoan] || ""),
                                 errorTenChiSo: errorTenChiSo,
                                 errorKetLuan: errorKetLuan,
@@ -684,9 +756,12 @@
                         <div class="text-xs text-slate-500 mt-1"><i class="fas fa-calendar-alt mr-1"></i>${err.namSinh} | <i class="fas ${err.gioiTinh === 'Nam' ? 'fa-mars text-blue-500' : 'fa-venus text-pink-500'} mr-1"></i>${err.gioiTinh}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                            <i class="fas fa-user-doctor mr-1.5 opacity-70"></i> ${err.tenBS}
-                        </span>
+                        <div class="mb-1.5">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200 shadow-sm" title="Bác sĩ Chỉ định X-Quang">
+                                <i class="fas fa-user-doctor mr-1.5 opacity-70"></i> ${err.tenBsChiDinh}
+                            </span>
+                        </div>
+                        <div class="text-xs font-medium text-slate-600"><i class="far fa-calendar-check mr-1.5 text-slate-400"></i>${err.ngayKham}</div>
                     </td>
                     <td class="px-6 py-4 text-sm text-slate-600 line-clamp-3 leading-relaxed">${hlChanDoan}</td>
                     <td class="px-6 py-4 text-sm text-slate-600">
@@ -694,7 +769,7 @@
                         ${hlKetLuan}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <button onclick="openModal(${index}); event.stopPropagation();" class="text-primary hover:text-white bg-indigo-50 hover:bg-primary px-4 py-2 rounded-lg text-xs font-bold transition duration-300 shadow-sm border border-indigo-100 group-hover:border-primary">
+                        <button onclick="openModal(${index}); event.stopPropagation();" class="text-primary hover:text-white bg-indigo-50 hover:bg-primary px-4 py-2 rounded-lg text-xs font-bold transition duration-300 shadow-sm border border-indigo-100 group-hover:border-primary flex items-center justify-center mx-auto w-full max-w-[100px]">
                             Chi tiết <i class="fas fa-arrow-right ml-1"></i>
                         </button>
                     </td>
@@ -708,12 +783,17 @@
             const err = globalErrors[index];
             if (!err) return;
 
-            // Set info
+            // Set info Bệnh nhân
             document.getElementById('md-hoten').innerText = err.hoTen;
             document.getElementById('md-namsinh').innerText = err.namSinh;
             document.getElementById('md-gioitinh').innerText = err.gioiTinh;
             document.getElementById('md-malk').innerText = err.maLK;
-            document.getElementById('md-tenbs').innerHTML = `<i class="fas fa-user-doctor mr-1"></i> ${err.tenBS}`;
+            document.getElementById('md-ngaykham').innerText = err.ngayKham;
+            
+            // Set info Bác sĩ vào Cột bên phải Modal
+            document.getElementById('md-tenbscd').innerHTML = `<i class="fas fa-user-doctor mr-1.5"></i> ${err.tenBsChiDinh}`;
+            document.getElementById('md-tenbsdoc').innerHTML = `<i class="fas fa-user-md mr-1.5"></i> ${err.tenBsDocKq}`;
+            document.getElementById('md-thoigiandoc').innerHTML = `<i class="far fa-clock mr-1.5"></i> Đọc lúc: ${err.thoiGian}`;
             
             const iconGender = document.getElementById('md-icon-gender');
             iconGender.className = err.gioiTinh === 'Nam' ? 'fas fa-mars text-blue-500 text-3xl' : 'fas fa-venus text-pink-500 text-3xl';
