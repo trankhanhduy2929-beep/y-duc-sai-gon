@@ -64,7 +64,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-lock text-gray-400"></i>
                         </div>
-                        <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition duration-200 shadow-sm" placeholder="Nhập mật khẩu" required autofocus>
+                        <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition duration-200 shadow-sm" placeholder="Nhập mật khẩu (1402)..." required autofocus>
                     </div>
                 </div>
                 <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-bold rounded-lg text-sm px-5 py-3 text-center shadow-lg shadow-blue-500/30 transition duration-300 transform hover:-translate-y-0.5">
@@ -346,6 +346,14 @@
             return "";
         }
 
+        // Hàm hỗ trợ lấy tên Bác sĩ / Kỹ thuật viên (Chỉ lấy người cuối cùng nếu có nhiều mã)
+        function getDoctorName(rawCode, cchnDict) {
+            if (!rawCode) return "";
+            let codes = String(rawCode).split(';');
+            let lastCode = codes[codes.length - 1].trim();
+            return cchnDict[lastCode] || lastCode;
+        }
+
         function parseDateTimeString(str) {
             str = String(str);
             if (!str || str.length < 12) return {hour:"...", minute:"...", day:"...", month:"...", year:"..."};
@@ -492,7 +500,7 @@
                 let age = calculateAge(job.ngaySinh, job.ngayVao);
                 let gtText = job.gioiTinh == "1" ? "Nam" : (job.gioiTinh == "2" ? "Nữ" : "KXD");
                 let tT = parseDateTimeString(job.ngayThucHien);
-                let tenTTV = cchnData[job.maThucHien] || job.maThucHien;
+                let tenTTV = getDoctorName(job.maThucHien, cchnData);
                 
                 let statusBadge = isPrinted 
                     ? `<span class="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-[10px] uppercase font-bold px-2 py-0.5 rounded"><i class="fa-solid fa-check"></i> Đã Xuất</span>`
@@ -569,8 +577,8 @@
             let age = calculateAge(job.ngaySinh, job.ngayVao);
             let vV = parseDateTimeString(job.ngayVao);
             let tT = parseDateTimeString(job.ngayThucHien);
-            let tenBS = cchnData[job.maBacSi] || job.maBacSi;
-            let tenTTV = cchnData[job.maThucHien] || job.maThucHien;
+            let tenBS = getDoctorName(job.maBacSi, cchnData);
+            let tenTTV = getDoctorName(job.maThucHien, cchnData);
 
             let gtStr = String(job.gioiTinh).trim();
             let txtGioiTinh = gtStr === "1" ? "Nam" : (gtStr === "2" ? "Nữ" : "");
