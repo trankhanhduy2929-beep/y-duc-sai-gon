@@ -64,7 +64,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-lock text-gray-400"></i>
                         </div>
-                        <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition duration-200 shadow-sm" placeholder="Nhập mật khẩu" required autofocus>
+                        <input type="password" id="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-3 transition duration-200 shadow-sm" placeholder="Nhập mật khẩu (1402)..." required autofocus>
                     </div>
                 </div>
                 <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-bold rounded-lg text-sm px-5 py-3 text-center shadow-lg shadow-blue-500/30 transition duration-300 transform hover:-translate-y-0.5">
@@ -75,7 +75,7 @@
     </div>
 
     <!-- Khu Vực App Chính -->
-    <div id="app-wrapper" class="min-h-screen pb-20 hidden opacity-0 transition-opacity duration-500">
+    <div id="app-wrapper" class="min-h-screen pb-24 hidden opacity-0 transition-opacity duration-500">
         <!-- Header -->
         <header class="bg-white shadow-sm sticky top-0 z-40">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
@@ -205,14 +205,18 @@
                     <div class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center font-bold" id="selected-count">0</div> 
                     <span>phiếu được chọn</span>
                 </div>
-                <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 justify-end flex-1">
+                <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 justify-end flex-1">
+                    <!-- Nút Tải Tự Động (Từng file) -->
+                    <button onclick="autoDownloadFiles()" class="flex-1 md:flex-none bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md shadow-teal-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap text-sm">
+                        <i class="fa-solid fa-download"></i> Tải Tự Động (Lần Lượt)
+                    </button>
                     <!-- Nút Xuất Word Gộp -->
-                    <button onclick="downloadMergedWord()" class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md shadow-blue-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap text-sm">
-                        <i class="fa-solid fa-file-word"></i> Xuất Word (Gộp chung để in)
+                    <button onclick="downloadMergedWord()" class="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md shadow-blue-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap text-sm">
+                        <i class="fa-solid fa-file-word"></i> Xuất Word Gộp
                     </button>
                     <!-- Nút Tải ZIP -->
-                    <button onclick="downloadZipWord()" class="flex-1 md:flex-none bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md shadow-indigo-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap text-sm">
-                        <i class="fa-solid fa-file-zipper"></i> Tải ZIP (Từng File Rời)
+                    <button onclick="downloadZipWord()" class="flex-1 md:flex-none bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md shadow-indigo-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap text-sm">
+                        <i class="fa-solid fa-file-zipper"></i> Tải ZIP (Gói)
                     </button>
                 </div>
             </div>
@@ -346,7 +350,6 @@
             return "";
         }
 
-        // Hàm hỗ trợ lấy tên Bác sĩ / Kỹ thuật viên (Chỉ lấy người cuối cùng nếu có nhiều mã)
         function getDoctorName(rawCode, cchnDict) {
             if (!rawCode) return "";
             let codes = String(rawCode).split(';');
@@ -369,16 +372,14 @@
             let vaoNam = parseInt(ngayVaoStr.substring(0, 4));
             let age = vaoNam - sinhNam;
 
-            // Kiểm tra chi tiết đến tháng và ngày nếu chuỗi có đủ độ dài
             if (ngaySinhStr.length >= 8 && ngayVaoStr.length >= 8) {
                 let sinhThang = parseInt(ngaySinhStr.substring(4, 6));
                 let sinhNgay = parseInt(ngaySinhStr.substring(6, 8));
                 let vaoThang = parseInt(ngayVaoStr.substring(4, 6));
                 let vaoNgay = parseInt(ngayVaoStr.substring(6, 8));
 
-                // Nếu tháng vào nhỏ hơn tháng sinh, HOẶC cùng tháng nhưng ngày vào nhỏ hơn ngày sinh
                 if (vaoThang < sinhThang || (vaoThang === sinhThang && vaoNgay < sinhNgay)) {
-                    age--; // Chưa đủ tháng đủ ngày thì trừ 1 tuổi
+                    age--; 
                 }
             }
             return age < 0 ? 0 : age;
@@ -422,7 +423,6 @@
                         let row = data3[i];
                         let tenDichVu = getVal(row, ['TEN_DICH_VU', 'TÊN DỊCH VỤ']).toString().toLowerCase();
                         
-                        // Xác định loại dịch vụ
                         let type = null;
                         if (tenDichVu.includes("điện châm")) type = 'DIEN_CHAM';
                         else if (tenDichVu.includes("cấy chỉ điều trị đau lưng")) type = 'CAY_CHI_LUNG';
@@ -531,7 +531,7 @@
                     <td class="px-4 py-3 text-right border-b border-gray-100">
                         <div class="flex justify-end gap-1.5">
                             <button onclick="downloadSingleWord('${job.id}')" class="w-7 h-7 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 hover:text-emerald-800 transition flex items-center justify-center shadow-sm" title="In Nhanh (Tải ngay file Word của ca này)">
-                                <i class="fa-solid fa-print text-xs"></i>
+                                <i class="fa-solid fa-download text-xs"></i>
                             </button>
                             <button onclick="toggleSingleJobStatus('${job.uniqueId}')" class="w-7 h-7 rounded-full bg-gray-50 hover:bg-gray-200 text-gray-500 hover:text-blue-600 transition flex items-center justify-center shadow-sm" title="Đảo trạng thái Xuất/Chưa Xuất">
                                 <i class="fa-solid fa-rotate text-xs"></i>
@@ -597,7 +597,7 @@
         }
 
         // =======================================================================
-        // CHỨC NĂNG MỚI: IN NHANH 1 CA (Tải file Word trực tiếp của 1 dòng)
+        // CHỨC NĂNG IN NHANH (Tải file Word 1 ca duy nhất)
         // =======================================================================
         function downloadSingleWord(jobId) {
             let job = printJobs.find(j => j.id === jobId);
@@ -619,8 +619,6 @@
                 let prefix = job.type === 'DIEN_CHAM' ? 'DC' : (job.type === 'CAY_CHI_LUNG' ? 'CCL' : 'CCV');
 
                 saveAs(content, `Phieu_${prefix}_${safeName}_${job.maLK}.docx`);
-
-                // Đánh dấu dòng này là đã in
                 markJobsAsPrinted([job]);
 
             } catch (error) {
@@ -630,17 +628,77 @@
         }
 
         // =======================================================================
+        // CHỨC NĂNG MỚI: TẢI TỰ ĐỘNG TỪNG FILE LẦN LƯỢT (Auto Download Sequential)
+        // =======================================================================
+        async function autoDownloadFiles() {
+            let jobsToPrint = getSelectedJobs();
+            if (!jobsToPrint) return;
+
+            // Kiểm tra xem người dùng đã up đủ mẫu cho các dịch vụ đang được chọn chưa
+            let missingTemplates = new Set();
+            jobsToPrint.forEach(job => { if(!TEMPLATES[job.type].buffer) missingTemplates.add(TEMPLATES[job.type].label); });
+            
+            if (missingTemplates.size > 0) {
+                Swal.fire('Thiếu Mẫu', `Vui lòng tải mẫu Word cho: ${Array.from(missingTemplates).join(', ')}`, 'warning');
+                return;
+            }
+
+            // Bật bảng thông báo tiến độ không cho tắt
+            let currentDownload = 0;
+            Swal.fire({
+                title: 'Đang tải lần lượt...',
+                html: `<b>Vui lòng không đóng trình duyệt.</b><br><br><span style="font-size: 18px; color: #2563eb; font-weight: bold;">Đã tải: 0 / ${jobsToPrint.length}</span><br>`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            // Lặp tải từng file một với khoảng trễ (delay)
+            for (let i = 0; i < jobsToPrint.length; i++) {
+                let job = jobsToPrint[i];
+                
+                try {
+                    let zip = new PizZip(TEMPLATES[job.type].buffer);
+                    let doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true, nullGetter: function() { return ""; }});
+                    doc.render(getJobDataForTemplate(job));
+
+                    let content = doc.getZip().generate({ type: "blob" });
+                    
+                    let safeName = job.hoTen.replace(/[^a-zA-Z0-À-ỹ ]/g, "").trim().replace(/\s+/g, "_");
+                    let prefix = job.type === 'DIEN_CHAM' ? 'DC' : (job.type === 'CAY_CHI_LUNG' ? 'CCL' : 'CCV');
+
+                    saveAs(content, `Phieu_${prefix}_${safeName}_${job.maLK}.docx`);
+                    
+                    currentDownload++;
+                    // Cập nhật số liệu trên bảng thông báo tiến độ
+                    Swal.getHtmlContainer().innerHTML = `
+                        <b>Vui lòng không đóng trình duyệt.</b><br><br>
+                        <span style="font-size: 18px; color: #2563eb; font-weight: bold;">Đã tải: ${currentDownload} / ${jobsToPrint.length}</span><br>
+                        <span style="font-size: 13px; color: gray;">Đang xuất: ${job.hoTen}</span>
+                    `;
+                    
+                    // Lệnh Dừng (Wait) 0.8 giây để trình duyệt không chặn vì "spam" tải file
+                    await new Promise(resolve => setTimeout(resolve, 800));
+
+                } catch (error) {
+                    console.error(`Lỗi tải ca: ${job.hoTen}`, error);
+                }
+            }
+
+            // Sau khi vòng lặp hoàn thành
+            Swal.fire({ icon: 'success', title: 'Hoàn tất tải tự động!', timer: 2000, showConfirmButton: false });
+            markJobsAsPrinted(jobsToPrint);
+        }
+
+        // =======================================================================
         // CHỨC NĂNG 1: XUẤT WORD GỘP (Nhóm theo loại dịch vụ)
         // =======================================================================
         function downloadMergedWord() {
             let jobsToPrint = getSelectedJobs();
             if (!jobsToPrint) return;
 
-            // Phân nhóm theo Loại Dịch Vụ
             let groupedJobs = { 'DIEN_CHAM': [], 'CAY_CHI_LUNG': [], 'CAY_CHI_VAI': [] };
             jobsToPrint.forEach(job => groupedJobs[job.type].push(job));
 
-            // Kiểm tra xem đã up Mẫu cho các loại được chọn chưa
             for (let type in groupedJobs) {
                 if (groupedJobs[type].length > 0 && !TEMPLATES[type].buffer) {
                     Swal.fire('Thiếu Mẫu', `Bạn có chọn phiếu [${TEMPLATES[type].label}] nhưng chưa tải file Word mẫu ở bước 4!`, 'warning');
@@ -652,7 +710,6 @@
 
             setTimeout(() => {
                 try {
-                    // Xử lý xuất file cho từng nhóm
                     for (let type in groupedJobs) {
                         let jobs = groupedJobs[type];
                         if (jobs.length === 0) continue;
@@ -675,7 +732,6 @@
                         doc.render({ jobs: jobsData });
                         let content = doc.getZip().generate({ type: "blob" });
                         
-                        // Đặt tên file ứng với Loại (Ví dụ: Gop_DienCham_5_Nguoi.docx)
                         let prefix = type === 'DIEN_CHAM' ? 'DienCham' : (type === 'CAY_CHI_LUNG' ? 'CayChiLung' : 'CayChiVai');
                         saveAs(content, `Gop_${prefix}_${jobs.length}_Nguoi.docx`);
                     }
@@ -696,7 +752,6 @@
             let jobsToPrint = getSelectedJobs();
             if (!jobsToPrint) return;
 
-            // Kiểm tra Mẫu
             let missingTemplates = new Set();
             jobsToPrint.forEach(job => { if(!TEMPLATES[job.type].buffer) missingTemplates.add(TEMPLATES[job.type].label); });
             
