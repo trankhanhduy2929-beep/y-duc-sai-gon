@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Y Tế - Chăm Sóc Bệnh Nhân Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Be Vietnam Pro"', 'sans-serif'] },
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#64748b',
+                        success: '#22c55e',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s; }
+        
+        .row-animate { animation: slideIn 0.3s ease-out forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Custom Bullet points for Meds */
+        .med-list li { margin-bottom: 4px; padding-left: 20px; position: relative; }
+        .med-list li::before { content: "💊"; position: absolute; left: 0; font-size: 10px; opacity: 0.8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-user-shield text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Đăng Nhập Hệ Thống</h2>
+            <p class="text-gray-500 mb-6 text-sm">Vui lòng nhập mật mã để truy cập dữ liệu bệnh nhân.</p>
+            <form onsubmit="event.preventDefault(); checkLogin();">
+                <input type="password" id="password-input" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mb-4 text-center tracking-widest text-lg" placeholder="••••" autofocus>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-blue-500/30">Truy Cập</button>
+                <p id="login-error" class="text-red-500 text-sm mt-3 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i>Mật khẩu không đúng</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- APP CONTENT (Hidden until login) -->
+    <div id="app-content" class="flex-1 flex flex-col hidden h-full">
+        
+        <!-- Navbar -->
+        <header class="bg-white border-b border-gray-200 h-16 flex-none flex items-center justify-between px-6 z-20 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="bg-gradient-to-tr from-blue-600 to-cyan-500 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-hospital text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-gray-800 text-lg leading-tight">CRM Bệnh Viện</h1>
+                    <p class="text-xs text-gray-500">Chăm sóc khách hàng & Phân tích dữ liệu</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                 <!-- Stats Badge -->
+                 <div class="hidden md:flex gap-3 mr-4">
+                    <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-100">
+                        Đang hiển thị: <span id="stat-total">0</span>
+                    </div>
+                </div>
+
+                <button onclick="window.location.reload()" class="p-2 text-gray-400 hover:text-blue-600 transition" title="Làm mới">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+                <button onclick="exportToExcel()" id="btnExport" disabled class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-file-excel"></i> Xuất Báo Cáo
+                </button>
+                 <div class="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 cursor-pointer" title="Admin">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <aside class="w-72 bg-white border-r border-gray-200 flex flex-col z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                <div class="p-4 space-y-4 flex-1 overflow-y-auto">
+                    
+                    <!-- Upload Section -->
+                    <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                        <h3 class="text-xs font-bold text-blue-800 uppercase mb-3">1. Nhập dữ liệu</h3>
+                        
+                        <div class="space-y-3">
+                            <div class="group relative">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">File Báo Cáo (Hành chính)</label>
+                                <div class="relative overflow-hidden rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm transition hover:border-blue-400">
+                                    <input type="file" id="file-1" accept=".xls,.xlsx,.csv" class="absolute inset-0 cursor-pointer opacity-0 h-full w-full" onchange="handleFileSelect(this, 'file-name-1', 'file1')">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-file-csv text-green-500"></i>
+                                        <span id="file-name-1" class="truncate text-xs text-gray-500">Chọn file...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="group relative">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">File Sổ Khám (Chuyên môn)</label>
+                                <div class="relative overflow-hidden rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm transition hover:border-blue-400">
+                                    <input type="file" id="file-2" accept=".xls,.xlsx,.csv" class="absolute inset-0 cursor-pointer opacity-0 h-full w-full" onchange="handleFileSelect(this, 'file-name-2', 'file2')">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-file-medical text-red-500"></i>
+                                        <span id="file-name-2" class="truncate text-xs text-gray-500">Chọn file...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="processFiles()" id="btnProcess" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                                <span id="btn-text">Xử lý & Phân tích</span>
+                                <i id="btn-icon" class="fa-solid fa-chart-pie"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Dashboard -->
+                    <div id="analytics-panel" class="hidden">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-3 px-1">Thống kê lượng khách</h3>
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3">
+                            <div class="flex justify-between items-center text-sm border-b border-gray-100 pb-2">
+                                <span class="text-gray-500"><i class="fa-solid fa-clipboard-user mr-1.5"></i>Tổng lượt khám:</span>
+                                <span id="stat-total-visits" class="font-bold text-gray-800">0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-500"><i class="fa-solid fa-user mr-1.5"></i>Khách đến 1 lần:</span>
+                                <span id="stat-single" class="font-bold text-gray-800">0</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-500"><i class="fa-solid fa-users-arrows-right-left mr-1.5 text-orange-500"></i>Tái khám (≥2):</span>
+                                <span id="stat-return" class="font-bold text-orange-600">0</span>
+                            </div>
+                            
+                            <!-- Progress Bar -->
+                            <div class="pt-2">
+                                <div class="flex justify-between items-end text-[10px] text-gray-500 mb-1.5">
+                                    <span class="font-medium uppercase tracking-wider">Tỉ lệ quay lại</span>
+                                    <span id="stat-percent" class="font-bold text-blue-600 text-sm">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200">
+                                    <div id="stat-progress" class="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="border-t border-gray-200 pt-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-3 px-1">Bộ lọc nhanh</h3>
+                        <div class="space-y-2">
+                            <div class="relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+                                <input type="text" id="searchInput" onkeyup="debounceSearch()" placeholder="Tìm tên, SĐT, Mã..." class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <select id="filterType" onchange="applyFilters()" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none">
+                                <option value="all">Tất cả đối tượng</option>
+                                <option value="BHYT">Bảo Hiểm Y Tế</option>
+                                <option value="Dịch vụ">Khám Dịch Vụ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 border-t border-gray-200 text-center bg-gray-50">
+                    <p class="text-[10px] text-gray-400 font-medium">Phiên bản Pro 2.5 (Tái khám & Báo cáo)</p>
+                </div>
+            </aside>
+
+            <!-- Main Workspace -->
+            <main class="flex-1 bg-slate-50 flex flex-col relative overflow-hidden">
+                
+                <!-- Tabs -->
+                <div class="bg-white border-b border-gray-200 px-6 pt-2 flex items-end gap-6 flex-none">
+                    <button onclick="switchTab('pending')" id="tab-pending" class="pb-3 border-b-2 px-1 text-sm font-bold transition flex items-center gap-2 text-blue-600 border-blue-600">
+                        <i class="fa-solid fa-list-ul"></i>
+                        Danh sách chờ
+                        <span id="badge-pending" class="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button onclick="switchTab('done')" id="tab-done" class="pb-3 border-b-2 px-1 text-sm font-medium transition flex items-center gap-2 text-gray-500 border-transparent hover:text-gray-700">
+                        <i class="fa-solid fa-check-double text-green-500"></i>
+                        Đã gọi
+                        <span id="badge-done" class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button onclick="switchTab('return')" id="tab-return" class="pb-3 border-b-2 px-1 text-sm font-medium transition flex items-center gap-2 text-gray-500 border-transparent hover:text-gray-700">
+                        <i class="fa-solid fa-users-arrows-right-left text-orange-500"></i>
+                        Khách Tái Khám
+                        <span id="badge-return" class="bg-orange-100 text-orange-600 text-[10px] px-1.5 py-0.5 rounded-full" title="Bệnh nhân khám ≥2 lần">0</span>
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center z-0">
+                    <div class="bg-white p-8 rounded-full shadow-sm mb-4">
+                        <i class="fa-solid fa-file-excel text-5xl text-gray-200"></i>
+                    </div>
+                    <h3 class="text-gray-500 font-bold">Chưa có dữ liệu</h3>
+                    <p class="text-gray-400 text-sm mt-1">Vui lòng tải 2 file Excel lên để hệ thống phân tích</p>
+                </div>
+
+                <!-- Table Container (Scrollable) -->
+                <div id="table-container" class="flex-1 overflow-auto hidden z-10 px-6 py-4">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold border-b border-gray-100 sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th class="px-5 py-4 w-12 text-center">#</th>
+                                    <th class="px-5 py-4 w-36">Trạng thái</th>
+                                    <th class="px-5 py-4 min-w-[200px]">Bệnh nhân</th>
+                                    <th class="px-5 py-4 w-40">Liên hệ</th>
+                                    <th class="px-5 py-4">Thông tin khám</th>
+                                    <th class="px-5 py-4 w-16 text-center">Xem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="text-sm divide-y divide-gray-100">
+                                <!-- Data Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div id="pagination" class="hidden h-14 bg-white border-t border-gray-200 px-6 flex items-center justify-between flex-none z-20">
+                    <span class="text-xs text-gray-500">Đang hiển thị <span id="page-info" class="font-bold text-gray-700">0-0</span></span>
+                    <div class="flex gap-2">
+                        <button onclick="prevPage()" id="btn-prev" class="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-50 transition">Trước</button>
+                        <button onclick="nextPage()" id="btn-next" class="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-50 transition">Sau</button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL DETAIL -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center backdrop-blur-sm" onclick="closeModal(event)">
+        <div id="modal-content" class="bg-white w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg" id="m-avatar">A</div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <span id="m-name">Tên Bệnh Nhân</span>
+                            <span id="m-badge" class="text-[10px] px-2 py-0.5 rounded-full border">Loại</span>
+                        </h2>
+                        <div class="text-xs text-gray-500 flex gap-3">
+                            <span><i class="fa-solid fa-id-card mr-1"></i><span id="m-id">ID</span></span>
+                            <span><i class="fa-solid fa-cake-candles mr-1"></i><span id="m-age">Tuổi</span></span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="closeModal(null, true)" class="h-8 w-8 rounded-full hover:bg-gray-200 flex items-center justify-center text-gray-500 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50">
+                
+                <!-- Left Col: History & Contact -->
+                <div class="md:col-span-1 space-y-4">
+                    <!-- Contact Card -->
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Thông tin liên hệ</h4>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-start gap-3">
+                                <div class="bg-blue-50 p-2 rounded text-blue-600"><i class="fa-solid fa-phone"></i></div>
+                                <div>
+                                    <a href="#" id="m-phone" class="font-bold text-blue-700 hover:underline block text-base">SĐT</a>
+                                    <span class="text-xs text-gray-400">Bấm để gọi ngay</span>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="bg-red-50 p-2 rounded text-red-600"><i class="fa-solid fa-location-dot"></i></div>
+                                <span class="text-gray-600 text-xs mt-1" id="m-address">Địa chỉ...</span>
+                            </div>
+                             <div class="flex items-start gap-3">
+                                <div class="bg-green-50 p-2 rounded text-green-600"><i class="fa-solid fa-credit-card"></i></div>
+                                <span class="text-gray-600 text-xs mt-1" id="m-card">Số thẻ BHYT...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visit History Stats -->
+                    <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 shadow-sm">
+                        <h4 class="text-xs font-bold text-orange-600 uppercase mb-2">Lịch sử khám tháng này</h4>
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-3xl font-bold text-orange-700" id="m-visit-count">0</span>
+                            <span class="text-sm text-orange-600">lần đến khám</span>
+                        </div>
+                        <div class="text-xs text-gray-600 bg-white p-2 rounded border border-orange-100 max-h-32 overflow-y-auto" id="m-visit-dates">
+                            <!-- List of dates -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Col: Clinical Info -->
+                <div class="md:col-span-2 space-y-4">
+                    <!-- Diagnosis -->
+                    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-sm font-bold text-gray-800 uppercase tracking-wide">Chẩn đoán & Khám bệnh</h4>
+                            <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded" id="m-time">Giờ khám</span>
+                        </div>
+                        
+                        <div class="flex gap-6 text-sm mb-4 border-b border-gray-100 pb-3">
+                             <div class="flex items-center gap-2"><i class="fa-solid fa-user-doctor text-blue-500"></i> <span class="font-bold text-gray-700" id="m-doctor">...</span></div>
+                             <div class="flex items-center gap-2"><i class="fa-solid fa-door-open text-gray-400"></i> <span class="font-medium text-gray-600" id="m-room">...</span></div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <span class="text-xs font-bold text-red-500 uppercase block mb-1">Chẩn đoán:</span>
+                                <p class="text-red-700 font-medium bg-red-50 p-3 rounded-lg border border-red-100 leading-relaxed" id="m-diagnosis">...</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-gray-500 uppercase block mb-1">Triệu chứng:</span>
+                                <p class="text-gray-600 text-sm italic border-l-2 border-gray-300 pl-3" id="m-symptoms">...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Treatment & CLS Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-64">
+                        
+                        <!-- Column 1: Medication (Yellow) -->
+                        <div class="bg-yellow-50 rounded-xl border border-yellow-200 shadow-sm flex flex-col h-full">
+                            <div class="p-3 border-b border-yellow-200 bg-yellow-100/50 rounded-t-xl flex items-center gap-2">
+                                <div class="bg-yellow-400 text-white w-6 h-6 rounded flex items-center justify-center text-xs"><i class="fa-solid fa-pills"></i></div>
+                                <h4 class="text-xs font-bold text-yellow-800 uppercase">Thuốc / Điều trị</h4>
+                            </div>
+                            <div class="p-4 overflow-y-auto flex-1">
+                                <ul class="text-sm text-gray-700 space-y-2 med-list" id="m-treatment">
+                                    <!-- Meds content -->
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Paraclinical (Blue) -->
+                        <div class="bg-blue-50 rounded-xl border border-blue-200 shadow-sm flex flex-col h-full">
+                            <div class="p-3 border-b border-blue-200 bg-blue-100/50 rounded-t-xl flex items-center gap-2">
+                                <div class="bg-blue-500 text-white w-6 h-6 rounded flex items-center justify-center text-xs"><i class="fa-solid fa-microscope"></i></div>
+                                <h4 class="text-xs font-bold text-blue-800 uppercase">Cận Lâm Sàng (XN - CĐHA - VLTL)</h4>
+                            </div>
+                            <div class="p-4 overflow-y-auto flex-1">
+                                <div class="text-sm text-gray-700 space-y-3" id="m-cls">
+                                    <!-- CLS content -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Note Input -->
+                    <div class="pt-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1 ml-1"><i class="fa-regular fa-pen-to-square mr-1"></i>Ghi chú CSKH (Sẽ tự động lưu)</label>
+                        <div class="relative">
+                            <textarea id="m-note" oninput="saveNoteFromModal(this.value)" class="w-full h-16 border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white shadow-sm resize-none" placeholder="Nhập ghi chú..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Action -->
+                    <div class="flex justify-between items-center pt-2 border-t border-gray-200 mt-2">
+                         <span class="text-xs text-gray-400 italic">Trạng thái hiện tại: <span id="m-status-text" class="font-bold">...</span></span>
+                        <div class="flex gap-3">
+                            <button onclick="updateStatusFromModal('busy')" class="px-4 py-2 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 text-sm font-medium transition border border-orange-200">
+                                <i class="fa-solid fa-phone-slash mr-1"></i> Không nghe
+                            </button>
+                            <button onclick="updateStatusFromModal('called')" class="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-bold shadow-md hover:shadow-lg transition flex items-center gap-2">
+                                <i class="fa-solid fa-check-circle"></i> Xác nhận Đã gọi
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        // --- CONSTANTS & STATE ---
+        const PASSWORD = "1234";
+        const ITEMS_PER_PAGE = 50;
+
+        let state = {
+            rawFile1: null,
+            rawFile2: null,
+            allData: [],
+            filteredData: [],
+            displayData: [],
+            visitHistoryMap: {},
+            
+            currentPage: 1,
+            currentTab: 'pending', 
+            selectedId: null
+        };
+
+        // --- AUTH ---
+        function checkLogin() {
+            const input = document.getElementById('password-input').value;
+            if (input === PASSWORD) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+                document.getElementById('password-input').value = '';
+            }
+        }
+
+        // --- HELPER: FUZZY KEY FINDER ---
+        function getValue(row, keywords) {
+            const key = Object.keys(row).find(k => 
+                keywords.some(kw => k.toLowerCase().includes(kw.toLowerCase()))
+            );
+            return key ? row[key] : '';
+        }
+
+        // --- FILE HANDLING ---
+        function handleFileSelect(input, labelId, key) {
+            if (input.files.length > 0) {
+                document.getElementById(labelId).innerText = input.files[0].name;
+                document.getElementById(labelId).classList.add('text-blue-600', 'font-medium');
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    if (key === 'file1') state.rawFile1 = sheet;
+                    if (key === 'file2') state.rawFile2 = sheet;
+                };
+                reader.readAsArrayBuffer(input.files[0]);
+            }
+        }
+
+        function findHeaderRow(sheet, keyColumnName) {
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+            for (let R = range.s.r; R <= Math.min(range.e.r, 25); ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell = sheet[XLSX.utils.encode_cell({c: C, r: R})];
+                    if (cell && cell.v && String(cell.v).toLowerCase().includes(keyColumnName.toLowerCase())) {
+                        return R;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        // --- PARSING LOGIC (STRICT SEPARATION) ---
+        function parseClinicalInfo(row) {
+            const rawTreatment = getValue(row, ['chỉ định', 'thuốc', 'điều trị']);
+            
+            let meds = "";
+            let clsList = [];
+
+            const isValid = (str) => {
+                if(!str) return false;
+                const cleaned = str.replace(/[,.; ]/g, '');
+                return cleaned.length > 0;
+            };
+
+            const createCLSItem = (title, content, textColor, bgColor) => {
+                return `<div class="p-2 bg-white rounded border border-gray-100 shadow-sm">
+                            <strong class="${textColor} block text-xs mb-1 uppercase tracking-wide">${title}</strong>
+                            <div class="text-gray-700 text-sm">${content}</div>
+                        </div>`;
+            };
+
+            if (rawTreatment && String(rawTreatment).includes("*")) {
+                const parts = String(rawTreatment).split("*");
+                
+                parts.forEach(part => {
+                    let p = part.trim();
+                    if (!p) return;
+                    
+                    const lowerP = p.toLowerCase();
+
+                    if (lowerP.startsWith("thuốc:")) {
+                        meds += p.substring(6).trim() + "; "; 
+                    } 
+                    else if (lowerP.startsWith("xét nghiệm:")) {
+                        let content = p.substring(11).trim();
+                        if(isValid(content)) clsList.push(createCLSItem("🧪 Xét nghiệm", content, "text-blue-600", "bg-blue-50"));
+                    } 
+                    else if (lowerP.startsWith("chẩn đoán hình ảnh:")) {
+                        let content = p.substring(19).trim();
+                        if(isValid(content)) clsList.push(createCLSItem("📷 Chẩn đoán hình ảnh", content, "text-purple-600", "bg-purple-50"));
+                    } 
+                    else if (lowerP.startsWith("ttpt-vltl:")) {
+                        let content = p.substring(10).trim();
+                        if(isValid(content)) clsList.push(createCLSItem("⚡ TTPT - VLTL", content, "text-orange-600", "bg-orange-50"));
+                    } 
+                    else {
+                        if (!lowerP.includes("xét nghiệm") && !lowerP.includes("chẩn đoán") && !lowerP.includes("vltl")) {
+                             if (!meds.includes(p)) meds += p + "; "; 
+                        }
+                    }
+                });
+            } else {
+                if(isValid(rawTreatment)) meds = rawTreatment;
+            }
+            
+            const separateXN = getValue(row, ['xét nghiệm']);
+            if (isValid(separateXN)) clsList.push(createCLSItem("🧪 Xét nghiệm (Cột riêng)", separateXN, "text-blue-600", "bg-blue-50"));
+            
+            const separateCDHA = getValue(row, ['chẩn đoán hình ảnh', 'cđha', 'siêu âm', 'x-quang']);
+            if (isValid(separateCDHA)) clsList.push(createCLSItem("📷 CĐHA (Cột riêng)", separateCDHA, "text-purple-600", "bg-purple-50"));
+            
+            const separateVLTL = getValue(row, ['ttpt', 'vltl', 'thủ thuật']);
+            if (isValid(separateVLTL)) clsList.push(createCLSItem("⚡ VLTL (Cột riêng)", separateVLTL, "text-orange-600", "bg-orange-50"));
+
+            let formattedMeds = "";
+            if(meds) {
+                meds = String(meds).replace(/,+$/, "").replace(/[;]+$/, "");
+                const drugItems = meds.split(/[;\n]/).filter(d => isValid(d));
+                if(drugItems.length > 0) {
+                     formattedMeds = drugItems.map(d => `<li>${d.trim()}</li>`).join('');
+                } else {
+                     formattedMeds = `<li class="italic text-gray-400 list-none font-normal before:content-none pl-0">Không có thuốc</li>`;
+                }
+            } else {
+                formattedMeds = `<li class="italic text-gray-400 list-none font-normal before:content-none pl-0">Không có thuốc</li>`;
+            }
+
+            let formattedCLS = clsList.length > 0 ? clsList.join("") : `<div class="italic text-gray-400 text-xs text-center pt-8 opacity-60">Không có chỉ định cận lâm sàng</div>`;
+
+            return {
+                medsDisplay: formattedMeds,
+                clsDisplay: formattedCLS,
+                rawMeds: meds
+            };
+        }
+
+        // --- UPDATE DASHBOARD STATS ---
+        function updateDashboardStats() {
+            const totalVisits = state.allData.length;
+            const uniquePatientIds = Object.keys(state.visitHistoryMap);
+            const totalUniquePatients = uniquePatientIds.length;
+            
+            let singleCount = 0;
+            let returnCount = 0;
+            
+            uniquePatientIds.forEach(id => {
+                if (state.visitHistoryMap[id].size >= 2) returnCount++;
+                else singleCount++;
+            });
+
+            const percent = totalUniquePatients === 0 ? 0 : Math.round((returnCount / totalUniquePatients) * 100);
+
+            document.getElementById('stat-total-visits').innerText = totalVisits.toLocaleString('vi-VN');
+            document.getElementById('stat-single').innerText = singleCount.toLocaleString('vi-VN');
+            document.getElementById('stat-return').innerText = returnCount.toLocaleString('vi-VN');
+            document.getElementById('stat-percent').innerText = percent + '%';
+            document.getElementById('stat-progress').style.width = percent + '%';
+            
+            document.getElementById('analytics-panel').classList.remove('hidden');
+        }
+
+        function processFiles() {
+            if (!state.rawFile1 || !state.rawFile2) {
+                alert("Vui lòng tải đủ 2 file!");
+                return;
+            }
+
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+            btnText.innerText = "Đang tách dữ liệu...";
+            btnIcon.classList.add('fa-spin');
+
+            setTimeout(() => {
+                try {
+                    // 1. File 1 (Admin)
+                    const header1 = findHeaderRow(state.rawFile1, "Mã y tế");
+                    const json1 = XLSX.utils.sheet_to_json(state.rawFile1, { range: header1, defval: "" });
+
+                    // 2. Visit History
+                    state.visitHistoryMap = {};
+                    json1.forEach(row => {
+                         let r = {};
+                         for (let k in row) r[k.trim().toLowerCase()] = row[k];
+                         
+                         const id = r['mã y tế'];
+                         const date = r['ngày khám'] || r['thời gian tiếp nhận'] || '';
+                         if(id && date) {
+                             if(!state.visitHistoryMap[id]) state.visitHistoryMap[id] = new Set();
+                             state.visitHistoryMap[id].add(date.toString().split(' ')[0]);
+                         }
+                    });
+
+                    // 3. File 2 (Clinical)
+                    const header2 = findHeaderRow(state.rawFile2, "Mã y tế");
+                    const json2 = XLSX.utils.sheet_to_json(state.rawFile2, { range: header2, defval: "" });
+                    
+                    const clinicalMap = {};
+                    json2.forEach(row => {
+                        let r = row; 
+                        let id = getValue(r, ['mã y tế']); 
+
+                        if (id) {
+                            const parsed = parseClinicalInfo(r);
+
+                            clinicalMap[id] = {
+                                doctor: getValue(r, ['bác sĩ', 'bs']),
+                                symptoms: getValue(r, ['triệu chứng']),
+                                diagnosis: getValue(r, ['chẩn đoán']),
+                                treatmentDisplay: parsed.medsDisplay,
+                                clsDisplay: parsed.clsDisplay,
+                                rawMeds: parsed.rawMeds
+                            };
+                        }
+                    });
+
+                    // 4. Merge
+                    state.allData = [];
+                    json1.forEach((row, idx) => {
+                        let r = {};
+                        for (let k in row) r[k.trim().toLowerCase()] = row[k];
+                        
+                        const id = r['mã y tế'];
+                        if (!id) return;
+                        
+                        const insurance = r['số thẻ'] || r['số thẻ bhyt'];
+                        const isService = !insurance || String(insurance).trim().length < 5;
+                        const clinical = clinicalMap[id] || { treatmentDisplay: '', clsDisplay: '', rawMeds: '' };
+                        const visitDates = state.visitHistoryMap[id] ? Array.from(state.visitHistoryMap[id]) : [];
+
+                        state.allData.push({
+                            uniqueKey: idx,
+                            id: id,
+                            name: r['họ tên'],
+                            age: r['tuổi'],
+                            phone: r['số điện thoại'] || r['sđt'] || r['điện thoại'],
+                            address: r['địa chỉ'],
+                            card: insurance,
+                            type: isService ? 'Dịch vụ' : 'BHYT',
+                            time: r['thời gian tiếp nhận'] || r['thời gian đến khám'],
+                            room: r['phòng khám'] || r['phòng'],
+                            
+                            // Clinical
+                            doctor: clinical.doctor || '---',
+                            symptoms: clinical.symptoms || '',
+                            diagnosis: clinical.diagnosis || '',
+                            treatmentDisplay: clinical.treatmentDisplay, 
+                            clsDisplay: clinical.clsDisplay, 
+                            rawMeds: clinical.rawMeds,
+                            
+                            // Stats
+                            visitCount: visitDates.length,
+                            visitDates: visitDates,
+
+                            // App State
+                            status: 'pending', 
+                            note: ''
+                        });
+                    });
+
+                    updateDashboardStats();
+
+                    document.getElementById('empty-state').classList.add('hidden');
+                    document.getElementById('table-container').classList.remove('hidden');
+                    document.getElementById('pagination').classList.remove('hidden');
+                    document.getElementById('btnExport').disabled = false;
+                    
+                    applyFilters();
+
+                } catch (e) {
+                    alert("Lỗi: " + e.message);
+                    console.error(e);
+                } finally {
+                    btnText.innerText = "Xử lý & Phân tích";
+                    btnIcon.classList.remove('fa-spin');
+                }
+            }, 500);
+        }
+
+        // --- FILTER & TABS ---
+        function switchTab(tabName) {
+            state.currentTab = tabName;
+            
+            const tabs = ['pending', 'done', 'return'];
+            
+            tabs.forEach(t => {
+                const btn = document.getElementById('tab-' + t);
+                if (t === tabName) {
+                    btn.classList.add('border-blue-600', 'text-blue-600', 'font-bold');
+                    btn.classList.remove('border-transparent', 'text-gray-500', 'font-medium');
+                } else {
+                    btn.classList.remove('border-blue-600', 'text-blue-600', 'font-bold');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'font-medium');
+                }
+            });
+
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const typeVal = document.getElementById('filterType').value;
+
+            let result = state.allData.filter(item => {
+                const matchSearch = !term || 
+                                    (item.name && item.name.toLowerCase().includes(term)) || 
+                                    (item.phone && String(item.phone).includes(term)) ||
+                                    (item.id && String(item.id).includes(term));
+                const matchType = typeVal === 'all' || item.type === typeVal;
+                
+                return matchSearch && matchType;
+            });
+
+            state.filteredData = result; 
+
+            // Handle Tabs logic
+            if (state.currentTab === 'pending') {
+                state.displayData = result.filter(item => item.status === 'pending' || item.status === 'busy' || item.status === 'wrong');
+            } else if (state.currentTab === 'done') {
+                state.displayData = result.filter(item => item.status === 'called');
+            } else if (state.currentTab === 'return') {
+                // Return Tab: Filter >= 2 visits, AND Deduplicate so we only call them once!
+                const seen = new Set();
+                state.displayData = result.filter(item => {
+                    if (item.visitCount >= 2) {
+                        if (!seen.has(item.id)) {
+                            seen.add(item.id);
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+            }
+
+            // Update Badges (Without deduplication for raw counts, except return tab)
+            document.getElementById('badge-pending').innerText = result.filter(i => i.status !== 'called').length;
+            document.getElementById('badge-done').innerText = result.filter(i => i.status === 'called').length;
+            
+            const uniqueReturnCount = new Set(result.filter(i => i.visitCount >= 2).map(i => i.id)).size;
+            document.getElementById('badge-return').innerText = uniqueReturnCount;
+            
+            document.getElementById('stat-total').innerText = state.displayData.length.toLocaleString('vi-VN') + " hồ sơ";
+
+            state.currentPage = 1;
+            renderTable();
+        }
+
+        const debounceSearch = debounce(() => applyFilters(), 300);
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // --- RENDER TABLE ---
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            const start = (state.currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageItems = state.displayData.slice(start, end);
+
+            document.getElementById('page-info').innerText = `${state.displayData.length > 0 ? start + 1 : 0}-${Math.min(end, state.displayData.length)} / ${state.displayData.length}`;
+            document.getElementById('btn-prev').disabled = state.currentPage === 1;
+            document.getElementById('btn-next').disabled = end >= state.displayData.length;
+
+            if (pageItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400 italic">Không tìm thấy bệnh nhân nào</td></tr>`;
+                return;
+            }
+
+            pageItems.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/60 transition border-b border-gray-100 group row-animate bg-white";
+                
+                tr.innerHTML = `
+                    <td class="px-5 py-3 text-center text-gray-400 font-mono text-xs">${start + index + 1}</td>
+                    
+                    <td class="px-5 py-3">
+                         <div class="relative w-36">
+                            <select onchange="quickUpdateStatus(${item.uniqueKey}, this.value)" class="appearance-none w-full bg-gray-50 border border-gray-200 text-gray-700 py-1.5 px-3 pr-8 rounded-lg focus:outline-none focus:border-blue-500 text-xs font-medium cursor-pointer transition shadow-sm hover:border-blue-300">
+                                <option value="pending" ${item.status === 'pending' ? 'selected' : ''}>⏳ Chờ gọi</option>
+                                <option value="called" ${item.status === 'called' ? 'selected' : ''}>✅ Đã gọi</option>
+                                <option value="busy" ${item.status === 'busy' ? 'selected' : ''}>📵 Máy bận</option>
+                                <option value="wrong" ${item.status === 'wrong' ? 'selected' : ''}>🚫 Sai số</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-5 py-3">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition">${item.name}</span>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${item.type === 'BHYT' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-purple-50 text-purple-600 border-purple-200'}">${item.type}</span>
+                                ${item.visitCount > 1 ? `<span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border bg-orange-50 text-orange-600 border-orange-200" title="Đến khám ${item.visitCount} lần trong tháng"><i class="fa-solid fa-rotate-right mr-1"></i>${item.visitCount} lần</span>` : ''}
+                                <span class="text-xs text-gray-500"><i class="fa-solid fa-cake-candles mx-1"></i>${item.age}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-5 py-3">
+                        ${item.phone ? 
+                            `<a href="tel:${item.phone}" class="text-blue-600 font-bold hover:underline text-sm inline-flex items-center gap-1 bg-blue-50 px-2 py-1 rounded border border-blue-100"><i class="fa-solid fa-phone"></i>${item.phone}</a>` : 
+                            '<span class="text-gray-400 italic text-xs">--</span>'
+                        }
+                    </td>
+
+                    <td class="px-5 py-3">
+                        <div class="text-xs text-gray-600">
+                            <p class="font-medium text-gray-800 truncate max-w-[200px] mb-1" title="${item.diagnosis}">${item.diagnosis || 'Chưa có chẩn đoán'}</p>
+                            <div class="flex items-center gap-2 text-gray-400">
+                                <span><i class="fa-solid fa-user-doctor mr-1"></i>${item.doctor}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-5 py-3 text-center">
+                        <button onclick="openModal(${item.uniqueKey})" class="h-8 w-8 rounded-full bg-white text-gray-500 border border-gray-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition flex items-center justify-center shadow-sm mx-auto group-hover:scale-110">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function nextPage() { state.currentPage++; renderTable(); }
+        function prevPage() { if (state.currentPage > 1) { state.currentPage--; renderTable(); } }
+
+        // --- ACTIONS ---
+        function quickUpdateStatus(uniqueKey, newStatus) {
+            const item = state.allData.find(i => i.uniqueKey === uniqueKey);
+            if (item) {
+                item.status = newStatus;
+                applyFilters();
+            }
+        }
+
+        // --- MODAL ---
+        function openModal(uniqueKey) {
+            const item = state.allData.find(i => i.uniqueKey === uniqueKey);
+            if (!item) return;
+
+            state.selectedId = uniqueKey;
+
+            // Header
+            document.getElementById('m-name').innerText = item.name;
+            document.getElementById('m-avatar').innerText = item.name.charAt(0);
+            document.getElementById('m-id').innerText = item.id;
+            document.getElementById('m-age').innerText = item.age ? item.age + ' tuổi' : '';
+            
+            const badge = document.getElementById('m-badge');
+            badge.innerText = item.type;
+            badge.className = item.type === 'BHYT' 
+                ? "text-[10px] px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-200"
+                : "text-[10px] px-2 py-0.5 rounded-full border bg-purple-100 text-purple-700 border-purple-200";
+
+            // Contact
+            document.getElementById('m-phone').innerText = item.phone || "Không có số";
+            document.getElementById('m-phone').href = item.phone ? `tel:${item.phone}` : "#";
+            document.getElementById('m-address').innerText = item.address || "---";
+            document.getElementById('m-card').innerText = item.card || "Không có thẻ";
+
+            // Visit Stats
+            document.getElementById('m-visit-count').innerText = item.visitCount;
+            document.getElementById('m-visit-dates').innerHTML = item.visitDates.map(d => `<div class="border-b border-gray-100 last:border-0 py-1.5 flex items-center gap-2"><i class="fa-regular fa-calendar text-gray-400 text-[10px]"></i>${d}</div>`).join('');
+
+            // Clinical Text
+            document.getElementById('m-time').innerText = item.time || '';
+            document.getElementById('m-doctor').innerText = item.doctor;
+            document.getElementById('m-room').innerText = item.room || '';
+            document.getElementById('m-diagnosis').innerText = item.diagnosis || 'Không có thông tin chẩn đoán';
+            document.getElementById('m-symptoms').innerText = item.symptoms || '---';
+            
+            // HTML Injected Content
+            document.getElementById('m-treatment').innerHTML = item.treatmentDisplay;
+            document.getElementById('m-cls').innerHTML = item.clsDisplay;
+
+            // State
+            document.getElementById('m-note').value = item.note || '';
+            const statusMap = {'pending': 'Chưa gọi', 'called': 'Đã gọi', 'busy': 'Máy bận', 'wrong': 'Sai số'};
+            document.getElementById('m-status-text').innerText = statusMap[item.status];
+
+            // Show
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('opacity-0', 'scale-95');
+                content.classList.add('opacity-100', 'scale-100');
+            }, 10);
+        }
+
+        function closeModal(e, force = false) {
+            if (force || e.target.id === 'modal-overlay') {
+                const content = document.getElementById('modal-content');
+                content.classList.remove('opacity-100', 'scale-100');
+                content.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    document.getElementById('modal-overlay').classList.add('hidden');
+                }, 200);
+            }
+        }
+
+        function saveNoteFromModal(val) {
+            const item = state.allData.find(i => i.uniqueKey === state.selectedId);
+            if(item) item.note = val;
+        }
+
+        function updateStatusFromModal(status) {
+            const item = state.allData.find(i => i.uniqueKey === state.selectedId);
+            if(item) {
+                item.status = status;
+                applyFilters();
+                if (status === 'called') closeModal(null, true);
+                else {
+                     document.getElementById('m-status-text').innerText = (status === 'busy' ? 'Máy bận' : 'Sai số');
+                }
+            }
+        }
+
+        // --- EXPORT SMART LOGIC ---
+        function exportToExcel() {
+            // Chỉ xuất những gì đang hiển thị trên bảng (đã áp dụng tab và bộ lọc)
+            if (state.displayData.length === 0) {
+                alert("Không có dữ liệu để xuất!");
+                return;
+            }
+            
+            const exportData = state.displayData.map((item, index) => ({
+                "STT": index + 1,
+                "Trạng thái": item.status === 'called' ? 'Đã gọi' : (item.status === 'pending' ? 'Chưa gọi' : item.status),
+                "Họ tên": item.name,
+                "Mã y tế": item.id,
+                "SĐT": item.phone,
+                "Địa chỉ": item.address,
+                "Loại": item.type,
+                "Số lần đến khám (tháng)": item.visitCount,
+                "Bác sĩ": item.doctor,
+                "Chẩn đoán": item.diagnosis,
+                "Thuốc & Chỉ định": item.rawMeds,
+                "Ghi chú CSKH": item.note
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            
+            // Đổi tên file linh hoạt theo Tab đang xem
+            let sheetName = "BaoCaoCSKH";
+            let fileName = `BaoCao_CSKH_${new Date().toISOString().slice(0,10)}.xlsx`;
+            
+            if (state.currentTab === 'return') {
+                sheetName = "KhachTaiKham";
+                fileName = `DanhSach_TaiKham_${new Date().toISOString().slice(0,10)}.xlsx`;
+            }
+
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            XLSX.writeFile(wb, fileName);
+        }
+    </script>
+</body>
+</html>
