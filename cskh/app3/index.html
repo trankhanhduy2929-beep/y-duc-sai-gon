@@ -38,7 +38,6 @@
         .row-animate { animation: slideIn 0.3s ease-out forwards; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Custom Bullet points for Meds */
         .med-list li { margin-bottom: 4px; padding-left: 20px; position: relative; }
         .med-list li::before { content: "💊"; position: absolute; left: 0; font-size: 10px; opacity: 0.8; }
     </style>
@@ -61,7 +60,7 @@
         </div>
     </div>
 
-    <!-- APP CONTENT (Hidden until login) -->
+    <!-- APP CONTENT -->
     <div id="app-content" class="flex-1 flex flex-col hidden h-full">
         
         <!-- Navbar -->
@@ -77,10 +76,9 @@
             </div>
             
             <div class="flex items-center gap-3">
-                 <!-- Stats Badge -->
                  <div class="hidden md:flex gap-3 mr-4">
                     <div class="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-100">
-                        Đang hiển thị: <span id="stat-total">0</span>
+                        Đang hiển thị: <span id="stat-total-rows">0</span> hồ sơ
                     </div>
                 </div>
 
@@ -104,7 +102,6 @@
                     <!-- Upload Section -->
                     <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                         <h3 class="text-xs font-bold text-blue-800 uppercase mb-3">1. Nhập dữ liệu</h3>
-                        
                         <div class="space-y-3">
                             <div class="group relative">
                                 <label class="block text-xs font-medium text-gray-600 mb-1">File Báo Cáo (Hành chính)</label>
@@ -116,7 +113,6 @@
                                     </div>
                                 </div>
                             </div>
-
                             <div class="group relative">
                                 <label class="block text-xs font-medium text-gray-600 mb-1">File Sổ Khám (Chuyên môn)</label>
                                 <div class="relative overflow-hidden rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm transition hover:border-blue-400">
@@ -127,7 +123,6 @@
                                     </div>
                                 </div>
                             </div>
-
                             <button onclick="processFiles()" id="btnProcess" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
                                 <span id="btn-text">Xử lý & Phân tích</span>
                                 <i id="btn-icon" class="fa-solid fa-chart-pie"></i>
@@ -137,30 +132,37 @@
 
                     <!-- Analytics Dashboard -->
                     <div id="analytics-panel" class="hidden">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-3 px-1">Thống kê lượng khách</h3>
+                        <h3 class="text-xs font-bold text-gray-400 uppercase mb-3 px-1">Chi tiết Thống kê Khách hàng</h3>
                         <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3">
                             <div class="flex justify-between items-center text-sm border-b border-gray-100 pb-2">
                                 <span class="text-gray-500"><i class="fa-solid fa-clipboard-user mr-1.5"></i>Tổng lượt khám:</span>
-                                <span id="stat-total-visits" class="font-bold text-gray-800">0</span>
+                                <span id="stat-total-visits" class="font-bold text-gray-800 text-base" title="Đếm số Lượt (Ngày) khách đến">0</span>
                             </div>
                             <div class="flex justify-between items-center text-sm">
                                 <span class="text-gray-500"><i class="fa-solid fa-user mr-1.5"></i>Khách đến 1 lần:</span>
                                 <span id="stat-single" class="font-bold text-gray-800">0</span>
                             </div>
                             <div class="flex justify-between items-center text-sm">
-                                <span class="text-gray-500"><i class="fa-solid fa-users-arrows-right-left mr-1.5 text-orange-500"></i>Tái khám (≥2):</span>
+                                <span class="text-gray-500"><i class="fa-solid fa-users mr-1.5 text-orange-500"></i>Khách tái khám (≥2):</span>
                                 <span id="stat-return" class="font-bold text-orange-600">0</span>
                             </div>
+                            <div class="flex justify-between items-center text-sm border-t border-gray-100 pt-2 pb-1">
+                                <span class="font-bold text-blue-600" title="Là kết quả: Tổng lượt - Khách 1 lần - Khách tái khám"><i class="fa-solid fa-notes-medical mr-1.5"></i>Số Lượt tái khám:</span>
+                                <span id="stat-return-visits" class="font-bold text-blue-600 text-base">0</span>
+                            </div>
                             
-                            <!-- Progress Bar -->
+                            <!-- Hiển thị công thức Tỉ lệ lượt tái khám mới -->
                             <div class="pt-2">
                                 <div class="flex justify-between items-end text-[10px] text-gray-500 mb-1.5">
-                                    <span class="font-medium uppercase tracking-wider">Tỉ lệ quay lại</span>
-                                    <span id="stat-percent" class="font-bold text-blue-600 text-sm">0%</span>
+                                    <span class="font-bold uppercase tracking-wider text-blue-700">Tỉ Lệ % Lượt Tái Khám</span>
+                                    <span id="stat-percent" class="font-bold text-blue-700 text-lg">0%</span>
                                 </div>
-                                <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200">
-                                    <div id="stat-progress" class="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                                <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200">
+                                    <div id="stat-progress" class="bg-gradient-to-r from-blue-400 to-blue-600 h-2.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
                                 </div>
+                                <p class="text-[9px] text-gray-400 mt-1.5 italic text-center leading-relaxed font-medium">
+                                    ((Tổng lượt - Khám 1 lần - Tái khám) / Tổng lượt) x 100
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -183,11 +185,10 @@
                 </div>
                 
                 <div class="p-4 border-t border-gray-200 text-center bg-gray-50">
-                    <p class="text-[10px] text-gray-400 font-medium">Phiên bản Pro 2.5 (Tái khám & Báo cáo)</p>
+                    <p class="text-[10px] text-gray-400 font-medium">Phiên bản Pro 2.9 (Cập nhật chuẩn Logic User)</p>
                 </div>
             </aside>
 
-            <!-- Main Workspace -->
             <main class="flex-1 bg-slate-50 flex flex-col relative overflow-hidden">
                 
                 <!-- Tabs -->
@@ -209,7 +210,6 @@
                     </button>
                 </div>
 
-                <!-- Empty State -->
                 <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center z-0">
                     <div class="bg-white p-8 rounded-full shadow-sm mb-4">
                         <i class="fa-solid fa-file-excel text-5xl text-gray-200"></i>
@@ -218,7 +218,6 @@
                     <p class="text-gray-400 text-sm mt-1">Vui lòng tải 2 file Excel lên để hệ thống phân tích</p>
                 </div>
 
-                <!-- Table Container (Scrollable) -->
                 <div id="table-container" class="flex-1 overflow-auto hidden z-10 px-6 py-4">
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         <table class="w-full text-left border-collapse">
@@ -233,13 +232,11 @@
                                 </tr>
                             </thead>
                             <tbody id="table-body" class="text-sm divide-y divide-gray-100">
-                                <!-- Data Rows -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Pagination Footer -->
                 <div id="pagination" class="hidden h-14 bg-white border-t border-gray-200 px-6 flex items-center justify-between flex-none z-20">
                     <span class="text-xs text-gray-500">Đang hiển thị <span id="page-info" class="font-bold text-gray-700">0-0</span></span>
                     <div class="flex gap-2">
@@ -255,8 +252,6 @@
     <!-- MODAL DETAIL -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center backdrop-blur-sm" onclick="closeModal(event)">
         <div id="modal-content" class="bg-white w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
-            
-            <!-- Modal Header -->
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <div class="flex items-center gap-3">
                     <div class="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg" id="m-avatar">A</div>
@@ -276,12 +271,9 @@
                 </button>
             </div>
 
-            <!-- Modal Body -->
             <div class="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50">
                 
-                <!-- Left Col: History & Contact -->
                 <div class="md:col-span-1 space-y-4">
-                    <!-- Contact Card -->
                     <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                         <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Thông tin liên hệ</h4>
                         <div class="space-y-3 text-sm">
@@ -303,7 +295,6 @@
                         </div>
                     </div>
 
-                    <!-- Visit History Stats -->
                     <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 shadow-sm">
                         <h4 class="text-xs font-bold text-orange-600 uppercase mb-2">Lịch sử khám tháng này</h4>
                         <div class="flex items-center gap-2 mb-3">
@@ -311,14 +302,11 @@
                             <span class="text-sm text-orange-600">lần đến khám</span>
                         </div>
                         <div class="text-xs text-gray-600 bg-white p-2 rounded border border-orange-100 max-h-32 overflow-y-auto" id="m-visit-dates">
-                            <!-- List of dates -->
-                        </div>
+                            </div>
                     </div>
                 </div>
 
-                <!-- Right Col: Clinical Info -->
                 <div class="md:col-span-2 space-y-4">
-                    <!-- Diagnosis -->
                     <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
                         <div class="flex justify-between items-start mb-3">
@@ -343,37 +331,28 @@
                         </div>
                     </div>
 
-                    <!-- Treatment & CLS Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-64">
-                        
-                        <!-- Column 1: Medication (Yellow) -->
                         <div class="bg-yellow-50 rounded-xl border border-yellow-200 shadow-sm flex flex-col h-full">
                             <div class="p-3 border-b border-yellow-200 bg-yellow-100/50 rounded-t-xl flex items-center gap-2">
                                 <div class="bg-yellow-400 text-white w-6 h-6 rounded flex items-center justify-center text-xs"><i class="fa-solid fa-pills"></i></div>
                                 <h4 class="text-xs font-bold text-yellow-800 uppercase">Thuốc / Điều trị</h4>
                             </div>
                             <div class="p-4 overflow-y-auto flex-1">
-                                <ul class="text-sm text-gray-700 space-y-2 med-list" id="m-treatment">
-                                    <!-- Meds content -->
-                                </ul>
+                                <ul class="text-sm text-gray-700 space-y-2 med-list" id="m-treatment"></ul>
                             </div>
                         </div>
 
-                        <!-- Column 2: Paraclinical (Blue) -->
                         <div class="bg-blue-50 rounded-xl border border-blue-200 shadow-sm flex flex-col h-full">
                             <div class="p-3 border-b border-blue-200 bg-blue-100/50 rounded-t-xl flex items-center gap-2">
                                 <div class="bg-blue-500 text-white w-6 h-6 rounded flex items-center justify-center text-xs"><i class="fa-solid fa-microscope"></i></div>
                                 <h4 class="text-xs font-bold text-blue-800 uppercase">Cận Lâm Sàng (XN - CĐHA - VLTL)</h4>
                             </div>
                             <div class="p-4 overflow-y-auto flex-1">
-                                <div class="text-sm text-gray-700 space-y-3" id="m-cls">
-                                    <!-- CLS content -->
-                                </div>
+                                <div class="text-sm text-gray-700 space-y-3" id="m-cls"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Note Input -->
                     <div class="pt-2">
                         <label class="block text-xs font-bold text-gray-700 mb-1 ml-1"><i class="fa-regular fa-pen-to-square mr-1"></i>Ghi chú CSKH (Sẽ tự động lưu)</label>
                         <div class="relative">
@@ -381,7 +360,6 @@
                         </div>
                     </div>
                     
-                    <!-- Quick Action -->
                     <div class="flex justify-between items-center pt-2 border-t border-gray-200 mt-2">
                          <span class="text-xs text-gray-400 italic">Trạng thái hiện tại: <span id="m-status-text" class="font-bold">...</span></span>
                         <div class="flex gap-3">
@@ -399,10 +377,8 @@
         </div>
     </div>
 
-    <!-- LOGIC -->
     <script>
-        // --- CONSTANTS & STATE ---
-        const PASSWORD = "1402";
+        const PASSWORD = "1234";
         const ITEMS_PER_PAGE = 50;
 
         let state = {
@@ -418,7 +394,6 @@
             selectedId: null
         };
 
-        // --- AUTH ---
         function checkLogin() {
             const input = document.getElementById('password-input').value;
             if (input === PASSWORD) {
@@ -430,7 +405,6 @@
             }
         }
 
-        // --- HELPER: FUZZY KEY FINDER ---
         function getValue(row, keywords) {
             const key = Object.keys(row).find(k => 
                 keywords.some(kw => k.toLowerCase().includes(kw.toLowerCase()))
@@ -438,7 +412,6 @@
             return key ? row[key] : '';
         }
 
-        // --- FILE HANDLING ---
         function handleFileSelect(input, labelId, key) {
             if (input.files.length > 0) {
                 document.getElementById(labelId).innerText = input.files[0].name;
@@ -469,10 +442,8 @@
             return 0;
         }
 
-        // --- PARSING LOGIC (STRICT SEPARATION) ---
         function parseClinicalInfo(row) {
             const rawTreatment = getValue(row, ['chỉ định', 'thuốc', 'điều trị']);
-            
             let meds = "";
             let clsList = [];
 
@@ -491,29 +462,23 @@
 
             if (rawTreatment && String(rawTreatment).includes("*")) {
                 const parts = String(rawTreatment).split("*");
-                
                 parts.forEach(part => {
                     let p = part.trim();
                     if (!p) return;
                     
                     const lowerP = p.toLowerCase();
-
                     if (lowerP.startsWith("thuốc:")) {
                         meds += p.substring(6).trim() + "; "; 
-                    } 
-                    else if (lowerP.startsWith("xét nghiệm:")) {
+                    } else if (lowerP.startsWith("xét nghiệm:")) {
                         let content = p.substring(11).trim();
                         if(isValid(content)) clsList.push(createCLSItem("🧪 Xét nghiệm", content, "text-blue-600", "bg-blue-50"));
-                    } 
-                    else if (lowerP.startsWith("chẩn đoán hình ảnh:")) {
+                    } else if (lowerP.startsWith("chẩn đoán hình ảnh:")) {
                         let content = p.substring(19).trim();
                         if(isValid(content)) clsList.push(createCLSItem("📷 Chẩn đoán hình ảnh", content, "text-purple-600", "bg-purple-50"));
-                    } 
-                    else if (lowerP.startsWith("ttpt-vltl:")) {
+                    } else if (lowerP.startsWith("ttpt-vltl:")) {
                         let content = p.substring(10).trim();
                         if(isValid(content)) clsList.push(createCLSItem("⚡ TTPT - VLTL", content, "text-orange-600", "bg-orange-50"));
-                    } 
-                    else {
+                    } else {
                         if (!lowerP.includes("xét nghiệm") && !lowerP.includes("chẩn đoán") && !lowerP.includes("vltl")) {
                              if (!meds.includes(p)) meds += p + "; "; 
                         }
@@ -554,27 +519,38 @@
             };
         }
 
-        // --- UPDATE DASHBOARD STATS ---
+        // --- CÔNG THỨC MỚI CHI TIẾT CẬP NHẬT 100% CHUẨN XÁC ---
         function updateDashboardStats() {
+            // TỔNG LƯỢT KHÁM = Tổng số dòng dữ liệu (tất cả các hồ sơ)
             const totalVisits = state.allData.length;
             const uniquePatientIds = Object.keys(state.visitHistoryMap);
-            const totalUniquePatients = uniquePatientIds.length;
             
-            let singleCount = 0;
-            let returnCount = 0;
-            
+            let singleCount = 0; // Số khách khám chỉ 1 lần
+            let returnCount = 0; // Số bệnh nhân có quay lại tái khám (≥2 lần)
+
             uniquePatientIds.forEach(id => {
-                if (state.visitHistoryMap[id].size >= 2) returnCount++;
-                else singleCount++;
+                if (state.visitHistoryMap[id].size >= 2) {
+                    returnCount++;
+                } else {
+                    singleCount++;
+                }
             });
 
-            const percent = totalUniquePatients === 0 ? 0 : Math.round((returnCount / totalUniquePatients) * 100);
+            // TÍNH SỐ LƯỢT QUAY LẠI THEO ĐÚNG CÔNG THỨC: 
+            // = TỔNG LƯỢT KHÁM - KHÁM CHỈ 1 LẦN - BỆNH NHÂN CÓ QUAY LẠI TÁI KHÁM
+            let returnVisits = totalVisits - singleCount - returnCount;
+            
+            // CHIA CHO TỔNG LƯỢT KHÁM. NHÂN 100
+            const percentStr = totalVisits === 0 ? "0" : ((returnVisits / totalVisits) * 100).toFixed(1);
 
+            // Hiển thị ra màn hình
             document.getElementById('stat-total-visits').innerText = totalVisits.toLocaleString('vi-VN');
             document.getElementById('stat-single').innerText = singleCount.toLocaleString('vi-VN');
             document.getElementById('stat-return').innerText = returnCount.toLocaleString('vi-VN');
-            document.getElementById('stat-percent').innerText = percent + '%';
-            document.getElementById('stat-progress').style.width = percent + '%';
+            document.getElementById('stat-return-visits').innerText = returnVisits.toLocaleString('vi-VN');
+            
+            document.getElementById('stat-percent').innerText = percentStr + '%';
+            document.getElementById('stat-progress').style.width = Math.min(parseFloat(percentStr), 100) + '%';
             
             document.getElementById('analytics-panel').classList.remove('hidden');
         }
@@ -587,41 +563,40 @@
 
             const btnText = document.getElementById('btn-text');
             const btnIcon = document.getElementById('btn-icon');
-            btnText.innerText = "Đang tách dữ liệu...";
+            btnText.innerText = "Đang xử lý...";
             btnIcon.classList.add('fa-spin');
 
             setTimeout(() => {
                 try {
-                    // 1. File 1 (Admin)
                     const header1 = findHeaderRow(state.rawFile1, "Mã y tế");
                     const json1 = XLSX.utils.sheet_to_json(state.rawFile1, { range: header1, defval: "" });
 
-                    // 2. Visit History
                     state.visitHistoryMap = {};
                     json1.forEach(row => {
                          let r = {};
                          for (let k in row) r[k.trim().toLowerCase()] = row[k];
                          
-                         const id = r['mã y tế'];
-                         const date = r['ngày khám'] || r['thời gian tiếp nhận'] || '';
-                         if(id && date) {
+                         const id = String(r['mã y tế']).trim();
+                         const dateStr = String(r['ngày khám'] || r['thời gian tiếp nhận'] || '');
+                         
+                         if(id && dateStr) {
                              if(!state.visitHistoryMap[id]) state.visitHistoryMap[id] = new Set();
-                             state.visitHistoryMap[id].add(date.toString().split(' ')[0]);
+                             // Lấy đúng ngày, loại bỏ giờ phút (nếu có dấu cách)
+                             const cleanDate = dateStr.trim().split(/\s+/)[0];
+                             state.visitHistoryMap[id].add(cleanDate);
                          }
                     });
 
-                    // 3. File 2 (Clinical)
                     const header2 = findHeaderRow(state.rawFile2, "Mã y tế");
                     const json2 = XLSX.utils.sheet_to_json(state.rawFile2, { range: header2, defval: "" });
                     
                     const clinicalMap = {};
                     json2.forEach(row => {
                         let r = row; 
-                        let id = getValue(r, ['mã y tế']); 
+                        let id = String(getValue(r, ['mã y tế'])).trim();
 
                         if (id) {
                             const parsed = parseClinicalInfo(r);
-
                             clinicalMap[id] = {
                                 doctor: getValue(r, ['bác sĩ', 'bs']),
                                 symptoms: getValue(r, ['triệu chứng']),
@@ -633,13 +608,12 @@
                         }
                     });
 
-                    // 4. Merge
                     state.allData = [];
                     json1.forEach((row, idx) => {
                         let r = {};
                         for (let k in row) r[k.trim().toLowerCase()] = row[k];
                         
-                        const id = r['mã y tế'];
+                        const id = String(r['mã y tế']).trim();
                         if (!id) return;
                         
                         const insurance = r['số thẻ'] || r['số thẻ bhyt'];
@@ -658,20 +632,14 @@
                             type: isService ? 'Dịch vụ' : 'BHYT',
                             time: r['thời gian tiếp nhận'] || r['thời gian đến khám'],
                             room: r['phòng khám'] || r['phòng'],
-                            
-                            // Clinical
                             doctor: clinical.doctor || '---',
                             symptoms: clinical.symptoms || '',
                             diagnosis: clinical.diagnosis || '',
                             treatmentDisplay: clinical.treatmentDisplay, 
                             clsDisplay: clinical.clsDisplay, 
                             rawMeds: clinical.rawMeds,
-                            
-                            // Stats
-                            visitCount: visitDates.length,
+                            visitCount: visitDates.length, // Đếm số lần tái khám chuẩn theo NGÀY
                             visitDates: visitDates,
-
-                            // App State
                             status: 'pending', 
                             note: ''
                         });
@@ -696,10 +664,8 @@
             }, 500);
         }
 
-        // --- FILTER & TABS ---
         function switchTab(tabName) {
             state.currentTab = tabName;
-            
             const tabs = ['pending', 'done', 'return'];
             
             tabs.forEach(t => {
@@ -712,7 +678,6 @@
                     btn.classList.add('border-transparent', 'text-gray-500', 'font-medium');
                 }
             });
-
             applyFilters();
         }
 
@@ -726,19 +691,16 @@
                                     (item.phone && String(item.phone).includes(term)) ||
                                     (item.id && String(item.id).includes(term));
                 const matchType = typeVal === 'all' || item.type === typeVal;
-                
                 return matchSearch && matchType;
             });
 
             state.filteredData = result; 
 
-            // Handle Tabs logic
             if (state.currentTab === 'pending') {
                 state.displayData = result.filter(item => item.status === 'pending' || item.status === 'busy' || item.status === 'wrong');
             } else if (state.currentTab === 'done') {
                 state.displayData = result.filter(item => item.status === 'called');
             } else if (state.currentTab === 'return') {
-                // Return Tab: Filter >= 2 visits, AND Deduplicate so we only call them once!
                 const seen = new Set();
                 state.displayData = result.filter(item => {
                     if (item.visitCount >= 2) {
@@ -751,14 +713,13 @@
                 });
             }
 
-            // Update Badges (Without deduplication for raw counts, except return tab)
             document.getElementById('badge-pending').innerText = result.filter(i => i.status !== 'called').length;
             document.getElementById('badge-done').innerText = result.filter(i => i.status === 'called').length;
             
             const uniqueReturnCount = new Set(result.filter(i => i.visitCount >= 2).map(i => i.id)).size;
             document.getElementById('badge-return').innerText = uniqueReturnCount;
             
-            document.getElementById('stat-total').innerText = state.displayData.length.toLocaleString('vi-VN') + " hồ sơ";
+            document.getElementById('stat-total-rows').innerText = state.displayData.length.toLocaleString('vi-VN');
 
             state.currentPage = 1;
             renderTable();
@@ -774,7 +735,6 @@
             };
         }
 
-        // --- RENDER TABLE ---
         function renderTable() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
@@ -853,7 +813,6 @@
         function nextPage() { state.currentPage++; renderTable(); }
         function prevPage() { if (state.currentPage > 1) { state.currentPage--; renderTable(); } }
 
-        // --- ACTIONS ---
         function quickUpdateStatus(uniqueKey, newStatus) {
             const item = state.allData.find(i => i.uniqueKey === uniqueKey);
             if (item) {
@@ -862,14 +821,12 @@
             }
         }
 
-        // --- MODAL ---
         function openModal(uniqueKey) {
             const item = state.allData.find(i => i.uniqueKey === uniqueKey);
             if (!item) return;
 
             state.selectedId = uniqueKey;
 
-            // Header
             document.getElementById('m-name').innerText = item.name;
             document.getElementById('m-avatar').innerText = item.name.charAt(0);
             document.getElementById('m-id').innerText = item.id;
@@ -881,33 +838,27 @@
                 ? "text-[10px] px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-200"
                 : "text-[10px] px-2 py-0.5 rounded-full border bg-purple-100 text-purple-700 border-purple-200";
 
-            // Contact
             document.getElementById('m-phone').innerText = item.phone || "Không có số";
             document.getElementById('m-phone').href = item.phone ? `tel:${item.phone}` : "#";
             document.getElementById('m-address').innerText = item.address || "---";
             document.getElementById('m-card').innerText = item.card || "Không có thẻ";
 
-            // Visit Stats
             document.getElementById('m-visit-count').innerText = item.visitCount;
             document.getElementById('m-visit-dates').innerHTML = item.visitDates.map(d => `<div class="border-b border-gray-100 last:border-0 py-1.5 flex items-center gap-2"><i class="fa-regular fa-calendar text-gray-400 text-[10px]"></i>${d}</div>`).join('');
 
-            // Clinical Text
             document.getElementById('m-time').innerText = item.time || '';
             document.getElementById('m-doctor').innerText = item.doctor;
             document.getElementById('m-room').innerText = item.room || '';
             document.getElementById('m-diagnosis').innerText = item.diagnosis || 'Không có thông tin chẩn đoán';
             document.getElementById('m-symptoms').innerText = item.symptoms || '---';
             
-            // HTML Injected Content
             document.getElementById('m-treatment').innerHTML = item.treatmentDisplay;
             document.getElementById('m-cls').innerHTML = item.clsDisplay;
 
-            // State
             document.getElementById('m-note').value = item.note || '';
             const statusMap = {'pending': 'Chưa gọi', 'called': 'Đã gọi', 'busy': 'Máy bận', 'wrong': 'Sai số'};
             document.getElementById('m-status-text').innerText = statusMap[item.status];
 
-            // Show
             const overlay = document.getElementById('modal-overlay');
             const content = document.getElementById('modal-content');
             overlay.classList.remove('hidden');
@@ -945,9 +896,7 @@
             }
         }
 
-        // --- EXPORT SMART LOGIC ---
         function exportToExcel() {
-            // Chỉ xuất những gì đang hiển thị trên bảng (đã áp dụng tab và bộ lọc)
             if (state.displayData.length === 0) {
                 alert("Không có dữ liệu để xuất!");
                 return;
@@ -971,7 +920,6 @@
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             
-            // Đổi tên file linh hoạt theo Tab đang xem
             let sheetName = "BaoCaoCSKH";
             let fileName = `BaoCao_CSKH_${new Date().toISOString().slice(0,10)}.xlsx`;
             
