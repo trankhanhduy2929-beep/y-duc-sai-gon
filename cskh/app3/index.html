@@ -378,7 +378,7 @@
     </div>
 
     <script>
-        const PASSWORD = "1402";
+        const PASSWORD = "1234";
         const ITEMS_PER_PAGE = 50;
 
         let state = {
@@ -578,8 +578,10 @@
                          
                          const id = String(r['mã y tế']).trim();
                          const dateStr = String(r['ngày khám'] || r['thời gian tiếp nhận'] || '');
+                         const nameCheck = String(r['họ tên'] || '').toUpperCase();
                          
-                         if(id && dateStr) {
+                         // Bỏ qua nếu tên có chứa "NHÀ THUỐC"
+                         if(id && dateStr && !nameCheck.includes('NHÀ THUỐC')) {
                              if(!state.visitHistoryMap[id]) state.visitHistoryMap[id] = new Set();
                              // Lấy đúng ngày, loại bỏ giờ phút (nếu có dấu cách)
                              const cleanDate = dateStr.trim().split(/\s+/)[0];
@@ -614,7 +616,10 @@
                         for (let k in row) r[k.trim().toLowerCase()] = row[k];
                         
                         const id = String(r['mã y tế']).trim();
-                        if (!id) return;
+                        const nameCheck = String(r['họ tên'] || '').toUpperCase();
+                        
+                        // Bỏ qua dòng trống hoặc tên chứa "NHÀ THUỐC"
+                        if (!id || nameCheck.includes('NHÀ THUỐC')) return;
                         
                         const insurance = r['số thẻ'] || r['số thẻ bhyt'];
                         const isService = !insurance || String(insurance).trim().length < 5;
