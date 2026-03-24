@@ -567,8 +567,8 @@
                 if (state.visitHistoryMap[id].size >= 2) returnCount++;
                 else singleCount++;
             });
-            let returnVisits = totalVisits - singleCount - returnCount;
-            const percentStr = totalVisits === 0 ? "0" : ((returnVisits / totalVisits) * 100).toFixed(1);
+
+            const percent = totalUniquePatients === 0 ? 0 : Math.round((returnCount / totalUniquePatients) * 100);
 
             document.getElementById('stat-total-visits').innerText = totalVisits.toLocaleString('vi-VN');
             document.getElementById('stat-single').innerText = singleCount.toLocaleString('vi-VN');
