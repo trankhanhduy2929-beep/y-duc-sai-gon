@@ -1115,24 +1115,67 @@
                 }
             });
             
+            // --- TÍNH NĂNG TỰ ĐỘNG ẨN CONTROLS & CHUỘT NHƯ NETFLIX ---
+            let uiTimeout = null;
+            const videoControls = document.getElementById('videoControls');
+
+            const showUI = () => {
+                videoContainer.classList.remove('hide-ui');
+                if(videoContainer.classList.contains('touch-device')) {
+                    videoControls.classList.add('active');
+                }
+                clearTimeout(uiTimeout);
+                if (!video.paused) {
+                    uiTimeout = setTimeout(hideUI, 2500); // Tự động ẩn sau 2.5 giây không thao tác
+                }
+            };
+
+            const hideUI = () => {
+                if (!video.paused) {
+                    videoContainer.classList.add('hide-ui');
+                    videoControls.classList.remove('active');
+                }
+            };
+
+            // Bắt sự kiện di chuyển chuột hoặc chạm để hiện UI
+            videoContainer.addEventListener('mousemove', showUI);
+            videoContainer.addEventListener('touchstart', showUI, {passive: true});
+            
+            // Nếu chuột đang nằm thẳng trên thanh Control thì không được ẩn
+            videoControls.addEventListener('mouseenter', () => clearTimeout(uiTimeout));
+            videoControls.addEventListener('mouseleave', showUI);
+            
+            // Logic khi Play/Pause
+            video.addEventListener('play', showUI);
+            video.addEventListener('pause', () => {
+                videoContainer.classList.remove('hide-ui');
+                clearTimeout(uiTimeout);
+            });
+
             if('ontouchstart' in window) {
                 videoContainer.classList.add('touch-device');
-                video.addEventListener('click', () => {
-                    const controls = document.getElementById('videoControls');
-                    controls.classList.toggle('active');
-                });
             }
 
             let clickTimer = null;
             videoContainer.addEventListener('click', (e) => {
-                if(e.target.closest('.video-controls')) return;
+                if(e.target.closest('.video-controls')) return; // Bỏ qua nếu click vào thanh control
 
                 if (clickTimer === null) {
                     clickTimer = setTimeout(() => {
-                        if(!('ontouchstart' in window)) togglePlay(); 
+                        // SINGLE CLICK: PC thì Play/Pause, Mobile thì bật/tắt thanh Control
+                        if('ontouchstart' in window) {
+                            if (videoContainer.classList.contains('hide-ui') || !videoControls.classList.contains('active')) {
+                                showUI();
+                            } else {
+                                hideUI();
+                            }
+                        } else {
+                            togglePlay(); 
+                        }
                         clickTimer = null;
                     }, 250); 
                 } else {
+                    // DOUBLE CLICK: Xả video
                     clearTimeout(clickTimer); 
                     clickTimer = null;
                     const rect = videoContainer.getBoundingClientRect();
@@ -1148,6 +1191,9 @@
                         performSeek(Math.min(duration || 0, currentTime + 10));
                         animateSeek('seekRight');
                     }
+
+                    // TÍNH NĂNG BẠN YÊU CẦU: Ép ẩn toàn bộ Control & Chuột lập tức ngay khi xả phim
+                    hideUI();
                 }
             });
 
@@ -1449,14 +1495,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
