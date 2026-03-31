@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần Mềm Dò Lỗi Cận Lâm Sàng BHYT</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- SweetAlert2 for beautiful alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Loader */
+        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #3b82f6; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- LOGIN SECTION -->
+    <div id="login-section" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 p-4">
+        <div class="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-md text-center transform transition-all">
+            <div class="mb-6">
+                <i class="fa-solid fa-shield-halved text-5xl text-blue-600 mb-4"></i>
+                <h1 class="text-2xl font-bold text-gray-800">Hệ Thống Dò Lỗi BHYT</h1>
+                <p class="text-sm text-gray-500 mt-2">Vui lòng đăng nhập để tiếp tục</p>
+            </div>
+            <div class="space-y-4">
+                <input type="password" id="password-input" placeholder="Nhập mật khẩu..." 
+                       class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg"
+                       onkeypress="if(event.key === 'Enter') checkLogin()">
+                <button onclick="checkLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP SECTION (Hidden by default) -->
+    <div id="app-section" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg">
+                        <i class="fa-solid fa-notes-medical text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">Dò Lỗi Kết Quả Cận Lâm Sàng</h1>
+                        <p class="text-xs text-gray-500">Đối chiếu trực tiếp Bảng 1 & Bảng 3</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-red-500 transition px-3 py-1 rounded-md hover:bg-red-50 text-sm font-medium">
+                    <i class="fa-solid fa-power-off mr-1"></i> Thoát
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            
+            <!-- Instructions -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg shadow-sm">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">Hướng dẫn sử dụng</h3>
+                        <p class="text-sm text-blue-700 mt-1">
+                            Chọn file Excel (.xlsx, .xls) hoặc CSV tương ứng cho Bảng 1, Bảng 3 và DS CCHN. Bấm "Chạy Dò Lỗi" để phần mềm kiểm tra các dịch vụ Cận Lâm Sàng ở Bảng 3 có thiếu Ngày Thực Hiện hay Ngày Trả Kết Quả không.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Bảng 1 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <label class="block text-sm font-bold text-gray-700 mb-3">
+                        <i class="fa-solid fa-file-excel text-green-600 mr-2 text-lg"></i> BẢNG 1 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" id="file-b1" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
+                </div>
+                <!-- Bảng 3 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <label class="block text-sm font-bold text-gray-700 mb-3">
+                        <i class="fa-solid fa-file-excel text-green-600 mr-2 text-lg"></i> BẢNG 3 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" id="file-b3" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer">
+                </div>
+                <!-- DS CCHN -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <label class="block text-sm font-bold text-gray-700 mb-3">
+                        <i class="fa-solid fa-user-doctor text-indigo-600 mr-2 text-lg"></i> DS CCHN <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" id="file-cchn" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Action Area -->
+            <div class="flex justify-center mt-8">
+                <button onclick="runProcess()" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-full font-bold shadow-lg transform transition hover:scale-105 flex items-center gap-3 text-lg">
+                    <i class="fa-solid fa-play"></i> CHẠY DÒ LỖI
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="result-section" class="hidden mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-gray-800">
+                        <i class="fa-solid fa-list-check text-blue-600 mr-2"></i> Kết quả phân tích (Bảng 3)
+                        <span id="error-count" class="ml-2 bg-red-100 text-red-700 text-xs py-1 px-2 rounded-full font-bold">0 Lỗi</span>
+                    </h2>
+                    <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Xuất Excel
+                    </button>
+                </div>
+                <div class="overflow-x-auto max-h-[500px]">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100 sticky top-0 z-10">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Mã Lượt Khám</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tên Bệnh Nhân</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Dịch Vụ Cận Lâm Sàng</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider w-48">BS Chỉ Định</th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Chi Tiết Lỗi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="result-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Data will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="hidden loader-overlay">
+        <div class="bg-white p-6 rounded-xl flex flex-col items-center shadow-2xl">
+            <div class="spinner mb-4"></div>
+            <p class="font-semibold text-gray-700" id="loader-text">Đang xử lý dữ liệu...</p>
+        </div>
+    </div>
+
+    <script>
+        // --- AUTHENTICATION ---
+        function checkLogin() {
+            const pass = document.getElementById('password-input').value;
+            if (pass === '1402') {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('app-section').classList.remove('hidden');
+                document.getElementById('password-input').value = '';
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Đăng nhập thành công',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Sai mật khẩu',
+                    text: 'Vui lòng kiểm tra lại mật khẩu!',
+                    confirmButtonColor: '#3b82f6'
+                });
+            }
+        }
+
+        function logout() {
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('app-section').classList.add('hidden');
+            document.getElementById('result-section').classList.add('hidden');
+        }
+
+        // --- GLOBAL VARIABLES TO HOLD DATA ---
+        let rawData = {
+            b1: [],
+            b3: [],
+            cchn: []
+        };
+        let finalErrors = [];
+
+        // --- HELPER: SHOW/HIDE LOADER ---
+        function showLoader(text = "Đang xử lý dữ liệu...") {
+            document.getElementById('loader-text').innerText = text;
+            document.getElementById('loader').classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            document.getElementById('loader').classList.add('hidden');
+        }
+
+        // --- HELPER: NORMALIZE KEYS ---
+        function normalizeJSON(data) {
+            return data.map(row => {
+                let newRow = {};
+                for (let key in row) {
+                    newRow[key.trim()] = row[key];
+                }
+                return newRow;
+            });
+        }
+
+        // --- READ EXCEL FILE ---
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    resolve([]);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        let json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                        resolve(normalizeJSON(json));
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // --- MAIN PROCESSING LOGIC ---
+        async function runProcess() {
+            const fileB1 = document.getElementById('file-b1').files[0];
+            const fileB3 = document.getElementById('file-b3').files[0];
+            const fileCCHN = document.getElementById('file-cchn').files[0];
+
+            // Validate mandatory files
+            if (!fileB1 || !fileB3 || !fileCCHN) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu File',
+                    text: 'Vui lòng đính kèm Bảng 1, Bảng 3 và DS CCHN!',
+                    confirmButtonColor: '#3b82f6'
+                });
+                return;
+            }
+
+            showLoader("Đang đọc file Excel/CSV...");
+
+            try {
+                // Read files concurrently
+                const [d1, d3, cchn] = await Promise.all([
+                    readExcelFile(fileB1),
+                    readExcelFile(fileB3),
+                    readExcelFile(fileCCHN)
+                ]);
+
+                rawData.b1 = d1;
+                rawData.b3 = d3;
+                rawData.cchn = cchn;
+
+                showLoader("Đang phân tích dữ liệu Bảng 3...");
+                
+                // Yield to thread to update UI
+                setTimeout(() => {
+                    processLogic();
+                }, 100);
+
+            } catch (error) {
+                hideLoader();
+                console.error(error);
+                Swal.fire({ icon: 'error', title: 'Lỗi đọc file', text: 'Có lỗi xảy ra khi đọc file. Đảm bảo file đúng định dạng.' });
+            }
+        }
+
+        function processLogic() {
+            finalErrors = [];
+
+            // 1. Build Dictionaries for fast lookup
+            // Dictionary Patient (Bang 1)
+            const dictBN = {};
+            rawData.b1.forEach(row => {
+                if (row.MA_LK) dictBN[String(row.MA_LK).trim()] = row.HO_TEN || "Không rõ";
+            });
+
+            // Dictionary Doctors (CCHN)
+            const dictBS = {};
+            rawData.cchn.forEach(row => {
+                let ma = row['MA CCHN'] || row['MA_CCHN'] || row['Mã CCHN'];
+                let ten = row['TEN BS'] || row['TEN_BS'] || row['Tên BS'];
+                if (ma) dictBS[String(ma).trim()] = ten;
+            });
+
+            // 2. Scan Bang 3 ONLY
+            rawData.b3.forEach(row3 => {
+                const tenDV = row3.TEN_DICH_VU ? String(row3.TEN_DICH_VU).trim() : "";
+                
+                // Bỏ qua nếu là tiền khám hoặc trống
+                if (!tenDV || tenDV.toLowerCase().includes('khám')) return;
+
+                const maLK = row3.MA_LK ? String(row3.MA_LK).trim() : "";
+                const maBS = row3.MA_BAC_SI ? String(row3.MA_BAC_SI).trim() : "";
+                
+                const tenBN = dictBN[maLK] || "Không rõ";
+                const tenBS = dictBS[maBS] ? `${dictBS[maBS]} (${maBS})` : maBS;
+
+                let errors = [];
+
+                // Chỉ kiểm tra Bảng 3: phải có NGAY_TH_YL và NGAY_KQ
+                if (!row3.NGAY_TH_YL || String(row3.NGAY_TH_YL).trim() === "") {
+                    errors.push(`Chưa có Ngày Thực Hiện (NGAY_TH_YL)`);
+                }
+                if (!row3.NGAY_KQ || String(row3.NGAY_KQ).trim() === "") {
+                    errors.push(`Chưa có Ngày Trả KQ (NGAY_KQ)`);
+                }
+
+                // Push lỗi nếu có
+                if (errors.length > 0) {
+                    finalErrors.push({
+                        maLK: maLK,
+                        tenBN: tenBN,
+                        tenDV: tenDV,
+                        bsChiDinh: tenBS,
+                        chiTietLoi: errors.join("<br>• ")
+                    });
+                }
+            });
+
+            // 3. Render Table
+            renderResults();
+            hideLoader();
+
+            // Scroll to results
+            document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+
+            if(finalErrors.length === 0) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tuyệt vời!',
+                    text: 'Không phát hiện lỗi Cận Lâm Sàng nào trên Bảng 3.',
+                    confirmButtonColor: '#10b981'
+                });
+            } else {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'warning',
+                    title: `Phát hiện ${finalErrors.length} lỗi`,
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
+        }
+
+        // --- RENDER HTML TABLE ---
+        function renderResults() {
+            document.getElementById('result-section').classList.remove('hidden');
+            document.getElementById('error-count').innerText = `${finalErrors.length} Lỗi`;
+            
+            const tbody = document.getElementById('result-body');
+            tbody.innerHTML = '';
+
+            if (finalErrors.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500 italic">Không có lỗi nào được tìm thấy.</td></tr>`;
+                return;
+            }
+
+            finalErrors.forEach(err => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition duration-150";
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${err.maLK}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 font-semibold">${err.tenBN}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">${err.tenDV}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">${err.bsChiDinh}</td>
+                    <td class="px-4 py-3 text-sm text-red-600 font-medium leading-tight">
+                        • ${err.chiTietLoi}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- EXPORT TO EXCEL ---
+        function exportExcel() {
+            if (finalErrors.length === 0) {
+                Swal.fire({ icon: 'info', title: 'Trống', text: 'Không có dữ liệu lỗi để xuất.' });
+                return;
+            }
+
+            const excelData = finalErrors.map((err, index) => ({
+                "STT": index + 1,
+                "Mã LK": err.maLK,
+                "Tên Bệnh Nhân": err.tenBN,
+                "Dịch vụ Cận Lâm Sàng": err.tenDV,
+                "Bác Sĩ Chỉ Định": err.bsChiDinh,
+                "Chi tiết Lỗi": err.chiTietLoi.replace(/<br>• /g, "\n- ").replace("• ", "- ")
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            
+            const wscols = [
+                {wch: 5}, {wch: 15}, {wch: 25}, {wch: 40}, {wch: 30}, {wch: 60}
+            ];
+            ws['!cols'] = wscols;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "BaoCaoLoi_B3");
+            
+            const date = new Date();
+            const filename = `Bao_Cao_Loi_Bang3_${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}.xlsx`;
+
+            XLSX.writeFile(wb, filename);
+        }
+    </script>
+</body>
+</html>
