@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cửa Hàng Thiết Bị & Dịch Vụ Home Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#03a9f4',
+                        secondary: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-primary selection:text-white">
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-house-line text-3xl text-primary"></i>
+                    <span class="font-bold text-xl tracking-tight text-secondary">HA<span class="text-primary">Store</span></span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#products" class="text-slate-600 hover:text-primary font-medium transition-colors">Thiết bị</a>
+                    <a href="#services" class="text-slate-600 hover:text-primary font-medium transition-colors">Dịch vụ cấu hình</a>
+                </div>
+                <div>
+                    <a href="tel:0846087165" class="bg-primary hover:bg-sky-500 text-white px-5 py-2 rounded-full font-medium transition-all shadow-sm flex items-center gap-2">
+                        <i class="ph ph-phone text-lg"></i>
+                        084 608 7165
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-16 pb-20 lg:pt-24 lg:pb-28 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="max-w-2xl text-center lg:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-medium text-sm mb-6 border border-blue-200">
+                        <i class="ph-fill ph-check-circle"></i> Giải pháp nhà thông minh toàn diện
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
+                        Kiểm soát ngôi nhà với <br>
+                        <span class="bg-gradient-to-r from-primary to-blue-600 text-gradient">Home Assistant</span>
+                    </h1>
+                    <p class="text-lg text-slate-600 mb-8 leading-relaxed">
+                        Chuyên cung cấp các dòng máy chủ Mini PC, TV Box tối ưu cho Home Assistant. Hỗ trợ cài đặt chuyên sâu AI Camera, quản lý năng lượng, thông báo Telegram và điều khiển đa nền tảng.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <a href="#products" class="px-8 py-3.5 bg-secondary hover:bg-slate-800 text-white rounded-xl font-semibold shadow-lg shadow-slate-200 transition-all text-center">
+                            Xem thiết bị ngay
+                        </a>
+                        <a href="#services" class="px-8 py-3.5 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-semibold transition-all text-center flex items-center justify-center gap-2">
+                            Dịch vụ cài đặt
+                        </a>
+                    </div>
+                </div>
+                <div class="relative lg:ml-auto w-full max-w-md mx-auto">
+                    <div class="absolute -inset-1 bg-gradient-to-tr from-primary to-blue-300 rounded-[2.5rem] blur-2xl opacity-40"></div>
+                    <img 
+                        src="z7687277879190_f28039fcb94c8ec36abcb7cdee2cde02.jpg" 
+                        onerror="this.src='https://images.unsplash.com/photo-1558002038-1055907df827?q=80&w=800&auto=format&fit=crop'" 
+                        alt="Home Assistant Dashboard" 
+                        class="relative rounded-[2rem] shadow-2xl border-4 border-white/50 w-full object-cover z-10 bg-white"
+                    />
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-secondary mb-4">Danh Sách Thiết Bị</h2>
+                <p class="text-slate-500 max-w-2xl mx-auto">Tất cả các máy đều được kèm nguồn đầy đủ. Cấu hình đa dạng đáp ứng từ nhu cầu cơ bản đến hệ thống nhà thông minh phức tạp.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                
+                <!-- Product 1: TV Box -->
+                <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+                    <div class="relative h-48 overflow-hidden bg-slate-100">
+                        <img 
+                            src="z7687277875298_d204f3b07afc9e92b5cde98333abcb4f.jpg" 
+                            onerror="this.src='https://images.unsplash.com/photo-1544228801-10c55d04ccb7?q=80&w=600&auto=format&fit=crop'" 
+                            alt="TV Box Home Assistant" 
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm">
+                            Kèm nguồn
+                        </div>
+                    </div>
+                    <div class="p-6 flex flex-col flex-grow">
+                        <h3 class="text-xl font-bold text-secondary mb-2">TV Box Home Assistant</h3>
+                        <div class="flex items-center gap-2 mb-4 text-xs font-medium">
+                            <span class="bg-red-50 text-red-600 px-2 py-1 rounded flex items-center gap-1"><i class="ph ph-x-circle"></i> Ko nâng RAM</span>
+                            <span class="bg-red-50 text-red-600 px-2 py-1 rounded flex items-center gap-1"><i class="ph ph-x-circle"></i> Ko nâng SSD</span>
+                        </div>
+                        <ul class="text-sm text-slate-600 space-y-2 mb-6 flex-grow">
+                            <li class="flex items-start gap-2"><i class="ph ph-check text-green-500 mt-0.5"></i> Phù hợp nhu cầu cơ bản</li>
+                            <li class="flex items-start gap-2"><i class="ph ph-check text-green-500 mt-0.5"></i> Nhỏ gọn, tiết kiệm điện</li>
+                        </ul>
+                        <div class="pt-4 border-t border-slate-100">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Không bảo hành:</p>
+                                    <p class="text-xl font-bold text-primary">350.000₫</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-slate-500 mb-1">Bảo hành:</p>
+                                    <p class="text-lg font-semibold text-secondary">400.000₫</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2: Mini PC 2GB/32GB -->
+                <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full relative">
+                    <div class="absolute top-0 right-0 overflow-hidden w-24 h-24 z-10">
+                         <div class="absolute transform rotate-45 bg-amber-500 text-white text-[10px] font-bold py-1 right-[-35px] top-[15px] w-[120px] text-center shadow-sm">
+                            BÁN CHẠY
+                        </div>
+                    </div>
+                    <div class="relative h-48 overflow-hidden bg-slate-100">
+                        <img 
+                            src="z7687275736163_6a2be5ddde1fa41fb19854681bf970dc.jpg" 
+                            onerror="this.src='https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=600&auto=format&fit=crop'" 
+                            alt="Mini PC 2GB 32GB" 
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm flex items-center gap-1">
+                            <i class="ph-fill ph-shield-check text-green-500"></i> BH 3 Tháng
+                        </div>
+                    </div>
+                    <div class="p-6 flex flex-col flex-grow">
+                        <h3 class="text-xl font-bold text-secondary mb-1">Máy Chủ Mini PC</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">RAM 2GB • SSD 32GB</p>
+                        <div class="flex items-center gap-2 mb-4 text-xs font-medium">
+                            <span class="bg-red-50 text-red-600 px-2 py-1 rounded flex items-center gap-1"><i class="ph ph-x-circle"></i> Ko nâng RAM</span>
+                            <span class="bg-green-50 text-green-600 px-2 py-1 rounded flex items-center gap-1"><i class="ph ph-arrow-circle-up"></i> Nâng được SSD</span>
+                        </div>
+                        <ul class="text-sm text-slate-600 space-y-2 mb-6 flex-grow">
+                            <li class="flex items-start gap-2"><i class="ph ph-plug text-primary mt-0.5"></i> Kèm đầy đủ nguồn</li>
+                            <li class="flex items-start gap-2"><i class="ph ph-speedometer text-primary mt-0.5"></i> Hiệu năng ổn định cho HA</li>
+                        </ul>
+                        <div class="pt-4 border-t border-slate-100">
+                            <p class="text-xs text-slate-500 mb-1">Mức giá cực tốt:</p>
+                            <p class="text-2xl font-extrabold text-primary">650.000₫</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 3: Mini PC 4GB/64GB -->
+                <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
+                    <div class="relative h-48 overflow-hidden bg-slate-100">
+                        <img 
+                            src="z7687275742670_4059ced880122c72fabb92b5337d1a4b.jpg" 
+                            onerror="this.src='https://images.unsplash.com/photo-1620282451330-467bea2bfdb1?q=80&w=600&auto=format&fit=crop'" 
+                            alt="Mini PC 4GB 64GB" 
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                         <div class="absolute top-3 right-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm">
+                            Kèm nguồn
+                        </div>
+                    </div>
+                    <div class="p-6 flex flex-col flex-grow">
+                        <h3 class="text-xl font-bold text-secondary mb-1">Máy Chủ Mini PC</h3>
+                        <p class="text-sm font-medium text-slate-500 mb-3">RAM 4GB • SSD 64GB</p>
+                        <div class="flex items-center gap-2 mb-4 text-xs font-medium">
+                            <span class="bg-green-50 text-green-600 px-2 py-1 rounded flex items-center gap-1"><i class="ph ph-arrow-circle-up"></i> Nâng được RAM</span>
+                            <span class="bg-green-50 text-green-600 px-2 py-1 rounded flex items-center gap-1"><i class="ph ph-arrow-circle-up"></i> Nâng được SSD</span>
+                        </div>
+                        <ul class="text-sm text-slate-600 space-y-2 mb-6 flex-grow">
+                            <li class="flex items-start gap-2"><i class="ph ph-stack text-primary mt-0.5"></i> Đa nhiệm tốt hơn</li>
+                            <li class="flex items-start gap-2"><i class="ph ph-camera text-primary mt-0.5"></i> Có thể gánh thêm addons Camera</li>
+                        </ul>
+                        <div class="pt-4 border-t border-slate-100">
+                            <p class="text-xs text-slate-500 mb-1">Giá bán lẻ:</p>
+                            <p class="text-2xl font-extrabold text-primary">1.100.000₫</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 4: Intel NUC -->
+                <div class="group bg-slate-900 rounded-2xl shadow-md border border-slate-800 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full text-white relative">
+                    <div class="absolute top-0 right-0 overflow-hidden w-24 h-24 z-10">
+                         <div class="absolute transform rotate-45 bg-blue-600 text-white text-[10px] font-bold py-1 right-[-35px] top-[15px] w-[120px] text-center shadow-sm tracking-wider">
+                            CAO CẤP
+                        </div>
+                    </div>
+                    <div class="relative h-48 overflow-hidden bg-slate-800 border-b border-slate-700">
+                        <img 
+                            src="z7687275724984_f4fd901e7000982f393d7de085a2ec89.jpg" 
+                            onerror="this.src='https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=600&auto=format&fit=crop'" 
+                            alt="Intel NUC DN2820FYK" 
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                        />
+                        <div class="absolute top-3 left-3 bg-black/60 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-white shadow-sm flex items-center gap-1 border border-slate-700">
+                            <i class="ph-fill ph-cpu"></i> Chính hãng Intel
+                        </div>
+                    </div>
+                    <div class="p-6 flex flex-col flex-grow">
+                        <h3 class="text-xl font-bold text-white mb-1">Intel NUC DN2820FYK</h3>
+                        <p class="text-sm font-medium text-slate-400 mb-3">RAM 2GB • SSD 128GB</p>
+                        <div class="flex items-center gap-2 mb-4 text-xs font-medium">
+                            <span class="bg-slate-800 text-blue-400 px-2 py-1 rounded border border-slate-700 flex items-center gap-1"><i class="ph ph-arrow-circle-up"></i> Nâng được RAM</span>
+                            <span class="bg-slate-800 text-blue-400 px-2 py-1 rounded border border-slate-700 flex items-center gap-1"><i class="ph ph-arrow-circle-up"></i> Nâng được SSD</span>
+                        </div>
+                        <ul class="text-sm text-slate-300 space-y-2 mb-6 flex-grow">
+                            <li class="flex items-start gap-2"><i class="ph ph-plug text-blue-500 mt-0.5"></i> Kèm nguồn Zin</li>
+                            <li class="flex items-start gap-2"><i class="ph ph-shield-check text-blue-500 mt-0.5"></i> Hoạt động siêu bền bỉ 24/7</li>
+                        </ul>
+                        <div class="pt-4 border-t border-slate-700">
+                            <p class="text-xs text-slate-400 mb-1">Giá bán lẻ:</p>
+                            <p class="text-2xl font-extrabold text-blue-400">1.200.000₫</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="py-20 bg-slate-50 border-t border-slate-200 relative overflow-hidden">
+        <!-- Abstract Background -->
+        <div class="absolute top-0 right-0 -mr-32 -mt-32 w-96 h-96 rounded-full bg-blue-100 opacity-50 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 -ml-32 -mb-32 w-96 h-96 rounded-full bg-slate-200 opacity-50 blur-3xl"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="flex flex-col md:flex-row gap-12 items-center mb-16">
+                <div class="md:w-1/2">
+                    <h2 class="text-3xl md:text-4xl font-bold text-secondary mb-4">Dịch Vụ Cài Đặt <br><span class="text-primary">Chuyên Sâu (Có Phí)</span></h2>
+                    <p class="text-slate-600 text-lg">
+                        Không chỉ bán phần cứng, chúng tôi cung cấp giải pháp toàn diện. Đội ngũ kỹ thuật hỗ trợ setup các tính năng nâng cao, biến hệ thống Home Assistant của bạn trở nên thông minh và cá nhân hóa nhất.
+                    </p>
+                </div>
+                <div class="md:w-1/2 w-full">
+                    <img 
+                        src="z7687277887027_033c968d8b952f93e27d71c8ba29f88e.jpg" 
+                        onerror="this.src='https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop'" 
+                        alt="Home Assistant Integrations" 
+                        class="rounded-xl shadow-lg border border-slate-200"
+                    />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                
+                <!-- Service 1 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center text-2xl mb-4">
+                        <i class="ph-fill ph-camera"></i>
+                    </div>
+                    <h4 class="font-bold text-secondary mb-2">Camera AI & Face ID</h4>
+                    <p class="text-sm text-slate-600">Tích hợp camera thông minh, nhận diện khuôn mặt người quen/lạ, phát hiện chuyển động AI chính xác.</p>
+                </div>
+
+                <!-- Service 2 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-2xl mb-4">
+                        <i class="ph-fill ph-sun-horizon"></i>
+                    </div>
+                    <h4 class="font-bold text-secondary mb-2">Biến Tần Năng Lượng</h4>
+                    <p class="text-sm text-slate-600">Theo dõi công suất điện mặt trời theo thời gian thực, tự động hóa thiết bị điện theo sản lượng điện.</p>
+                </div>
+
+                <!-- Service 3 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-2xl mb-4">
+                        <i class="ph-fill ph-bank"></i>
+                    </div>
+                    <h4 class="font-bold text-secondary mb-2">Báo Biến Động Số Dư</h4>
+                    <p class="text-sm text-slate-600">Tích hợp thông báo biến động số dư ngân hàng trực tiếp qua loa thông minh hoặc màn hình HA.</p>
+                </div>
+
+                <!-- Service 4 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center text-2xl mb-4">
+                        <i class="ph-fill ph-telegram-logo"></i>
+                    </div>
+                    <h4 class="font-bold text-secondary mb-2">Thông Báo Telegram</h4>
+                    <p class="text-sm text-slate-600">Gửi hình ảnh, thông báo cảnh báo an ninh, và điều khiển ngược nhà thông minh qua chat bot Telegram.</p>
+                </div>
+
+                <!-- Service 5 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl mb-4">
+                        <i class="ph-fill ph-router"></i>
+                    </div>
+                    <h4 class="font-bold text-secondary mb-2">Cấu Hình Zigbee/Wifi</h4>
+                    <p class="text-sm text-slate-600">Đồng bộ tất cả thiết bị thông minh (Tuya, Sonoff, Xiaomi, Aqara...) chung 1 nền tảng không lo rớt mạng.</p>
+                </div>
+
+                <!-- Service 6 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-2xl mb-4">
+                        <i class="ph-fill ph-hard-drives"></i>
+                    </div>
+                    <h4 class="font-bold text-secondary mb-2">NAS Storage</h4>
+                    <p class="text-sm text-slate-600">Tận dụng ổ cứng để làm server lưu trữ nội bộ (NAS) tốc độ cao, sao lưu dữ liệu an toàn.</p>
+                </div>
+
+                <!-- Service 7 -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-2xl mb-4">
+                        <i class="ph-fill ph-youtube-logo"></i>
+                    </div>
+                    <h4 class="font-bold text-secondary mb-2">YouTube Cast & GG Home</h4>
+                    <p class="text-sm text-slate-600">Phát nhạc không quảng cáo lên loa Google Home, tạo kịch bản phát âm thanh theo ngữ cảnh.</p>
+                </div>
+                
+                <!-- CTA Service -->
+                <div class="bg-primary p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-white flex flex-col justify-center items-center text-center">
+                    <h4 class="font-bold text-xl mb-2">Cần tư vấn thêm?</h4>
+                    <p class="text-sm text-blue-100 mb-4">Nhắn tin ngay để báo giá chi tiết cấu hình và chi phí cài đặt dịch vụ.</p>
+                    <a href="https://zalo.me/0846087165" target="_blank" class="bg-white text-primary px-6 py-2 rounded-full font-bold text-sm shadow hover:bg-slate-50 transition-colors">
+                        Liên hệ Zalo
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer & Contact -->
+    <footer class="bg-secondary pt-16 pb-8 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center md:text-left">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+                <div>
+                    <div class="flex items-center justify-center md:justify-start gap-2 mb-4">
+                        <i class="ph-fill ph-house-line text-3xl text-primary"></i>
+                        <span class="font-bold text-2xl tracking-tight text-white">HA<span class="text-primary">Store</span></span>
+                    </div>
+                    <p class="text-slate-400 text-sm">
+                        Mang giải pháp nhà thông minh thực thụ đến mọi gia đình với chi phí cực kỳ hợp lý. Tự do, bảo mật, và điều khiển hoàn toàn cục bộ.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold text-lg mb-4">Liên hệ với chúng tôi</h4>
+                    <ul class="space-y-3 text-slate-400">
+                        <li class="flex items-center justify-center md:justify-start gap-3">
+                            <i class="ph-fill ph-phone-call text-primary text-xl"></i>
+                            <a href="tel:0846087165" class="hover:text-white transition-colors text-lg font-medium">084 608 7165</a>
+                        </li>
+                        <li class="flex items-center justify-center md:justify-start gap-3">
+                            <i class="ph-fill ph-chat-circle-text text-primary text-xl"></i>
+                            <a href="https://zalo.me/0846087165" target="_blank" class="hover:text-white transition-colors">Zalo: 084 608 7165</a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold text-lg mb-4">Thông tin mua hàng</h4>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li>• Tư vấn cấu hình miễn phí</li>
+                        <li>• Hỗ trợ phần mềm từ xa</li>
+                        <li>• Giao hàng toàn quốc</li>
+                        <li>• Chế độ bảo hành minh bạch</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm flex flex-col md:flex-row justify-between items-center">
+                <p>&copy; 2026 Home Assistant Store. Phục vụ với sự đam mê.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="hover:text-white cursor-pointer transition-colors"><i class="ph-fill ph-facebook-logo text-2xl"></i></span>
+                    <span class="hover:text-white cursor-pointer transition-colors"><i class="ph-fill ph-youtube-logo text-2xl"></i></span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating Zalo Button -->
+    <a href="https://zalo.me/0846087165" target="_blank" class="fixed bottom-6 right-6 z-50 bg-blue-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 hover:-translate-y-1 hover:scale-105 transition-all animate-bounce">
+        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20.25 10.5C20.25 5.80558 16.5564 2 12 2C7.44358 2 3.75 5.80558 3.75 10.5C3.75 12.3995 4.3642 14.1534 5.40939 15.5843L4.17062 19.3006C3.99264 19.8346 4.49079 20.3013 5.01894 20.0934L8.71871 18.6369C9.73479 19.0664 10.8407 19.3125 12 19.3125C16.5564 19.3125 20.25 15.1944 20.25 10.5Z" fill="currentColor"/>
+            <path d="M8.25 10.5H8.2575M12 10.5H12.0075M15.75 10.5H15.7575" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+
+</body>
+</html>
