@@ -17,6 +17,14 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        /* Ẩn thanh cuộn cho slider */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -103,15 +111,14 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 
                 <!-- Product 1: TV Box -->
-                <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-                    <div class="relative h-48 overflow-hidden bg-slate-100">
-                        <img 
-                            src="z7687277875298_d204f3b07afc9e92b5cde98333abcb4f.jpg" 
-                            onerror="this.src='https://images.unsplash.com/photo-1544228801-10c55d04ccb7?q=80&w=600&auto=format&fit=crop'" 
-                            alt="TV Box Home Assistant" 
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm">
+                <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full relative">
+                    <div class="slider-wrapper relative h-48 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <!-- Copy dòng img bên dưới để thêm nhiều ảnh -->
+                            <img src="z7687277875298_d204f3b07afc9e92b5cde98333abcb4f.jpg" onerror="this.src='https://images.unsplash.com/photo-1544228801-10c55d04ccb7?q=80&w=600&auto=format&fit=crop'" alt="TV Box 1" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="tvbox-anh2.jpg" onerror="this.src='https://images.unsplash.com/photo-1558002038-1055907df827?q=80&w=600&auto=format&fit=crop'" alt="TV Box 2" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm z-10">
                             Kèm nguồn
                         </div>
                     </div>
@@ -142,19 +149,20 @@
 
                 <!-- Product 2: Mini PC 2GB/32GB -->
                 <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full relative">
-                    <div class="absolute top-0 right-0 overflow-hidden w-24 h-24 z-10">
+                    <div class="absolute top-0 right-0 overflow-hidden w-24 h-24 z-20">
                          <div class="absolute transform rotate-45 bg-amber-500 text-white text-[10px] font-bold py-1 right-[-35px] top-[15px] w-[120px] text-center shadow-sm">
                             BÁN CHẠY
                         </div>
                     </div>
-                    <div class="relative h-48 overflow-hidden bg-slate-100">
-                        <img 
-                            src="z7687275736163_6a2be5ddde1fa41fb19854681bf970dc.jpg" 
-                            onerror="this.src='https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=600&auto=format&fit=crop'" 
-                            alt="Mini PC 2GB 32GB" 
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm flex items-center gap-1">
+                    <div class="slider-wrapper relative h-48 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <!-- Máy 2GB này mình tích hợp sẵn 4 ảnh của bạn -->
+                            <img src="z7687275736163_6a2be5ddde1fa41fb19854681bf970dc.jpg" onerror="this.src='https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=600'" alt="Mặt trước" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="z7687275727172_03d45ad0439ea68d6fc1e458d1881fb6.jpg" onerror="this.src='https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=600'" alt="Mặt hông" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="z7687275745074_60649d33a40a6a9d2f9eb809627bab63.jpg" onerror="this.src='https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=600'" alt="Cổng cắm" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="z7687275757326_7ef1b11121423c38fe316b207b0b60d3.jpg" onerror="this.src='https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=600'" alt="USB" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm flex items-center gap-1 z-10">
                             <i class="ph-fill ph-shield-check text-green-500"></i> BH 3 Tháng
                         </div>
                     </div>
@@ -177,15 +185,16 @@
                 </div>
 
                 <!-- Product 3: Mini PC 4GB/64GB -->
-                <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full">
-                    <div class="relative h-48 overflow-hidden bg-slate-100">
-                        <img 
-                            src="z7687275742670_4059ced880122c72fabb92b5337d1a4b.jpg" 
-                            onerror="this.src='https://images.unsplash.com/photo-1620282451330-467bea2bfdb1?q=80&w=600&auto=format&fit=crop'" 
-                            alt="Mini PC 4GB 64GB" 
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                         <div class="absolute top-3 right-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm">
+                <div class="group bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full relative">
+                    <div class="slider-wrapper relative h-48 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="z7687275742670_4059ced880122c72fabb92b5337d1a4b.jpg" onerror="this.src='https://images.unsplash.com/photo-1620282451330-467bea2bfdb1?q=80&w=600'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="minipc4gb-anh2.jpg" onerror="this.src='https://images.unsplash.com/photo-1620282451330-467bea2bfdb1?q=80&w=600'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                         <div class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm flex items-center gap-1 z-10">
+                            <i class="ph-fill ph-shield-check text-green-500"></i> BH 3 Tháng
+                        </div>
+                         <div class="absolute top-3 right-3 bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-slate-700 shadow-sm z-10">
                             Kèm nguồn
                         </div>
                     </div>
@@ -209,20 +218,21 @@
 
                 <!-- Product 4: Intel NUC -->
                 <div class="group bg-slate-900 rounded-2xl shadow-md border border-slate-800 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full text-white relative">
-                    <div class="absolute top-0 right-0 overflow-hidden w-24 h-24 z-10">
+                    <div class="absolute top-0 right-0 overflow-hidden w-24 h-24 z-20">
                          <div class="absolute transform rotate-45 bg-blue-600 text-white text-[10px] font-bold py-1 right-[-35px] top-[15px] w-[120px] text-center shadow-sm tracking-wider">
                             CAO CẤP
                         </div>
                     </div>
-                    <div class="relative h-48 overflow-hidden bg-slate-800 border-b border-slate-700">
-                        <img 
-                            src="z7687275724984_f4fd901e7000982f393d7de085a2ec89.jpg" 
-                            onerror="this.src='https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=600&auto=format&fit=crop'" 
-                            alt="Intel NUC DN2820FYK" 
-                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-                        <div class="absolute top-3 left-3 bg-black/60 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-white shadow-sm flex items-center gap-1 border border-slate-700">
+                    <div class="slider-wrapper relative h-48 overflow-hidden bg-slate-800 border-b border-slate-700 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="z7687275724984_f4fd901e7000982f393d7de085a2ec89.jpg" onerror="this.src='https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=600'" class="w-full h-full object-cover flex-shrink-0 snap-center opacity-90" />
+                            <img src="intelnuc-anh2.jpg" onerror="this.src='https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=600'" class="w-full h-full object-cover flex-shrink-0 snap-center opacity-90" />
+                        </div>
+                        <div class="absolute top-3 left-3 bg-black/60 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-white shadow-sm flex items-center gap-1 border border-slate-700 z-10">
                             <i class="ph-fill ph-cpu"></i> Chính hãng Intel
+                        </div>
+                        <div class="absolute bottom-6 left-3 bg-black/60 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md text-white shadow-sm flex items-center gap-1 border border-slate-700 z-10">
+                            <i class="ph-fill ph-shield-check text-blue-400"></i> BH 3 Tháng
                         </div>
                     </div>
                     <div class="p-6 flex flex-col flex-grow">
@@ -274,73 +284,129 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 
                 <!-- Service 1 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center text-2xl mb-4">
-                        <i class="ph-fill ph-camera"></i>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                    <div class="slider-wrapper relative h-36 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="camera-ai-1.jpg" onerror="this.src='https://images.unsplash.com/photo-1558002038-1055907df827?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="camera-ai-2.jpg" onerror="this.src='https://images.unsplash.com/photo-1558002038-1055907df827?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur rounded-xl p-2 text-primary shadow-sm z-10 border border-white/50">
+                            <i class="ph-fill ph-camera text-xl"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-secondary mb-2">Camera AI & Face ID</h4>
-                    <p class="text-sm text-slate-600">Tích hợp camera thông minh, nhận diện khuôn mặt người quen/lạ, phát hiện chuyển động AI chính xác.</p>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-bold text-secondary mb-2">Camera AI & Face ID</h4>
+                        <p class="text-sm text-slate-600">Tích hợp camera thông minh, nhận diện khuôn mặt người quen/lạ, phát hiện chuyển động AI chính xác.</p>
+                    </div>
                 </div>
 
                 <!-- Service 2 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-2xl mb-4">
-                        <i class="ph-fill ph-sun-horizon"></i>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                    <div class="slider-wrapper relative h-36 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="nangluong-1.jpg" onerror="this.src='https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="nangluong-2.jpg" onerror="this.src='https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur rounded-xl p-2 text-yellow-600 shadow-sm z-10 border border-white/50">
+                            <i class="ph-fill ph-sun-horizon text-xl"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-secondary mb-2">Biến Tần Năng Lượng</h4>
-                    <p class="text-sm text-slate-600">Theo dõi công suất điện mặt trời theo thời gian thực, tự động hóa thiết bị điện theo sản lượng điện.</p>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-bold text-secondary mb-2">Biến Tần Năng Lượng</h4>
+                        <p class="text-sm text-slate-600">Theo dõi công suất điện mặt trời theo thời gian thực, tự động hóa thiết bị điện theo sản lượng điện.</p>
+                    </div>
                 </div>
 
                 <!-- Service 3 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-2xl mb-4">
-                        <i class="ph-fill ph-bank"></i>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                    <div class="slider-wrapper relative h-36 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="nganhang-1.jpg" onerror="this.src='https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="nganhang-2.jpg" onerror="this.src='https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur rounded-xl p-2 text-green-600 shadow-sm z-10 border border-white/50">
+                            <i class="ph-fill ph-bank text-xl"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-secondary mb-2">Báo Biến Động Số Dư</h4>
-                    <p class="text-sm text-slate-600">Tích hợp thông báo biến động số dư ngân hàng trực tiếp qua loa thông minh hoặc màn hình HA.</p>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-bold text-secondary mb-2">Báo Biến Động Số Dư</h4>
+                        <p class="text-sm text-slate-600">Tích hợp thông báo biến động số dư ngân hàng trực tiếp qua loa thông minh hoặc màn hình HA.</p>
+                    </div>
                 </div>
 
                 <!-- Service 4 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center text-2xl mb-4">
-                        <i class="ph-fill ph-telegram-logo"></i>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                    <div class="slider-wrapper relative h-36 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="telegram-1.jpg" onerror="this.src='https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="telegram-2.jpg" onerror="this.src='https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur rounded-xl p-2 text-sky-500 shadow-sm z-10 border border-white/50">
+                            <i class="ph-fill ph-telegram-logo text-xl"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-secondary mb-2">Thông Báo Telegram</h4>
-                    <p class="text-sm text-slate-600">Gửi hình ảnh, thông báo cảnh báo an ninh, và điều khiển ngược nhà thông minh qua chat bot Telegram.</p>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-bold text-secondary mb-2">Thông Báo Telegram</h4>
+                        <p class="text-sm text-slate-600">Gửi hình ảnh, thông báo cảnh báo an ninh, và điều khiển ngược nhà thông minh qua chat bot Telegram.</p>
+                    </div>
                 </div>
 
                 <!-- Service 5 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl mb-4">
-                        <i class="ph-fill ph-router"></i>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                    <div class="slider-wrapper relative h-36 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="zigbee-1.jpg" onerror="this.src='https://images.unsplash.com/photo-1558383409-873fb2a1d2e5?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="zigbee-2.jpg" onerror="this.src='https://images.unsplash.com/photo-1558383409-873fb2a1d2e5?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur rounded-xl p-2 text-purple-600 shadow-sm z-10 border border-white/50">
+                            <i class="ph-fill ph-router text-xl"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-secondary mb-2">Cấu Hình Zigbee/Wifi</h4>
-                    <p class="text-sm text-slate-600">Đồng bộ tất cả thiết bị thông minh (Tuya, Sonoff, Xiaomi, Aqara...) chung 1 nền tảng không lo rớt mạng.</p>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-bold text-secondary mb-2">Cấu Hình Zigbee/Wifi</h4>
+                        <p class="text-sm text-slate-600">Đồng bộ tất cả thiết bị thông minh (Tuya, Sonoff, Xiaomi, Aqara...) chung 1 nền tảng không lo rớt mạng.</p>
+                    </div>
                 </div>
 
                 <!-- Service 6 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-2xl mb-4">
-                        <i class="ph-fill ph-hard-drives"></i>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                    <div class="slider-wrapper relative h-36 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="nas-1.jpg" onerror="this.src='https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="nas-2.jpg" onerror="this.src='https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur rounded-xl p-2 text-slate-700 shadow-sm z-10 border border-white/50">
+                            <i class="ph-fill ph-hard-drives text-xl"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-secondary mb-2">NAS Storage</h4>
-                    <p class="text-sm text-slate-600">Tận dụng ổ cứng để làm server lưu trữ nội bộ (NAS) tốc độ cao, sao lưu dữ liệu an toàn.</p>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-bold text-secondary mb-2">NAS Storage</h4>
+                        <p class="text-sm text-slate-600">Tận dụng ổ cứng để làm server lưu trữ nội bộ (NAS) tốc độ cao, sao lưu dữ liệu an toàn.</p>
+                    </div>
                 </div>
 
                 <!-- Service 7 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div class="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-2xl mb-4">
-                        <i class="ph-fill ph-youtube-logo"></i>
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+                    <div class="slider-wrapper relative h-36 overflow-hidden bg-slate-100 group/slider">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory scroll-smooth h-full no-scrollbar">
+                            <img src="youtube-1.jpg" onerror="this.src='https://images.unsplash.com/photo-1608041551608-f1cff9bb3f66?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                            <img src="youtube-2.jpg" onerror="this.src='https://images.unsplash.com/photo-1608041551608-f1cff9bb3f66?w=500&q=80'" class="w-full h-full object-cover flex-shrink-0 snap-center" />
+                        </div>
+                        <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur rounded-xl p-2 text-red-600 shadow-sm z-10 border border-white/50">
+                            <i class="ph-fill ph-youtube-logo text-xl"></i>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-secondary mb-2">YouTube Cast & GG Home</h4>
-                    <p class="text-sm text-slate-600">Phát nhạc không quảng cáo lên loa Google Home, tạo kịch bản phát âm thanh theo ngữ cảnh.</p>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-bold text-secondary mb-2">YouTube Cast & GG Home</h4>
+                        <p class="text-sm text-slate-600">Phát nhạc không quảng cáo lên loa Google Home, tạo kịch bản phát âm thanh theo ngữ cảnh.</p>
+                    </div>
                 </div>
                 
                 <!-- CTA Service -->
-                <div class="bg-primary p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-white flex flex-col justify-center items-center text-center">
+                <div class="bg-primary p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow text-white flex flex-col justify-center items-center text-center h-full min-h-[250px]">
                     <h4 class="font-bold text-xl mb-2">Cần tư vấn thêm?</h4>
-                    <p class="text-sm text-blue-100 mb-4">Nhắn tin ngay để báo giá chi tiết cấu hình và chi phí cài đặt dịch vụ.</p>
-                    <a href="https://zalo.me/0846087165" target="_blank" class="bg-white text-primary px-6 py-2 rounded-full font-bold text-sm shadow hover:bg-slate-50 transition-colors">
+                    <p class="text-sm text-blue-100 mb-6">Nhắn tin ngay để báo giá chi tiết cấu hình và chi phí cài đặt dịch vụ.</p>
+                    <a href="https://zalo.me/0846087165" target="_blank" class="bg-white text-primary px-6 py-2.5 rounded-full font-bold text-sm shadow hover:bg-slate-50 hover:scale-105 transition-all">
                         Liên hệ Zalo
                     </a>
                 </div>
@@ -403,5 +469,69 @@
         </svg>
     </a>
 
+    <!-- Script điều khiển chức năng Slider Ảnh -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.slider-wrapper').forEach(wrapper => {
+                const container = wrapper.querySelector('.slider-container');
+                const images = container.querySelectorAll('img');
+                
+                // Nếu chỉ có 1 ảnh thì không cần chạy slider
+                if (images.length <= 1) return;
+
+                // Tạo tự động các dấu chấm (dots)
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-20 pointer-events-none';
+                
+                images.forEach((_, idx) => {
+                    const dot = document.createElement('div');
+                    dot.className = `w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-sm ${idx === 0 ? 'bg-white w-4' : 'bg-white/50 backdrop-blur'}`;
+                    dotsContainer.appendChild(dot);
+                });
+                wrapper.appendChild(dotsContainer);
+
+                const dots = dotsContainer.querySelectorAll('div');
+                let currentIndex = 0;
+
+                const updateDots = (index) => {
+                    dots.forEach((dot, idx) => {
+                        dot.className = idx === index 
+                            ? 'h-1.5 rounded-full bg-white transition-all duration-300 w-4 shadow-sm' 
+                            : 'w-1.5 h-1.5 rounded-full bg-white/50 backdrop-blur transition-all duration-300 shadow-sm';
+                    });
+                };
+
+                // Cập nhật vị trí dot khi người dùng tự vuốt/cuộn
+                container.addEventListener('scroll', () => {
+                    const index = Math.round(container.scrollLeft / container.offsetWidth);
+                    if (index !== currentIndex && index >= 0 && index < images.length) {
+                        currentIndex = index;
+                        updateDots(currentIndex);
+                    }
+                });
+
+                // Chức năng tự động chuyển ảnh (Auto-play)
+                let autoPlayInterval;
+                const startAutoPlay = () => {
+                    autoPlayInterval = setInterval(() => {
+                        let nextIndex = currentIndex + 1;
+                        if (nextIndex >= images.length) nextIndex = 0;
+                        container.scrollTo({
+                            left: nextIndex * container.offsetWidth,
+                            behavior: 'smooth'
+                        });
+                    }, 3000); // Chuyển sau mỗi 3 giây
+                };
+
+                startAutoPlay();
+
+                // Tạm dừng tự động chuyển ảnh khi rê chuột hoặc chạm tay vào
+                wrapper.addEventListener('mouseenter', () => clearInterval(autoPlayInterval));
+                wrapper.addEventListener('mouseleave', startAutoPlay);
+                wrapper.addEventListener('touchstart', () => clearInterval(autoPlayInterval), {passive: true});
+                wrapper.addEventListener('touchend', startAutoPlay, {passive: true});
+            });
+        });
+    </script>
 </body>
 </html>
