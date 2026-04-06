@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super VLOOKUP Pro 4.0</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS (Excel Processor) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .slide-up { animation: slideUp 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .hidden-custom { display: none !important; }
+
+        /* Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Loader */
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid #0ea5e9;
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' } } } }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+    <!-- OVERLAY LOADING CHUNG -->
+    <div id="global-loader" class="fixed inset-0 z-[100] hidden-custom bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+        <div class="loader mb-4"></div>
+        <h3 id="loader-text" class="text-xl font-bold animate-pulse">Đang xử lý dữ liệu...</h3>
+        <p class="text-sm text-slate-300 mt-2">Vui lòng không đóng trình duyệt</p>
+    </div>
+
+    <!-- MÀN HÌNH ĐĂNG NHẬP -->
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-md">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center space-y-6 slide-up">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-brand-50 text-brand-600 rounded-full mb-2">
+                <i class="fa-solid fa-shield-halved text-3xl"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800">Bảo Mật Hệ Thống</h2>
+                <p class="text-slate-500 text-sm mt-2">Nhập mã PIN để sử dụng công cụ</p>
+            </div>
+            
+            <form id="login-form" class="space-y-4">
+                <div class="relative">
+                    <input type="password" id="password-input" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-center tracking-[0.5em] text-xl font-bold" placeholder="****" autofocus maxlength="4">
+                </div>
+                <p id="auth-error" class="text-red-500 text-xs font-semibold hidden-custom"><i class="fa-solid fa-circle-exclamation mr-1"></i> Sai mật khẩu!</p>
+                <button type="submit" class="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95">Mở Khóa</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- APP CHÍNH -->
+    <div id="app-screen" class="min-h-screen pb-12 hidden-custom fade-in">
+        
+        <!-- Navbar -->
+        <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="bg-brand-600 text-white p-2 rounded-lg"><i class="fa-solid fa-bolt"></i></div>
+                    <span class="font-black text-xl text-slate-800 tracking-tight">VLOOKUP<span class="text-brand-500">PRO</span></span>
+                </div>
+                <button onclick="logout()" class="text-slate-500 hover:text-red-500 font-medium text-sm flex items-center space-x-1"><i class="fa-solid fa-power-off"></i> <span>Khóa máy</span></button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="max-w-6xl mx-auto mt-6 px-4 space-y-6">
+            
+            <!-- Upload Zone -->
+            <div class="grid md:grid-cols-2 gap-6">
+                
+                <!-- SOURCE FILE -->
+                <div id="card-source" class="bg-white rounded-2xl p-6 shadow-sm border-2 border-dashed border-slate-300 transition-all hover:border-green-400">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2 text-slate-700 font-bold">
+                            <span class="w-6 h-6 rounded bg-green-100 text-green-700 flex items-center justify-center text-xs">1</span>
+                            <span>File Nguồn (Bảng Dò)</span>
+                        </div>
+                        <span id="badge-source" class="hidden-custom bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">Đã tải</span>
+                    </div>
+
+                    <!-- Upload UI -->
+                    <div id="upload-source-ui" class="h-40 flex flex-col items-center justify-center border-2 border-transparent hover:border-green-100 bg-slate-50 hover:bg-green-50/50 rounded-xl cursor-pointer relative transition-colors group">
+                        <input type="file" id="file-source-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".xlsx, .xls, .csv" onchange="handleFileSelect(this, 'source')">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-green-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
+                        <span class="text-sm font-semibold text-slate-600">Click hoặc Kéo thả file</span>
+                    </div>
+
+                    <!-- Config Row UI (Cấu hình dòng bắt đầu) -->
+                    <div id="row-config-source-ui" class="hidden-custom bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2 space-y-3">
+                        <p class="text-sm font-semibold text-slate-700"><i class="fa-solid fa-list-ol mr-2 text-green-600"></i>Cấu hình bảng nguồn</p>
+                        <div class="flex items-center space-x-3">
+                            <label class="text-xs text-slate-500 flex-1">Dòng chứa tiêu đề (Header):</label>
+                            <input type="number" id="header-row-source" value="1" min="1" class="w-20 p-1.5 border border-slate-300 rounded text-center text-sm font-bold text-slate-700 focus:ring-2 focus:ring-green-500 outline-none">
+                        </div>
+                        <button onclick="processFile('source')" class="w-full py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded shadow transition-colors">Xác nhận & Đọc file</button>
+                    </div>
+
+                    <!-- Info UI -->
+                    <div id="info-source-ui" class="hidden-custom space-y-3">
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
+                            <div class="overflow-hidden mr-2">
+                                <p id="name-source" class="text-sm font-bold text-slate-700 truncate"></p>
+                                <p class="text-xs text-slate-500 mt-0.5"><span id="rows-source"></span> dòng | <span id="cols-source"></span> cột | <span class="italic">Header: Dòng <span id="display-header-source"></span></span></p>
+                            </div>
+                            <button onclick="previewData('source')" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-slate-100 shadow-sm whitespace-nowrap"><i class="fa-regular fa-eye mr-1"></i> Xem</button>
+                        </div>
+                        <button onclick="resetFile('source')" class="w-full py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"><i class="fa-solid fa-trash-can mr-1"></i> Chọn file khác</button>
+                    </div>
+                </div>
+
+                <!-- TARGET FILE -->
+                <div id="card-target" class="bg-white rounded-2xl p-6 shadow-sm border-2 border-dashed border-slate-300 transition-all hover:border-brand-400">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2 text-slate-700 font-bold">
+                            <span class="w-6 h-6 rounded bg-brand-100 text-brand-700 flex items-center justify-center text-xs">2</span>
+                            <span>File Đích (Cần điền)</span>
+                        </div>
+                        <span id="badge-target" class="hidden-custom bg-brand-100 text-brand-700 text-xs px-2 py-1 rounded font-bold">Đã tải</span>
+                    </div>
+
+                    <!-- Upload UI -->
+                    <div id="upload-target-ui" class="h-40 flex flex-col items-center justify-center border-2 border-transparent hover:border-brand-100 bg-slate-50 hover:bg-brand-50/50 rounded-xl cursor-pointer relative transition-colors group">
+                        <input type="file" id="file-target-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".xlsx, .xls, .csv" onchange="handleFileSelect(this, 'target')">
+                        <i class="fa-solid fa-file-import text-3xl text-brand-500 mb-2 group-hover:-translate-y-1 transition-transform"></i>
+                        <span class="text-sm font-semibold text-slate-600">Click hoặc Kéo thả file</span>
+                    </div>
+
+                     <!-- Config Row UI (Cấu hình dòng bắt đầu) -->
+                     <div id="row-config-target-ui" class="hidden-custom bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2 space-y-3">
+                        <p class="text-sm font-semibold text-slate-700"><i class="fa-solid fa-list-ol mr-2 text-brand-600"></i>Cấu hình bảng đích</p>
+                        <div class="flex items-center space-x-3">
+                            <label class="text-xs text-slate-500 flex-1">Dòng chứa tiêu đề (Header):</label>
+                            <input type="number" id="header-row-target" value="1" min="1" class="w-20 p-1.5 border border-slate-300 rounded text-center text-sm font-bold text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                        <button onclick="processFile('target')" class="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold rounded shadow transition-colors">Xác nhận & Đọc file</button>
+                    </div>
+
+                    <!-- Info UI -->
+                    <div id="info-target-ui" class="hidden-custom space-y-3">
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex justify-between items-center">
+                            <div class="overflow-hidden mr-2">
+                                <p id="name-target" class="text-sm font-bold text-slate-700 truncate"></p>
+                                <p class="text-xs text-slate-500 mt-0.5"><span id="rows-target"></span> dòng | <span id="cols-target"></span> cột | <span class="italic">Header: Dòng <span id="display-header-target"></span></span></p>
+                            </div>
+                            <button onclick="previewData('target')" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-slate-100 shadow-sm whitespace-nowrap"><i class="fa-regular fa-eye mr-1"></i> Xem</button>
+                        </div>
+                        <button onclick="resetFile('target')" class="w-full py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"><i class="fa-solid fa-trash-can mr-1"></i> Chọn file khác</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Zone (Mapping) -->
+            <div id="config-zone" class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden hidden-custom slide-up">
+                <div class="bg-slate-800 px-6 py-4 flex justify-between items-center text-white">
+                    <h2 class="font-bold text-lg"><i class="fa-solid fa-gears mr-2 text-brand-400"></i>3. Cấu hình Dò & Điền Dữ Liệu</h2>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center space-x-2 text-sm cursor-pointer"><input type="checkbox" id="chk-trim" checked class="accent-brand-500 w-4 h-4"><span>Bỏ khoảng trắng</span></label>
+                        <label class="flex items-center space-x-2 text-sm cursor-pointer"><input type="checkbox" id="chk-ignore-case" checked class="accent-brand-500 w-4 h-4"><span>A=a</span></label>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Base Keys -->
+                    <div class="flex flex-col md:flex-row gap-4 items-center bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                        <div class="w-full">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">CỘT KHÓA NGUỒN (VD: Mã NV)</label>
+                            <select id="sel-source-key" class="w-full p-2.5 bg-white border border-slate-300 rounded focus:ring-2 focus:ring-green-500 outline-none text-sm font-medium"></select>
+                        </div>
+                        <div class="shrink-0 text-slate-400"><i class="fa-solid fa-link text-xl"></i></div>
+                        <div class="w-full">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">KHỚP VỚI KHÓA ĐÍCH</label>
+                            <select id="sel-target-key" class="w-full p-2.5 bg-white border border-slate-300 rounded focus:ring-2 focus:ring-brand-500 outline-none text-sm font-medium"></select>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Column Mapping -->
+                    <div class="mb-2">
+                        <h3 class="font-bold text-slate-700">Điền Dữ Liệu Vào Đâu?</h3>
+                        <p class="text-xs text-slate-500">Tạo luật để copy dữ liệu từ cột nguồn sang cột đích mong muốn.</p>
+                    </div>
+                    
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="bg-slate-100 px-4 py-2 grid grid-cols-[1fr_auto_1fr_auto] gap-2 font-semibold text-xs text-slate-600">
+                            <div>LẤY DỮ LIỆU TỪ NGUỒN</div>
+                            <div class="w-8"></div>
+                            <div>ĐIỀN VÀO CỘT ĐÍCH</div>
+                            <div class="w-8"></div>
+                        </div>
+                        <div id="mapping-rules-container" class="p-2 space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
+                            <!-- JS injects rules here -->
+                        </div>
+                        <div class="bg-slate-50 p-2 border-t border-slate-200">
+                            <button onclick="addMappingRule()" class="w-full py-2 border border-dashed border-brand-300 text-brand-600 font-semibold rounded hover:bg-brand-50 text-sm transition-colors"><i class="fa-solid fa-plus mr-1"></i> Thêm Cột Cần Lấy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-slate-100 flex justify-end">
+                    <button onclick="startProcessing()" class="px-8 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-bold shadow-md transition-all active:scale-95 text-lg"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Chạy Dữ Liệu</button>
+                </div>
+            </div>
+
+            <!-- Result Zone -->
+            <div id="result-zone" class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden hidden-custom slide-up">
+                <div class="bg-green-50 px-6 py-4 border-b border-green-100 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-green-800 text-lg"><i class="fa-solid fa-circle-check mr-2"></i>Hoàn Tất</h2>
+                        <p class="text-xs text-green-600">Khớp thành công: <span id="match-count" class="font-bold">0</span> dòng</p>
+                    </div>
+                    <button onclick="downloadExcel()" class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow-md transition-all"><i class="fa-solid fa-download mr-2"></i>Tải Xuống Excel</button>
+                </div>
+                
+                <div class="overflow-x-auto max-h-[400px] custom-scrollbar">
+                    <table class="w-full text-left border-collapse" id="result-table"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREVIEW MODAL -->
+    <div id="preview-modal" class="fixed inset-0 z-[60] hidden-custom bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] slide-up">
+            <div class="p-4 bg-slate-800 text-white flex justify-between items-center">
+                <h3 class="font-bold" id="preview-title">Xem trước dữ liệu</h3>
+                <button onclick="closePreview()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-auto p-0 custom-scrollbar">
+                <table class="w-full text-left border-collapse text-sm" id="preview-table"></table>
+            </div>
+            <div class="p-2 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200">Hiển thị tối đa 50 dòng đầu tiên</div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        const PASSWORD = "1402";
+        let sourceData = [], targetData = [];
+        let rawSourceFile = null, rawTargetFile = null;
+        let sourceCols = [], targetCols = [];
+        let processedData = [];
+        let finalHeaderTargetRow = 1; // Lưu lại dòng header của file đích để format lúc xuất
+
+        // Auth
+        window.onload = () => { if(sessionStorage.getItem('auth') === '1') showApp(); }
+        document.getElementById('login-form').onsubmit = (e) => {
+            e.preventDefault();
+            if(document.getElementById('password-input').value === PASSWORD) {
+                sessionStorage.setItem('auth', '1'); showApp();
+            } else {
+                document.getElementById('auth-error').classList.remove('hidden-custom');
+                document.getElementById('password-input').value = '';
+            }
+        };
+        function showApp() { document.getElementById('login-screen').classList.add('hidden-custom'); document.getElementById('app-screen').classList.remove('hidden-custom'); }
+        function logout() { sessionStorage.removeItem('auth'); location.reload(); }
+
+        // Loader helper
+        function showLoader(text) {
+            document.getElementById('loader-text').innerText = text;
+            document.getElementById('global-loader').classList.remove('hidden-custom');
+        }
+        function hideLoader() { document.getElementById('global-loader').classList.add('hidden-custom'); }
+
+        // MỚI: BƯỚC 1 - LƯU TRỮ FILE TẠM THỜI VÀ HIỂN THỊ CẤU HÌNH DÒNG
+        function handleFileSelect(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (type === 'source') {
+                rawSourceFile = file;
+            } else {
+                rawTargetFile = file;
+            }
+
+            // Ẩn vùng upload
+            document.getElementById(`upload-${type}-ui`).classList.add('hidden-custom');
+            // Hiện vùng cấu hình dòng
+            document.getElementById(`row-config-${type}-ui`).classList.remove('hidden-custom');
+        }
+
+        // MỚI: BƯỚC 2 - ĐỌC FILE VỚI CẤU HÌNH DÒNG TÙY CHỈNH
+        function processFile(type) {
+            const file = type === 'source' ? rawSourceFile : rawTargetFile;
+            if (!file) return;
+
+            const headerRowInput = parseInt(document.getElementById(`header-row-${type}`).value);
+            const headerRowIndex = headerRowInput > 0 ? headerRowInput - 1 : 0; // SheetJS dùng index 0
+
+            showLoader('Đang đọc file Excel...');
+            
+            setTimeout(() => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const firstSheet = workbook.Sheets[firstSheetName];
+                        
+                        // Sử dụng option range để bỏ qua các dòng trên header
+                        const sheetRange = XLSX.utils.decode_range(firstSheet['!ref']);
+                        
+                        // Tính toán lại range nếu user nhập số dòng header
+                        if (headerRowIndex > sheetRange.s.r && headerRowIndex <= sheetRange.e.r) {
+                             sheetRange.s.r = headerRowIndex;
+                        }
+                        
+                        const newRef = XLSX.utils.encode_range(sheetRange);
+                        firstSheet['!ref'] = newRef;
+
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+
+                        if (jsonData.length === 0) { 
+                            alert(`Không tìm thấy dữ liệu từ dòng ${headerRowInput}. Vui lòng thử lại!`); 
+                            hideLoader(); 
+                            return; 
+                        }
+
+                        if (type === 'source') {
+                            sourceData = jsonData; 
+                            sourceCols = Object.keys(jsonData[0]);
+                            updateUICardAfterProcess('source', file.name, jsonData, headerRowInput);
+                        } else {
+                            targetData = jsonData; 
+                            targetCols = Object.keys(jsonData[0]);
+                            finalHeaderTargetRow = headerRowInput; // Lưu lại để dùng lúc download
+                            updateUICardAfterProcess('target', file.name, jsonData, headerRowInput);
+                        }
+                        checkConfigReady();
+                    } catch (err) {
+                        console.error(err);
+                        alert("Lỗi đọc file. Vui lòng đảm bảo file chuẩn Excel.");
+                    }
+                    hideLoader();
+                };
+                reader.readAsArrayBuffer(file);
+            }, 50);
+        }
+
+        function updateUICardAfterProcess(type, name, data, headerRow) {
+            // Ẩn cấu hình dòng, hiện info
+            document.getElementById(`row-config-${type}-ui`).classList.add('hidden-custom');
+            document.getElementById(`info-${type}-ui`).classList.remove('hidden-custom');
+            document.getElementById(`badge-${type}`).classList.remove('hidden-custom');
+            
+            document.getElementById(`card-${type}`).classList.replace('border-slate-300', type==='source'?'border-green-400':'border-brand-400');
+
+            document.getElementById(`name-${type}`).innerText = name;
+            document.getElementById(`rows-${type}`).innerText = data.length.toLocaleString();
+            document.getElementById(`cols-${type}`).innerText = Object.keys(data[0]).length;
+            document.getElementById(`display-header-${type}`).innerText = headerRow;
+
+            const opts = `<option value="">-- Chọn cột khóa --</option>` + Object.keys(data[0]).map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById(`sel-${type}-key`).innerHTML = opts;
+        }
+
+        function resetFile(type) {
+            if(type === 'source') { 
+                sourceData = []; sourceCols = []; rawSourceFile = null;
+                document.getElementById('sel-source-key').innerHTML = ''; 
+                document.getElementById('file-source-input').value = '';
+            } 
+            else { 
+                targetData = []; targetCols = []; rawTargetFile = null; finalHeaderTargetRow = 1;
+                document.getElementById('sel-target-key').innerHTML = ''; 
+                document.getElementById('file-target-input').value = '';
+            }
+            
+            document.getElementById(`upload-${type}-ui`).classList.remove('hidden-custom');
+            document.getElementById(`row-config-${type}-ui`).classList.add('hidden-custom');
+            document.getElementById(`info-${type}-ui`).classList.add('hidden-custom');
+            document.getElementById(`badge-${type}`).classList.add('hidden-custom');
+            document.getElementById(`card-${type}`).classList.replace(type==='source'?'border-green-400':'border-brand-400', 'border-slate-300');
+            document.getElementById('config-zone').classList.add('hidden-custom');
+            document.getElementById('result-zone').classList.add('hidden-custom');
+        }
+
+        function checkConfigReady() {
+            if (sourceData.length > 0 && targetData.length > 0) {
+                document.getElementById('config-zone').classList.remove('hidden-custom');
+                // Auto add 1 empty rule
+                document.getElementById('mapping-rules-container').innerHTML = '';
+                addMappingRule();
+            }
+        }
+
+        // Preview Data
+        function previewData(type) {
+            const data = type === 'source' ? sourceData : targetData;
+            const cols = Object.keys(data[0]);
+            document.getElementById('preview-title').innerText = `Xem trước: File ${type === 'source' ? 'Nguồn' : 'Đích'}`;
+            
+            let html = '<thead class="bg-slate-100 sticky top-0 shadow-sm"><tr>';
+            cols.forEach(c => html += `<th class="p-2 border-b font-semibold text-slate-700 whitespace-nowrap">${c}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            data.slice(0,50).forEach(row => {
+                html += '<tr class="hover:bg-slate-50 border-b border-slate-100">';
+                cols.forEach(c => html += `<td class="p-2 whitespace-nowrap">${row[c] !== undefined ? row[c] : ''}</td>`);
+                html += '</tr>';
+            });
+            html += '</tbody>';
+            document.getElementById('preview-table').innerHTML = html;
+            document.getElementById('preview-modal').classList.remove('hidden-custom');
+        }
+        function closePreview() { document.getElementById('preview-modal').classList.add('hidden-custom'); }
+
+        // Mapping Logic
+        let ruleCount = 0;
+        function addMappingRule() {
+            const container = document.getElementById('mapping-rules-container');
+            const id = `rule-${ruleCount++}`;
+            
+            const sourceOpts = `<option value="">-- Chọn cột nguồn --</option>` + sourceCols.map(c => `<option value="${c}">${c}</option>`).join('');
+            const targetOpts = `<option value="__NEW__" class="font-bold text-brand-600">+ Tạo cột tên mới</option>` + targetCols.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            const html = `
+            <div id="${id}" class="grid grid-cols-[1fr_auto_1fr_auto] gap-2 items-center bg-white p-2 rounded border border-slate-200 shadow-sm mapping-row">
+                <select class="s-col w-full p-2 bg-slate-50 border border-slate-300 rounded text-sm">${sourceOpts}</select>
+                <div class="text-slate-400 w-8 text-center"><i class="fa-solid fa-arrow-right"></i></div>
+                <div class="flex flex-col space-y-1 relative">
+                    <select class="t-col w-full p-2 bg-slate-50 border border-slate-300 rounded text-sm" onchange="toggleNewInput(this, '${id}')">${targetOpts}</select>
+                    <input type="text" class="t-new-col hidden-custom w-full p-2 border-2 border-brand-300 bg-white rounded text-sm absolute inset-0 z-10" placeholder="Nhập tên cột mới...">
+                </div>
+                <button onclick="document.getElementById('${id}').remove()" class="w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded"><i class="fa-solid fa-xmark"></i></button>
+            </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+
+        function toggleNewInput(selectObj, rowId) {
+            const input = document.querySelector(`#${rowId} .t-new-col`);
+            if(selectObj.value === '__NEW__') {
+                input.classList.remove('hidden-custom'); input.focus();
+            } else {
+                input.classList.add('hidden-custom');
+            }
+        }
+
+        function cleanKey(val) {
+            if (val == null) return "";
+            let str = String(val);
+            if (document.getElementById('chk-trim').checked) str = str.trim();
+            if (document.getElementById('chk-ignore-case').checked) str = str.toLowerCase();
+            return str;
+        }
+
+        function startProcessing() {
+            const sKey = document.getElementById('sel-source-key').value;
+            const tKey = document.getElementById('sel-target-key').value;
+            
+            if (!sKey || !tKey) { alert("Vui lòng chọn cột KHÓA ở cả 2 bảng!"); return; }
+
+            // Lấy danh sách luật mapping
+            const rules = [];
+            document.querySelectorAll('.mapping-row').forEach(row => {
+                const sCol = row.querySelector('.s-col').value;
+                const tSelect = row.querySelector('.t-col').value;
+                const tNew = row.querySelector('.t-new-col').value;
+                
+                if(sCol) {
+                    let targetName = tSelect === '__NEW__' ? tNew.trim() : tSelect;
+                    if(!targetName) targetName = `Copy_cua_${sCol}`; // Fallback tên
+                    rules.push({ sCol, tCol: targetName });
+                }
+            });
+
+            if (rules.length === 0) { alert("Vui lòng thiết lập ít nhất 1 luật điền dữ liệu!"); return; }
+
+            showLoader('Đang dò và điền dữ liệu...');
+            
+            setTimeout(() => {
+                // 1. Build Map
+                const map = new Map();
+                sourceData.forEach(row => { map.set(cleanKey(row[sKey]), row); });
+
+                let matchCount = 0;
+                const mappedColsSet = new Set(rules.map(r => r.tCol));
+
+                // 2. Process
+                processedData = targetData.map(tRow => {
+                    const key = cleanKey(tRow[tKey]);
+                    const sRow = map.get(key);
+                    const newRow = { ...tRow }; // Copy gốc
+
+                    if (sRow) {
+                        matchCount++;
+                        rules.forEach(r => newRow[r.tCol] = sRow[r.sCol]);
+                    } else {
+                        // Nếu không tìm thấy, chỉ điền #N/A cho các cột TẠO MỚI (không đè mất dữ liệu cũ của file đích)
+                        rules.forEach(r => {
+                            if(!targetCols.includes(r.tCol)) newRow[r.tCol] = "#N/A"; 
+                        });
+                    }
+                    return newRow;
+                });
+
+                // 3. Render
+                renderResult(processedData, mappedColsSet);
+                document.getElementById('match-count').innerText = matchCount.toLocaleString();
+                hideLoader();
+                document.getElementById('result-zone').classList.remove('hidden-custom');
+                setTimeout(()=>document.getElementById('result-zone').scrollIntoView({ behavior: 'smooth' }), 100);
+
+            }, 50); // Nhường luồng cho UI update loader
+        }
+
+        function renderResult(data, mappedColsSet) {
+            const table = document.getElementById('result-table');
+            const allCols = Object.keys(data[0]);
+            
+            let html = '<thead class="bg-slate-50 sticky top-0 shadow-sm z-10"><tr>';
+            allCols.forEach(c => {
+                const isMapped = mappedColsSet.has(c);
+                html += `<th class="px-4 py-3 text-sm font-bold whitespace-nowrap ${isMapped ? 'bg-yellow-100 text-yellow-800' : 'text-slate-600'}">${c}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            data.slice(0, 50).forEach(row => {
+                html += '<tr class="border-b border-slate-100 hover:bg-slate-50/50">';
+                allCols.forEach(c => {
+                    const isMapped = mappedColsSet.has(c);
+                    let val = row[c] ?? "";
+                    let tdClass = "px-4 py-2 text-sm whitespace-nowrap text-slate-700";
+                    if(isMapped) {
+                        tdClass += " bg-yellow-50/30 font-medium";
+                        if(val === "#N/A") tdClass += " text-red-500 italic";
+                    }
+                    html += `<td class="${tdClass}">${val}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        function downloadExcel() {
+            showLoader('Đang tạo file Excel...');
+            setTimeout(() => {
+                // Tạo worksheet từ dữ liệu đã xử lý
+                const ws = XLSX.utils.json_to_sheet(processedData);
+                
+                // --- XỬ LÝ PHỤC HỒI CÁC DÒNG TRỐNG (NẾU CÓ) ---
+                // Tính năng mở rộng: Nếu người dùng chọn dòng Header > 1, khi xuất ra 
+                // ta sẽ chèn các dòng trống lên trên để giữ đúng format vị trí dòng như file gốc.
+                if (finalHeaderTargetRow > 1) {
+                    XLSX.utils.sheet_add_aoa(ws, [[]], {origin: 0}); // Add dummy
+                    // Dịch chuyển nội dung xuống
+                    const range = XLSX.utils.decode_range(ws['!ref']);
+                    range.e.r += (finalHeaderTargetRow - 1);
+                    
+                    // Tạo một sheet mới và chép dữ liệu đã dịch
+                    const newWs = {};
+                    for(let R = 0; R <= range.e.r; ++R) {
+                        for(let C = 0; C <= range.e.c; ++C) {
+                            if(R >= finalHeaderTargetRow - 1) {
+                                const oldCellAddress = {c:C, r: R - (finalHeaderTargetRow - 1)};
+                                const oldCellRef = XLSX.utils.encode_cell(oldCellAddress);
+                                
+                                if(ws[oldCellRef]) {
+                                    const newCellAddress = {c:C, r:R};
+                                    const newCellRef = XLSX.utils.encode_cell(newCellAddress);
+                                    newWs[newCellRef] = ws[oldCellRef];
+                                }
+                            }
+                        }
+                    }
+                    newWs['!ref'] = XLSX.utils.encode_range(range);
+                    
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, newWs, "KetQua");
+                    XLSX.writeFile(wb, `Vlookup_Pro_${new Date().getTime()}.xlsx`);
+
+                } else {
+                    // Bình thường
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "KetQua");
+                    XLSX.writeFile(wb, `Vlookup_Pro_${new Date().getTime()}.xlsx`);
+                }
+
+                hideLoader();
+            }, 50);
+        }
+    </script>
+</body>
+</html>
+
+
