@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Chấm Công & Theo Dõi Thời Gian Làm Việc Bác Sỹ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Custom Scrollbar for details */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* Timeline Styles */
+        .timeline-container {
+            position: relative;
+            height: 24px;
+            background-color: #e2e8f0;
+            border-radius: 12px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .timeline-segment {
+            position: absolute;
+            height: 100%;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 2px; /* Ensure very short events are visible */
+        }
+
+        .timeline-segment:hover {
+            transform: scaleY(1.2);
+            z-index: 10;
+            filter: brightness(1.1);
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        }
+
+        /* Tooltip */
+        .custom-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 50;
+            background: #1e293b;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            width: max-content;
+            max-width: 300px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.2s;
+            pointer-events: none;
+            line-height: 1.5;
+        }
+
+        .timeline-segment:hover .custom-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .loader {
+            border-top-color: #3b82f6;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom noUiSlider styles */
+        .noUi-target {
+            background: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+            height: 8px;
+        }
+        .noUi-connect {
+            background: #3b82f6;
+        }
+        .noUi-handle {
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .noUi-handle:active {
+            cursor: grabbing;
+        }
+        .noUi-horizontal .noUi-handle {
+            width: 20px;
+            height: 20px;
+            right: -10px;
+            top: -6px;
+        }
+        .noUi-handle:before, .noUi-handle:after {
+            display: none;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-user-doctor text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">MediTime Analytics</h1>
+                        <p class="text-xs text-slate-500">Hệ thống phân tích thời gian làm việc BHYT</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Upload Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i> Nhập Dữ Liệu
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Doctor List Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">1. Danh sách Bác sỹ (Excel/CSV)</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl hover:border-blue-400 transition-colors bg-slate-50 relative group cursor-pointer" id="dropzone-doctor" onclick="document.getElementById('file-doctor').click()">
+                        <div class="space-y-1 text-center">
+                            <i class="fa-solid fa-file-excel text-3xl text-emerald-500 mb-2"></i>
+                            <div class="flex text-sm text-slate-600 justify-center">
+                                <span class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 px-1">
+                                    <span>Chọn file</span>
+                                    <input id="file-doctor" name="file-doctor" type="file" class="sr-only" accept=".xlsx, .xls, .csv">
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500" id="name-doctor">Chưa chọn file (Cột: MA CCHN, TEN BS)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Details Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">2. Chi tiết DVKT (Excel/CSV)</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl hover:border-blue-400 transition-colors bg-slate-50 relative group cursor-pointer" id="dropzone-service" onclick="document.getElementById('file-service').click()">
+                        <div class="space-y-1 text-center">
+                            <i class="fa-solid fa-file-medical text-3xl text-blue-500 mb-2"></i>
+                            <div class="flex text-sm text-slate-600 justify-center">
+                                <span class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 px-1">
+                                    <span>Chọn file</span>
+                                    <input id="file-service" name="file-service" type="file" class="sr-only" accept=".xlsx, .xls, .csv" multiple>
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500" id="name-service">Chưa chọn file (Có thể chọn nhiều)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between">
+                <div class="text-sm text-slate-500 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-blue-400"></i>
+                    Dữ liệu được xử lý 100% trên trình duyệt, đảm bảo an toàn.
+                </div>
+                <button id="btn-process" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    <i class="fa-solid fa-microchip"></i> Xử Lý Dữ Liệu
+                </button>
+            </div>
+        </div>
+
+        <!-- Processing Status -->
+        <div id="loading-state" class="hidden mb-8 bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center">
+            <div class="inline-block border-4 border-slate-200 border-t-blue-500 rounded-full w-12 h-12 mb-4 loader"></div>
+            <h3 class="text-lg font-medium text-slate-800">Đang phân tích dữ liệu...</h3>
+            <p class="text-slate-500 mt-1 text-sm">Vui lòng chờ trong giây lát. Hệ thống đang tính toán thời gian và gộp các khoảng trùng lặp.</p>
+        </div>
+
+        <!-- Notification Messages -->
+        <div id="message-box" class="hidden mb-8 p-4 rounded-xl text-sm"></div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden space-y-6">
+            
+            <!-- Controls -->
+            <div class="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 p-5 gap-5">
+                <!-- Row 1: Date, Search & Legend -->
+                <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 w-full">
+                    
+                    <!-- Date & Search Group -->
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full xl:w-auto">
+                        <!-- Date Selector -->
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                <i class="fa-regular fa-calendar-days text-xl"></i>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Chọn Ngày Xem</label>
+                                <select id="date-selector" class="w-full sm:w-40 border-0 bg-transparent text-slate-800 font-semibold focus:ring-0 p-0 text-lg cursor-pointer">
+                                    <!-- Options populated via JS -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="hidden sm:block w-px h-10 bg-slate-200"></div> <!-- Divider -->
+
+                        <!-- Doctor Search -->
+                        <div class="flex items-center gap-3 w-full sm:w-auto relative z-30">
+                            <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                <i class="fa-solid fa-user-doctor text-xl"></i>
+                            </div>
+                            <div class="flex-1 relative">
+                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tìm Bác sỹ (Lọc)</label>
+                                <div class="relative">
+                                    <input type="text" id="doctor-search-input" placeholder="Nhập tên hoặc mã..." class="w-full sm:w-56 border-b-2 border-slate-200 bg-transparent text-slate-800 font-semibold focus:border-indigo-500 focus:outline-none p-0 pb-0.5 text-base transition-colors placeholder:font-normal placeholder:text-slate-400" autocomplete="off">
+                                    <button id="clear-search-btn" class="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 hidden pb-0.5">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <!-- Suggestions -->
+                                <ul id="doctor-suggestions" class="absolute left-0 top-full mt-2 w-full sm:w-72 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto hidden custom-scrollbar divide-y divide-slate-50">
+                                    <!-- Populated via JS -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 text-sm w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0">
+                        <div class="flex items-center gap-1.5 whitespace-nowrap">
+                            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                            <span class="text-slate-600">Khám/Chỉ định</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 whitespace-nowrap">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="text-slate-600">Thực hiện DV</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 whitespace-nowrap">
+                            <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+                            <span class="text-slate-600">Điện tim</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Time Slider -->
+                <div class="w-full border-t border-slate-100 pt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-sm font-semibold text-slate-700">Tra cứu khung giờ làm việc: <span id="time-range-text" class="text-blue-600 font-bold ml-1">00:00 - 24:00</span></label>
+                    </div>
+                    <div class="px-3 pb-2">
+                        <div id="time-slider"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-xl">
+                        <i class="fa-solid fa-user-md"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Tổng Bác sỹ làm việc</p>
+                        <h4 class="text-2xl font-bold text-slate-800" id="stat-doctors">0</h4>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-xl">
+                        <i class="fa-solid fa-clipboard-user"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Tổng lượt dịch vụ</p>
+                        <h4 class="text-2xl font-bold text-slate-800" id="stat-services">0</h4>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 text-xl">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Trung bình/Bác sỹ</p>
+                        <h4 class="text-2xl font-bold text-slate-800" id="stat-avg-time">0h 0m</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline List -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h3 class="font-semibold text-slate-800">Biểu Đồ Thời Gian Làm Việc Thực Tế</h3>
+                    
+                    <!-- Timeline Axis Labels (0-24h) -->
+                    <div class="hidden lg:flex w-2/3 justify-between text-xs text-slate-400 font-medium px-2">
+                        <span>00:00</span>
+                        <span>04:00</span>
+                        <span>08:00</span>
+                        <span>12:00</span>
+                        <span>16:00</span>
+                        <span>20:00</span>
+                        <span>24:00</span>
+                    </div>
+                </div>
+                <div id="doctor-list" class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                    <!-- Items generated by JS -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- State Management ---
+        let doctorMap = new Map(); // MA_CCHN -> Name
+        let rawServices = [];
+        let processedData = {}; // date -> doctorCode -> events[]
+        window.doctorUpdateFns = []; // Stores update functions for slider
+        let timeSliderInstance = null;
+        let selectedDoctorFilterId = null; // Trạng thái lưu mã bác sỹ đang được lọc
+
+        // --- UI Elements ---
+        const fileDoctorInput = document.getElementById('file-doctor');
+        const fileServiceInput = document.getElementById('file-service');
+        const nameDoctor = document.getElementById('name-doctor');
+        const nameService = document.getElementById('name-service');
+        const btnProcess = document.getElementById('btn-process');
+        const loadingState = document.getElementById('loading-state');
+        const resultsSection = document.getElementById('results-section');
+        const messageBox = document.getElementById('message-box');
+        const dateSelector = document.getElementById('date-selector');
+        const doctorListEl = document.getElementById('doctor-list');
+        const doctorSearchInput = document.getElementById('doctor-search-input');
+        const doctorSuggestions = document.getElementById('doctor-suggestions');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
+
+        // --- Event Listeners ---
+        fileDoctorInput.addEventListener('change', (e) => {
+            if(e.target.files.length > 0) nameDoctor.textContent = e.target.files[0].name;
+        });
+
+        fileServiceInput.addEventListener('change', (e) => {
+            if(e.target.files.length > 0) {
+                nameService.textContent = e.target.files.length === 1 ? e.target.files[0].name : `Đã chọn ${e.target.files.length} files`;
+            }
+        });
+
+        btnProcess.addEventListener('click', handleProcessData);
+        dateSelector.addEventListener('change', renderTimelineForDate);
+
+        // --- Search Event Listeners ---
+        if (doctorSearchInput) {
+            doctorSearchInput.addEventListener('input', handleDoctorSearch);
+            doctorSearchInput.addEventListener('focus', () => {
+                if (doctorSearchInput.value.trim() !== '' && doctorSuggestions.innerHTML !== '') {
+                    doctorSuggestions.classList.remove('hidden');
+                }
+            });
+            clearSearchBtn.addEventListener('click', clearDoctorSearch);
+            // Đóng popup gợi ý khi click ra ngoài
+            document.addEventListener('click', (e) => {
+                if (!doctorSearchInput.contains(e.target) && !doctorSuggestions.contains(e.target)) {
+                    doctorSuggestions.classList.add('hidden');
+                }
+            });
+        }
+
+        // --- Search & Filter Logic ---
+        function handleDoctorSearch(e) {
+            const query = e.target.value.toLowerCase().trim();
+            doctorSuggestions.innerHTML = '';
+
+            // Nếu xóa trắng ô tìm kiếm, tự động reset bộ lọc
+            if (query === '') {
+                doctorSuggestions.classList.add('hidden');
+                clearSearchBtn.classList.add('hidden');
+                if (selectedDoctorFilterId !== null) {
+                    selectedDoctorFilterId = null;
+                    renderTimelineForDate(); // Render lại tất cả
+                }
+                return;
+            }
+
+            clearSearchBtn.classList.remove('hidden');
+            doctorSuggestions.classList.remove('hidden');
+
+            // Tìm kiếm trong doctorMap
+            let matches = [];
+            for (let [code, name] of doctorMap.entries()) {
+                if (name.toLowerCase().includes(query) || code.toLowerCase().includes(query)) {
+                    matches.push({ code, name });
+                }
+            }
+
+            if (matches.length === 0) {
+                doctorSuggestions.innerHTML = '<li class="px-4 py-3 text-sm text-slate-500 italic">Không tìm thấy bác sỹ phù hợp.</li>';
+                return;
+            }
+
+            // Render danh sách gợi ý
+            matches.forEach(match => {
+                const li = document.createElement('li');
+                li.className = 'px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer transition-colors flex flex-col';
+                li.innerHTML = `<span class="font-bold">${match.name}</span> <span class="text-xs text-slate-400">${match.code}</span>`;
+                li.addEventListener('click', () => {
+                    selectDoctorFilter(match.code, match.name);
+                });
+                doctorSuggestions.appendChild(li);
+            });
+        }
+
+        function selectDoctorFilter(code, name) {
+            selectedDoctorFilterId = code;
+            doctorSearchInput.value = name;
+            doctorSuggestions.classList.add('hidden');
+            clearSearchBtn.classList.remove('hidden');
+            renderTimelineForDate(); // Cập nhật lại UI chỉ hiện bác sỹ này
+        }
+
+        function clearDoctorSearch() {
+            doctorSearchInput.value = '';
+            selectedDoctorFilterId = null;
+            doctorSuggestions.classList.add('hidden');
+            clearSearchBtn.classList.add('hidden');
+            renderTimelineForDate(); // Cập nhật lại UI hiện tất cả
+        }
+
+        // --- Init Slider ---
+        function initSlider() {
+            const sliderEl = document.getElementById('time-slider');
+            if (timeSliderInstance) {
+                timeSliderInstance.destroy();
+            }
+            
+            noUiSlider.create(sliderEl, {
+                start: [0, 1440],
+                connect: true,
+                step: 15, // 15 mins step
+                range: {
+                    'min': 0,
+                    'max': 1440
+                },
+                format: {
+                    to: function (value) { return Math.round(value); },
+                    from: function (value) { return Number(value); }
+                }
+            });
+
+            timeSliderInstance = sliderEl.noUiSlider;
+
+            timeSliderInstance.on('update', function (values) {
+                const startMins = values[0];
+                const endMins = values[1];
+                
+                document.getElementById('time-range-text').textContent = 
+                    `${formatMinsToTime(startMins)} - ${formatMinsToTime(endMins)}`;
+                    
+                updateTimelineFilters(startMins, endMins);
+            });
+        }
+
+        // --- Utility Functions ---
+        function formatMinsToTime(mins) {
+            const h = Math.floor(mins / 60).toString().padStart(2, '0');
+            const m = (mins % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        function getEventsInRange(events, rangeStartMins, rangeEndMins) {
+            return events.map(ev => {
+                let startMins = ev.start.hours() * 60 + ev.start.minutes();
+                let endMins = ev.end.hours() * 60 + ev.end.minutes();
+                
+                let clampedStart = Math.max(startMins, rangeStartMins);
+                let clampedEnd = Math.min(endMins, rangeEndMins);
+                
+                if (clampedStart < clampedEnd) {
+                    return {
+                        original: ev,
+                        start: clampedStart,
+                        end: clampedEnd
+                    };
+                }
+                return null;
+            }).filter(e => e !== null);
+        }
+
+        function updateTimelineFilters(startMins, endMins) {
+            if (window.doctorUpdateFns) {
+                window.doctorUpdateFns.forEach(fn => fn(startMins, endMins));
+            }
+        }
+
+        function showMessage(msg, type = 'error') {
+            messageBox.className = `mb-8 p-4 rounded-xl text-sm font-medium ${type === 'error' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`;
+            messageBox.innerHTML = `<i class="fa-solid fa-circle-${type === 'error' ? 'exclamation' : 'check'} mr-2"></i> ${msg}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => messageBox.classList.add('hidden'), 8000);
+        }
+
+        // Parse various datetime formats from BHYT XML/Excel
+        function parseDateTime(dateStr, timeStr) {
+            if (!dateStr) return null;
+            let m;
+            
+            // Try standard ISO or SQL format first
+            if (typeof dateStr === 'string' && dateStr.includes('-')) {
+                let dateTimeStr = dateStr;
+                if (timeStr && !dateStr.includes(':')) {
+                    dateTimeStr = `${dateStr.split(' ')[0]} ${timeStr}`;
+                }
+                m = moment(dateTimeStr, ["YYYY-MM-DD HH:mm:ss", "YYYY-MM-DD HH:mm", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD"]);
+            } else if (typeof dateStr === 'string' && dateStr.length === 12 && !isNaN(dateStr)) {
+                // YYYYMMDDHHmm
+                m = moment(dateStr, "YYYYMMDDHHmm");
+            } else if (typeof dateStr === 'number') {
+                // Excel serial date
+                m = moment(new Date((dateStr - (25567 + 2)) * 86400 * 1000));
+            } else {
+                 m = moment(dateStr);
+            }
+
+            return m.isValid() ? m : null;
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        // Convert to array of arrays first to find header row dynamically if needed
+                        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                        resolve(json);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // --- Main Processing Logic ---
+        async function handleProcessData() {
+            messageBox.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            
+            if (fileDoctorInput.files.length === 0) {
+                showMessage("Vui lòng chọn file Danh sách Bác sỹ.");
+                return;
+            }
+            if (fileServiceInput.files.length === 0) {
+                showMessage("Vui lòng chọn ít nhất 1 file Chi tiết DVKT.");
+                return;
+            }
+
+            btnProcess.disabled = true;
+            loadingState.classList.remove('hidden');
+
+            try {
+                // 1. Parse Doctors
+                const docData = await readExcelFile(fileDoctorInput.files[0]);
+                doctorMap.clear();
+                let foundDocColumns = false;
+                
+                docData.forEach(row => {
+                    // Try to find columns regardless of exact case or spacing
+                    const keys = Object.keys(row);
+                    const idKey = keys.find(k => k.toUpperCase().includes('MA CCHN') || k.toUpperCase().includes('MÃ CCHN') || k.toUpperCase().includes('MA_CCHN'));
+                    const nameKey = keys.find(k => k.toUpperCase().includes('TEN BS') || k.toUpperCase().includes('TÊN BS') || k.toUpperCase().includes('TEN_BS'));
+                    
+                    if (idKey && nameKey && row[idKey]) {
+                        doctorMap.set(String(row[idKey]).trim(), row[nameKey]);
+                        foundDocColumns = true;
+                    }
+                });
+
+                if(!foundDocColumns) {
+                    showMessage("Không tìm thấy cột 'MA CCHN' và 'TEN BS' trong file bác sỹ.", 'warning');
+                }
+
+                // 2. Parse Services
+                rawServices = [];
+                for (let i = 0; i < fileServiceInput.files.length; i++) {
+                    const svcData = await readExcelFile(fileServiceInput.files[i]);
+                    rawServices = rawServices.concat(svcData);
+                }
+
+                // 3. Process Logic
+                processedData = {}; // Reset
+
+                rawServices.forEach(row => {
+                    const keys = Object.keys(row);
+                    const getVal = (colNames) => {
+                        for (let key of keys) {
+                            if (colNames.some(cn => key.toUpperCase() === cn.toUpperCase())) return row[key];
+                        }
+                        return "";
+                    };
+
+                    const patientName = getVal(['HO_TEN', 'HỌ TÊN', 'TEN_BN']);
+                    const patientID = getVal(['MA_THE', 'MÃ THẺ']);
+                    const serviceName = getVal(['TEN_CP', 'TÊN DỊCH VỤ', 'TEN_DV']);
+                    const doctorIdOrder = getVal(['MA_BAC_SI', 'MÃ BÁC SĨ CHỈ ĐỊNH']);
+                    const doctorIdPerform = getVal(['MA_BSI_THUC_HIEN', 'MÃ BÁC SĨ THỰC HIỆN']);
+                    
+                    const dateOrder = getVal(['NGAY_YL', 'NGÀY Y LỆNH']);
+                    const timeOrder = getVal(['GIO_YL', 'GIỜ Y LỆNH']);
+                    const datePerformStart = getVal(['NGAY_TH_YL', 'NGÀY THỰC HIỆN Y LỆNH', 'NGAY_TH']);
+                    const dateResult = getVal(['NGAY_KQ', 'NGÀY KẾT QUẢ']);
+
+                    const isECG = serviceName.toLowerCase().includes('điện tim thường');
+
+                    // Parse times
+                    let timeYL = parseDateTime(dateOrder, timeOrder);
+                    let timeTH = parseDateTime(datePerformStart);
+                    let timeKQ = parseDateTime(dateResult);
+
+                    // Add Event Helper
+                    const addEvent = (doctorId, type, startMoment, endMoment, fallbackStartMin = 10) => {
+                        if (!doctorId || (!startMoment && !endMoment)) return;
+                        
+                        let s = startMoment ? startMoment.clone() : null;
+                        let e = endMoment ? endMoment.clone() : null;
+
+                        // Fill missing
+                        if (!s && e) s = e.clone().subtract(fallbackStartMin, 'minutes');
+                        if (s && !e) e = s.clone().add(fallbackStartMin, 'minutes');
+                        if (!s && !e) return;
+
+                        // Ensure s <= e
+                        if (s.isAfter(e)) {
+                            let temp = s; s = e; e = temp;
+                        }
+
+                        const dateKey = s.format('YYYY-MM-DD');
+                        const docKey = String(doctorId).trim();
+
+                        if (!processedData[dateKey]) processedData[dateKey] = {};
+                        if (!processedData[dateKey][docKey]) processedData[dateKey][docKey] = [];
+
+                        processedData[dateKey][docKey].push({
+                            type: type, // 'order', 'perform', 'ecg'
+                            start: s,
+                            end: e,
+                            service: serviceName,
+                            patient: patientName,
+                            patientId: patientID
+                        });
+                    };
+
+                    // Apply Business Logic
+                    if (isECG) {
+                        // Điện tim thường: Chỉ tính cho Bác sĩ đọc KQ (MA_BAC_SI), dùng thời gian KQ
+                        // Giả định thời gian đọc khoảng 5 phút trước khi ra KQ nếu ko có TH
+                        addEvent(doctorIdOrder, 'ecg', timeTH || (timeKQ ? moment(timeKQ).subtract(5, 'm') : timeYL), timeKQ || timeYL, 5);
+                    } else {
+                        // 1. Tính thời gian ra y lệnh/khám cho MA_BAC_SI
+                        if (doctorIdOrder && timeYL) {
+                            // Mặc định khám/ra y lệnh mất 5 phút
+                            addEvent(doctorIdOrder, 'order', timeYL, timeYL.clone().add(5, 'minutes'));
+                        }
+
+                        // 2. Tính thời gian thực hiện DV cho MA_BSI_THUC_HIEN
+                        if (doctorIdPerform && (timeTH || timeKQ)) {
+                            addEvent(doctorIdPerform, 'perform', timeTH, timeKQ, 15); // Default 15p cho dịch vụ nếu thiếu đầu/cuối
+                        }
+                    }
+                });
+
+                // Prepare Date Dropdown
+                const dates = Object.keys(processedData).sort((a,b) => moment(b).diff(moment(a))); // Descending
+                
+                if (dates.length === 0) {
+                    showMessage("Không trích xuất được dữ liệu ngày làm việc nào. Vui lòng kiểm tra định dạng cột.");
+                    return;
+                }
+
+                dateSelector.innerHTML = '';
+                dates.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d;
+                    opt.textContent = moment(d).format('DD/MM/YYYY');
+                    dateSelector.appendChild(opt);
+                });
+
+                showMessage("Xử lý dữ liệu thành công!", 'success');
+                initSlider(); // Initialize the slider when data is ready
+                renderTimelineForDate();
+                resultsSection.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                showMessage("Đã có lỗi xảy ra khi đọc file: " + error.message);
+            } finally {
+                btnProcess.disabled = false;
+                loadingState.classList.add('hidden');
+            }
+        }
+
+        // --- Render & Calculation Logic ---
+        
+        // Merge overlapping intervals to calculate true working time
+        function calculateTotalWorkingTime(events) {
+            if (!events || events.length === 0) return 0;
+            
+            // Sort by start time
+            let sorted = [...events].sort((a, b) => a.start.valueOf() - b.start.valueOf());
+            let merged = [ { start: sorted[0].start, end: sorted[0].end } ];
+
+            for (let i = 1; i < sorted.length; i++) {
+                let current = sorted[i];
+                let lastMerged = merged[merged.length - 1];
+
+                if (current.start.isSameOrBefore(lastMerged.end)) {
+                    // Overlap, extend end time if necessary
+                    if (current.end.isAfter(lastMerged.end)) {
+                        lastMerged.end = current.end;
+                    }
+                } else {
+                    // No overlap
+                    merged.push({ start: current.start, end: current.end });
+                }
+            }
+
+            let totalMinutes = 0;
+            merged.forEach(interval => {
+                totalMinutes += interval.end.diff(interval.start, 'minutes');
+            });
+            return totalMinutes;
+        }
+
+        function formatDuration(minutes) {
+            if (minutes < 0) return "0m";
+            const h = Math.floor(minutes / 60);
+            const m = Math.floor(minutes % 60);
+            if (h > 0) return `${h}h ${m}m`;
+            return `${m}m`;
+        }
+
+        function renderTimelineForDate() {
+            const selectedDate = dateSelector.value;
+            if (!selectedDate || !processedData[selectedDate]) return;
+
+            const doctorsData = processedData[selectedDate];
+            const doctorCodes = Object.keys(doctorsData);
+            
+            doctorListEl.innerHTML = '';
+            window.doctorUpdateFns = []; // Reset update functions
+            
+            let totalDoctors = 0;
+            let totalServices = 0;
+            let sumTotalMinutes = 0;
+
+            const typeColors = {
+                'order': 'bg-blue-500',
+                'perform': 'bg-emerald-500',
+                'ecg': 'bg-purple-500'
+            };
+
+            // LỌC DANH SÁCH BÁC SỸ NẾU CÓ CHỌN TỪ Ô TÌM KIẾM
+            let filteredDoctorCodes = doctorCodes;
+            if (selectedDoctorFilterId) {
+                if (doctorCodes.includes(selectedDoctorFilterId)) {
+                    filteredDoctorCodes = [selectedDoctorFilterId];
+                } else {
+                    filteredDoctorCodes = []; // Bác sỹ này không làm việc trong ngày được chọn
+                }
+            }
+
+            // Sort doctors by total working time descending
+            const docArr = filteredDoctorCodes.map(code => {
+                const events = doctorsData[code];
+                return {
+                    code,
+                    name: doctorMap.get(code) || `BS. Chưa rõ (${code})`,
+                    events,
+                    totalMins: calculateTotalWorkingTime(events),
+                    serviceCount: events.length
+                };
+            }).sort((a, b) => b.totalMins - a.totalMins);
+
+            docArr.forEach(doc => {
+                if (doc.totalMins <= 0) return; // Skip if no valid time
+                
+                totalDoctors++;
+                totalServices += doc.serviceCount;
+                sumTotalMinutes += doc.totalMins;
+
+                // Find daily start and end time
+                let firstEvent = doc.events.reduce((min, e) => e.start.isBefore(min.start) ? e : min, doc.events[0]);
+                let lastEvent = doc.events.reduce((max, e) => e.end.isAfter(max.end) ? e : max, doc.events[0]);
+                let dailyStart = firstEvent ? firstEvent.start.format('HH:mm') : '--:--';
+                let dailyEnd = lastEvent ? lastEvent.end.format('HH:mm') : '--:--';
+
+                const item = document.createElement('div');
+                item.className = 'p-6 flex flex-col gap-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
+
+                const mainRow = document.createElement('div');
+                mainRow.className = 'flex flex-col lg:flex-row items-start lg:items-center gap-6 w-full';
+
+                // Doc Info
+                const docInfo = document.createElement('div');
+                docInfo.className = 'w-full lg:w-1/3 flex items-center gap-4';
+                docInfo.innerHTML = `
+                    <div class="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold flex-shrink-0 text-lg shadow-sm border border-indigo-200">
+                        ${doc.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800 line-clamp-1" title="${doc.name}">${doc.name}</h4>
+                        <div class="mt-1.5 mb-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold shadow-sm" title="Thời gian thực hiện dịch vụ sớm nhất và muộn nhất trong ngày">
+                            <i class="fa-solid fa-business-time"></i> Giờ làm việc: Từ ${dailyStart} đến ${dailyEnd}
+                        </div>
+                        <div class="flex text-xs text-slate-500 gap-3 mt-1">
+                            <span title="Tổng thời gian làm việc (đã trừ trùng lặp)"><i class="fa-regular fa-clock"></i> <b class="text-slate-700">${formatDuration(doc.totalMins)}</b></span>
+                            <span title="Tổng số dịch vụ"><i class="fa-solid fa-list-check"></i> <b class="text-slate-700">${doc.serviceCount}</b> DV</span>
+                        </div>
+                    </div>
+                `;
+
+                // Timeline container
+                const timelineWrapper = document.createElement('div');
+                timelineWrapper.className = 'w-full lg:w-2/3 relative';
+                
+                const timeline = document.createElement('div');
+                timeline.className = 'timeline-container';
+
+                // Overlays for filtering
+                const overlayLeft = document.createElement('div');
+                overlayLeft.className = 'absolute top-0 bottom-0 left-0 bg-slate-100/80 z-20 transition-all duration-75 border-r border-slate-300 pointer-events-none';
+                
+                const overlayRight = document.createElement('div');
+                overlayRight.className = 'absolute top-0 bottom-0 right-0 bg-slate-100/80 z-20 transition-all duration-75 border-l border-slate-300 pointer-events-none';
+                
+                timeline.appendChild(overlayLeft);
+                timeline.appendChild(overlayRight);
+
+                // Draw events on timeline
+                doc.events.forEach(ev => {
+                    if (!ev.start.isSame(selectedDate, 'day')) return;
+
+                    const startMinutes = ev.start.hours() * 60 + ev.start.minutes();
+                    const endMinutes = ev.end.hours() * 60 + ev.end.minutes();
+                    let duration = endMinutes - startMinutes;
+                    if (duration < 2) duration = 2; // Min width
+
+                    const leftPercent = (startMinutes / 1440) * 100;
+                    const widthPercent = (duration / 1440) * 100;
+
+                    const segment = document.createElement('div');
+                    segment.className = `timeline-segment ${typeColors[ev.type] || 'bg-slate-500'}`;
+                    segment.style.left = `${leftPercent}%`;
+                    segment.style.width = `${widthPercent}%`;
+
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'custom-tooltip';
+                    
+                    let typeLabel = "Chỉ định/Khám";
+                    if(ev.type === 'perform') typeLabel = "Thực hiện DV";
+                    if(ev.type === 'ecg') typeLabel = "Đọc Điện tim";
+
+                    tooltip.innerHTML = `
+                        <div class="font-semibold border-b border-slate-600 pb-1 mb-1">${typeLabel}</div>
+                        <div><span class="text-slate-400">Time:</span> ${ev.start.format('HH:mm')} - ${ev.end.format('HH:mm')}</div>
+                        <div><span class="text-slate-400">BN:</span> ${ev.patient || 'N/A'}</div>
+                        <div class="truncate"><span class="text-slate-400">DV:</span> ${ev.service || 'N/A'}</div>
+                    `;
+
+                    segment.addEventListener('mouseenter', (e) => {
+                        const rect = segment.getBoundingClientRect();
+                        if (rect.left > window.innerWidth / 2) {
+                            tooltip.style.right = '0';
+                            tooltip.style.left = 'auto';
+                        } else {
+                            tooltip.style.left = '0';
+                            tooltip.style.right = 'auto';
+                        }
+                        tooltip.style.bottom = '30px';
+                    });
+
+                    segment.appendChild(tooltip);
+                    timeline.appendChild(segment);
+                });
+
+                timelineWrapper.appendChild(timeline);
+                
+                mainRow.appendChild(docInfo);
+                mainRow.appendChild(timelineWrapper);
+                item.appendChild(mainRow);
+
+                // Filter Details Box
+                const detailsBox = document.createElement('div');
+                detailsBox.className = 'ml-0 lg:ml-[calc(33.333%+1.5rem)] bg-indigo-50/60 border border-indigo-100 rounded-lg p-3 text-sm transition-all duration-200';
+                detailsBox.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                        <span class="font-semibold text-indigo-800"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Tra cứu: <span class="filter-time-text bg-white px-2 py-0.5 rounded shadow-sm border border-indigo-100 ml-1"></span></span>
+                        <span class="text-indigo-700 font-medium bg-indigo-100 px-2.5 py-1 rounded-md text-xs filter-stats-text shadow-sm border border-indigo-200"></span>
+                    </div>
+                    <div class="text-slate-700 text-xs leading-relaxed filter-activities-text max-h-32 overflow-y-auto pr-2 custom-scrollbar bg-white p-2 rounded border border-slate-100"></div>
+                `;
+                item.appendChild(detailsBox);
+
+                const timeTextEl = detailsBox.querySelector('.filter-time-text');
+                const statsTextEl = detailsBox.querySelector('.filter-stats-text');
+                const activitiesTextEl = detailsBox.querySelector('.filter-activities-text');
+
+                // Define Slider Update Function for this Doctor
+                const updateFn = (sMins, eMins) => {
+                    // Update overlays visually
+                    overlayLeft.style.width = `${(sMins / 1440) * 100}%`;
+                    overlayRight.style.width = `${(1 - eMins / 1440) * 100}%`;
+
+                    // Filter events inside this range
+                    let inRange = getEventsInRange(doc.events, sMins, eMins);
+                    
+                    timeTextEl.textContent = `${formatMinsToTime(sMins)} - ${formatMinsToTime(eMins)}`;
+
+                    if (inRange.length === 0) {
+                        detailsBox.classList.add('opacity-60');
+                        statsTextEl.textContent = `0 phút / 0 dịch vụ`;
+                        activitiesTextEl.innerHTML = `<span class="text-slate-400 italic">Bác sỹ không có hoạt động nào trong khung giờ này.</span>`;
+                        return;
+                    }
+                    
+                    detailsBox.classList.remove('opacity-60');
+                    
+                    // Calculate merged working time in this range
+                    let sorted = [...inRange].sort((a, b) => a.start - b.start);
+                    let merged = [ { start: sorted[0].start, end: sorted[0].end } ];
+                    for (let i = 1; i < sorted.length; i++) {
+                        let current = sorted[i];
+                        let lastMerged = merged[merged.length - 1];
+                        if (current.start <= lastMerged.end) {
+                            if (current.end > lastMerged.end) lastMerged.end = current.end;
+                        } else {
+                            merged.push({ start: current.start, end: current.end });
+                        }
+                    }
+                    let totalMinutes = merged.reduce((acc, curr) => acc + (curr.end - curr.start), 0);
+                    
+                    statsTextEl.textContent = `Làm việc ${formatDuration(totalMinutes)} / ${inRange.length} dịch vụ`;
+                    
+                    // Build HTML for activities list
+                    inRange.sort((a, b) => a.start - b.start);
+                    let htmlLines = inRange.map(e => {
+                        let st = formatMinsToTime(e.start);
+                        let en = formatMinsToTime(e.end);
+                        let colorClass = e.original.type === 'order' ? 'text-blue-600' : (e.original.type === 'ecg' ? 'text-purple-600' : 'text-emerald-600');
+                        let icon = e.original.type === 'order' ? 'fa-stethoscope' : (e.original.type === 'ecg' ? 'fa-heart-pulse' : 'fa-syringe');
+                        
+                        return `<div class="flex items-start gap-2 py-1 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors px-1 rounded">
+                            <span class="font-medium ${colorClass} shrink-0 w-24"><i class="fa-solid ${icon} mr-1 w-4 text-center"></i> ${st}-${en}</span>
+                            <span class="truncate" title="Bệnh nhân: ${e.original.patient || 'N/A'} | Dịch vụ: ${e.original.service}"><b>${e.original.patient || 'N/A'}</b> - ${e.original.service}</span>
+                        </div>`;
+                    });
+
+                    activitiesTextEl.innerHTML = htmlLines.join('');
+                };
+
+                window.doctorUpdateFns.push(updateFn);
+                
+                doctorListEl.appendChild(item);
+            });
+
+            if (totalDoctors === 0) {
+                if (selectedDoctorFilterId) {
+                    doctorListEl.innerHTML = `<div class="p-8 text-center text-slate-500 flex flex-col items-center"><i class="fa-solid fa-user-doctor text-4xl text-slate-300 mb-3"></i><span>Bác sỹ <b class="text-slate-700">${doctorSearchInput.value}</b> không có dữ liệu khám/chữa bệnh trong ngày <b>${moment(selectedDate).format('DD/MM/YYYY')}</b>.</span></div>`;
+                } else {
+                    doctorListEl.innerHTML = '<div class="p-8 text-center text-slate-500">Không có dữ liệu hợp lệ cho ngày này.</div>';
+                }
+            }
+
+            // Update Stats Dashboard
+            document.getElementById('stat-doctors').textContent = totalDoctors;
+            document.getElementById('stat-services').textContent = totalServices;
+            document.getElementById('stat-avg-time').textContent = totalDoctors > 0 ? formatDuration(sumTotalMinutes / totalDoctors) : '0h 0m';
+
+            // Trigger slider update to apply current filter to newly rendered list
+            if (timeSliderInstance) {
+                const vals = timeSliderInstance.get();
+                updateTimelineFilters(Number(vals[0]), Number(vals[1]));
+            }
+        }
+
+    </script>
+</body>
+</html>
