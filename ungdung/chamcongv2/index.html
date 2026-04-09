@@ -696,21 +696,19 @@
                     };
 
                     // Apply Business Logic
-                    if (isECG) {
-                        // Điện tim thường: Chỉ tính cho Bác sĩ đọc KQ (MA_BAC_SI), dùng thời gian KQ
-                        // Giả định thời gian đọc khoảng 5 phút trước khi ra KQ nếu ko có TH
-                        addEvent(doctorIdOrder, 'ecg', timeTH || (timeKQ ? moment(timeKQ).subtract(5, 'm') : timeYL), timeKQ || timeYL, 5);
-                    } else {
-                        // 1. Tính thời gian ra y lệnh/khám cho MA_BAC_SI
-                        if (doctorIdOrder && timeYL) {
-                            // Mặc định khám/ra y lệnh mất 5 phút
-                            addEvent(doctorIdOrder, 'order', timeYL, timeYL.clone().add(5, 'minutes'));
-                        }
+                    // 1. Luôn tính thời gian ra y lệnh/chỉ định ban đầu cho MA_BAC_SI (mặc định 5 phút)
+                    if (doctorIdOrder && timeYL) {
+                        addEvent(doctorIdOrder, 'order', timeYL, timeYL.clone().add(5, 'minutes'));
+                    }
 
-                        // 2. Tính thời gian thực hiện DV cho MA_BSI_THUC_HIEN
-                        if (doctorIdPerform && (timeTH || timeKQ)) {
-                            addEvent(doctorIdPerform, 'perform', timeTH, timeKQ, 15); // Default 15p cho dịch vụ nếu thiếu đầu/cuối
-                        }
+                    // 2. Nếu là Điện tim: Bác sỹ chỉ định được tính thêm giờ đọc kết quả tại NGAY_KQ
+                    if (isECG && doctorIdOrder && timeKQ) {
+                        addEvent(doctorIdOrder, 'ecg', timeKQ.clone().subtract(5, 'minutes'), timeKQ, 5);
+                    } 
+                    
+                    // 3. Bác sỹ/KTV thực hiện (MA_BSI_THUC_HIEN) vẫn được tính giờ thực hiện cho TẤT CẢ dịch vụ (bao gồm cả điện tim)
+                    if (doctorIdPerform && (timeTH || timeKQ)) {
+                        addEvent(doctorIdPerform, 'perform', timeTH, timeKQ, 15); // Default 15p nếu thiếu đầu/cuối
                     }
                 });
 
