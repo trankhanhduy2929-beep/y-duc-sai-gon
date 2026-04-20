@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần Mềm Dò Lỗi Chỉ Định YHCT - BHYT</title>
+    <!-- Tailwind CSS cho giao diện hiện đại -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome cho Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS để đọc file Excel/CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9', // Sky 500
+                        secondary: '#14b8a6', // Teal 500
+                        dark: '#0f172a', // Slate 900
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .upload-zone.dragover {
+            border-color: #0ea5e9;
+            background-color: #f0f9ff;
+        }
+
+        #loader { display: none; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased overflow-x-hidden h-screen flex flex-col">
+
+    <!-- ================= MODAL ĐĂNG NHẬP ================= -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass p-8 rounded-2xl shadow-2xl w-96 transform transition-all duration-300 scale-100">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">Hệ Thống Dò Lỗi</h2>
+                <p class="text-sm text-slate-500 mt-1">Vui lòng nhập mật khẩu để truy cập</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." 
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-center tracking-widest font-bold"
+                        onkeypress="if(event.key === 'Enter') checkPassword()">
+                </div>
+                <button onclick="checkPassword()" class="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:shadow-lg hover:opacity-90 transition-all active:scale-95">
+                    Đăng Nhập <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>
+                </button>
+                <p id="loginError" class="text-red-500 text-sm text-center hidden"><i class="fa-solid fa-circle-exclamation"></i> Mật khẩu không đúng!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= GIAO DIỆN CHÍNH (ẨN KHI CHƯA ĐĂNG NHẬP) ================= -->
+    <div id="appContainer" class="hidden flex-1 flex flex-col h-full">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-slate-100 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid fa-laptop-medical"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight text-slate-800">YHCT Checker Pro</h1>
+                        <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Bảo hiểm Y Tế</p>
+                    </div>
+                </div>
+                <div>
+                    <button onclick="logout()" class="text-sm text-slate-500 hover:text-red-500 transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50 font-medium">
+                        <i class="fa-solid fa-power-off mr-1"></i> Thoát
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-7xl mx-auto space-y-6">
+                
+                <!-- Khu vực Upload File -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Upload Bảng 1 -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-slate-700 flex items-center gap-2">
+                                <i class="fa-solid fa-file-excel text-green-600"></i> Dữ liệu Bảng 1
+                            </h3>
+                            <span id="statusB1" class="text-xs font-medium px-2 py-1 bg-slate-100 text-slate-500 rounded-md">Chưa tải</span>
+                        </div>
+                        <label class="upload-zone block w-full border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-primary hover:bg-blue-50/50 transition-all">
+                            <input type="file" class="hidden" accept=".csv, .xlsx, .xls" onchange="handleFileUpload(event, 'B1')">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 group-hover:text-primary mb-2"></i>
+                            <p class="text-sm text-slate-500">Click chọn hoặc Kéo thả file <b class="text-slate-700">XML1/B1.xlsx</b></p>
+                        </label>
+                    </div>
+
+                    <!-- Upload Bảng 3 -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-slate-700 flex items-center gap-2">
+                                <i class="fa-solid fa-file-excel text-green-600"></i> Dữ liệu Bảng 3
+                            </h3>
+                            <span id="statusB3" class="text-xs font-medium px-2 py-1 bg-slate-100 text-slate-500 rounded-md">Chưa tải</span>
+                        </div>
+                        <label class="upload-zone block w-full border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-primary hover:bg-blue-50/50 transition-all">
+                            <input type="file" class="hidden" accept=".csv, .xlsx, .xls" onchange="handleFileUpload(event, 'B3')">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 group-hover:text-primary mb-2"></i>
+                            <p class="text-sm text-slate-500">Click chọn hoặc Kéo thả file <b class="text-slate-700">XML3/B3.xlsx</b></p>
+                        </label>
+                    </div>
+
+                    <!-- Upload DS Bác sĩ -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 relative group">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-semibold text-slate-700 flex items-center gap-2">
+                                <i class="fa-solid fa-user-doctor text-blue-600"></i> DS Chứng chỉ HN
+                            </h3>
+                            <span id="statusBS" class="text-xs font-medium px-2 py-1 bg-slate-100 text-slate-500 rounded-md">Chưa tải</span>
+                        </div>
+                        <label class="upload-zone block w-full border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-primary hover:bg-blue-50/50 transition-all">
+                            <input type="file" class="hidden" accept=".csv, .xlsx, .xls" onchange="handleFileUpload(event, 'BS')">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 group-hover:text-primary mb-2"></i>
+                            <p class="text-sm text-slate-500">Click chọn hoặc Kéo thả file <b class="text-slate-700">DS_BS.xlsx</b></p>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Nút Xử Lý -->
+                <div class="flex justify-center mt-4 mb-8">
+                    <button id="btnProcess" onclick="processAudit()" disabled
+                        class="px-8 py-3.5 bg-slate-300 text-slate-500 rounded-xl font-bold text-lg shadow-sm transition-all flex items-center gap-2 cursor-not-allowed">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i> BẮT ĐẦU DÒ LỖI
+                    </button>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loader" class="text-center py-8">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary mb-3"></i>
+                    <p class="text-slate-500 font-medium animate-pulse">Đang xử lý dữ liệu, vui lòng đợi...</p>
+                </div>
+
+                <!-- Kết Quả Báo Cáo -->
+                <div id="resultSection" class="hidden">
+                    <!-- Dashboard Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-slate-400">
+                            <p class="text-xs text-slate-500 font-bold uppercase">Tổng hồ sơ quét</p>
+                            <h4 id="statTotal" class="text-2xl font-bold text-slate-800 mt-1">0</h4>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+                            <p class="text-xs text-slate-500 font-bold uppercase">Tổng ca cấy chỉ</p>
+                            <h4 id="statCayChi" class="text-2xl font-bold text-blue-600 mt-1">0</h4>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
+                            <p class="text-xs text-slate-500 font-bold uppercase">Chỉ định đúng</p>
+                            <h4 id="statValid" class="text-2xl font-bold text-green-600 mt-1">0</h4>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 bg-red-50/30">
+                            <p class="text-xs text-red-500 font-bold uppercase">Phát hiện sai sót</p>
+                            <h4 id="statErrors" class="text-2xl font-bold text-red-600 mt-1">0</h4>
+                        </div>
+                    </div>
+
+                    <!-- Bảng chi tiết lỗi -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-lg text-slate-800"><i class="fa-solid fa-triangle-exclamation text-red-500 mr-2"></i> Danh sách hồ sơ sai quy định</h3>
+                            <button onclick="exportExcel()" class="text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm">
+                                <i class="fa-solid fa-download mr-1"></i> Xuất Excel
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
+                                        <th class="p-4 font-semibold">STT</th>
+                                        <th class="p-4 font-semibold">Bệnh Nhân</th>
+                                        <th class="p-4 font-semibold">Mã LK</th>
+                                        <th class="p-4 font-semibold">Dịch vụ cấy chỉ</th>
+                                        <th class="p-4 font-semibold">Chẩn đoán hiện tại (B1)</th>
+                                        <th class="p-4 font-semibold">Chẩn đoán yêu cầu</th>
+                                        <th class="p-4 font-semibold">Bác sĩ CĐ (B3)</th>
+                                        <th class="p-4 font-semibold">Thời gian</th>
+                                        <th class="p-4 font-semibold text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="errorTableBody" class="text-sm divide-y divide-slate-100">
+                                    <!-- Rows rendered by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="noErrorMsg" class="hidden p-8 text-center text-slate-500">
+                            <i class="fa-regular fa-face-smile-beam text-4xl text-green-500 mb-3"></i>
+                            <p class="text-lg font-medium text-slate-700">Tuyệt vời!</p>
+                            <p>Không phát hiện sai sót nào trong việc chỉ định cấy chỉ.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= MODAL CHI TIẾT BỆNH NHÂN ================= -->
+    <div id="patientModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-lg text-slate-800"><i class="fa-regular fa-address-card text-primary mr-2"></i> Chi tiết hồ sơ bệnh nhân</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="patientDetailContent">
+                    <!-- Content injected by JS -->
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="closeModal()" class="px-5 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition-colors">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông báo Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-green-400"></i>
+        <span id="toastMsg" class="font-medium text-sm"></span>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // -- TRẠNG THÁI ỨNG DỤNG --
+        let dataB1 = [];
+        let dataB3 = [];
+        let dataBS = [];
+        let mapDoctor = {}; // CCHN -> Tên BS
+        let errorList = [];
+
+        // -- 1. HỆ THỐNG ĐĂNG NHẬP --
+        function checkPassword() {
+            const pass = document.getElementById('passwordInput').value;
+            if (pass === '1402') {
+                document.getElementById('loginModal').classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    document.getElementById('loginModal').classList.add('hidden');
+                    document.getElementById('appContainer').classList.remove('hidden');
+                }, 300);
+            } else {
+                const err = document.getElementById('loginError');
+                err.classList.remove('hidden');
+                document.getElementById('passwordInput').classList.add('border-red-500', 'ring-red-200');
+                setTimeout(() => {
+                    err.classList.add('hidden');
+                    document.getElementById('passwordInput').classList.remove('border-red-500', 'ring-red-200');
+                }, 2000);
+            }
+        }
+
+        function logout() {
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('appContainer').classList.add('hidden');
+            const login = document.getElementById('loginModal');
+            login.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            // Reset Data
+            dataB1 = []; dataB3 = []; dataBS = [];
+            updateProcessButton();
+            document.getElementById('resultSection').classList.add('hidden');
+            ['B1', 'B3', 'BS'].forEach(t => updateStatusUI(t, false));
+        }
+
+        // -- 2. ĐỌC FILE BẰNG SHEETJS --
+        function handleFileUpload(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    // Đọc dạng json, dòng 1 làm header
+                    let jsonData = XLSX.utils.sheet_to_json(firstSheet, {defval: ""});
+                    
+                    if (type === 'B1') {
+                        dataB1 = jsonData;
+                        showToast(`Đã tải thành công Bảng 1 (${dataB1.length} dòng)`, 'success');
+                    } else if (type === 'B3') {
+                        dataB3 = jsonData;
+                        showToast(`Đã tải thành công Bảng 3 (${dataB3.length} dòng)`, 'success');
+                    } else if (type === 'BS') {
+                        dataBS = jsonData;
+                        buildDoctorMap(jsonData);
+                        showToast(`Đã tải DS Bác sĩ (${Object.keys(mapDoctor).length} người)`, 'success');
+                    }
+                    
+                    updateStatusUI(type, true, file.name);
+                    updateProcessButton();
+                } catch (error) {
+                    console.error(error);
+                    showToast(`Lỗi đọc file ${type}! Vui lòng kiểm tra định dạng.`, 'error');
+                    updateStatusUI(type, false);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function buildDoctorMap(jsonArray) {
+            mapDoctor = {};
+            jsonArray.forEach(row => {
+                // Thích ứng với các định dạng cột (có thể là 'MA CCHN' hoặc keys có chứa CCHN)
+                let cchn = row['MA CCHN'] || row['MA_CCHN'] || row['MÃ CCHN'] || '';
+                let ten = row['TEN BS'] || row['TEN_BS'] || row['TÊN BS'] || row['TÊN BÁC SĨ'] || row['HO_TEN'] || '';
+                
+                // Cố gắng dò tìm nếu header bị lệch (đặc thù file xuất từ PM HIS)
+                if (!cchn || !ten) {
+                    const values = Object.values(row);
+                    values.forEach(v => {
+                        if (typeof v === 'string') {
+                            if (v.includes('/') && (v.includes('CCHN') || v.includes('GPHN'))) cchn = v;
+                            // Assume string dài không chứa số/kí tự đặc biệt là tên (heuristic cơ bản)
+                            else if (v.length > 5 && !/\d/.test(v) && !v.includes('[')) ten = v;
+                        }
+                    });
+                }
+                if (cchn && ten) {
+                    mapDoctor[cchn.toString().trim()] = ten.toString().trim();
+                }
+            });
+        }
+
+        function updateStatusUI(type, isLoaded, fileName = '') {
+            const badge = document.getElementById(`status${type}`);
+            if (isLoaded) {
+                badge.className = "text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded-md";
+                badge.innerHTML = `<i class="fa-solid fa-check mr-1"></i> ${fileName}`;
+            } else {
+                badge.className = "text-xs font-medium px-2 py-1 bg-slate-100 text-slate-500 rounded-md";
+                badge.innerText = "Chưa tải";
+            }
+        }
+
+        function updateProcessButton() {
+            const btn = document.getElementById('btnProcess');
+            if (dataB1.length > 0 && dataB3.length > 0) {
+                // Chỉ cần B1, B3 là có thể chạy. Bác sĩ không có thì hiển thị mã CCHN
+                btn.disabled = false;
+                btn.className = "px-8 py-3.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2";
+            } else {
+                btn.disabled = true;
+                btn.className = "px-8 py-3.5 bg-slate-300 text-slate-500 rounded-xl font-bold text-lg shadow-sm transition-all flex items-center gap-2 cursor-not-allowed";
+            }
+        }
+
+        // -- 3. LOGIC DÒ LỖI CHÍNH --
+        function processAudit() {
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('resultSection').classList.add('hidden');
+            
+            setTimeout(() => {
+                errorList = [];
+                let totalCaCayChi = 0;
+                let validCount = 0;
+
+                // Chuẩn bị index tìm kiếm B1 cho nhanh (Map)
+                const mapB1 = new Map();
+                dataB1.forEach(r => mapB1.set(r['MA_LK'], r));
+
+                dataB3.forEach(b3Row => {
+                    const tenDV = (b3Row['TEN_DICH_VU'] || '').toString().toLowerCase();
+                    const maLK = b3Row['MA_LK'];
+                    
+                    let isTarget = false;
+                    let requiredCode = "";
+                    let requiredKeywords = [];
+
+                    // Nhận diện dịch vụ cấy chỉ theo yêu cầu
+                    if (tenDV.includes("cấy chỉ điều trị đau lưng")) {
+                        isTarget = true;
+                        requiredCode = "M54";
+                        requiredKeywords = ["yêu thống", "đau lưng"];
+                    } else if (tenDV.includes("cấy chỉ điều trị hội chứng vai gáy") || tenDV.includes("cấy chỉ điều trị đau vai gáy")) {
+                        isTarget = true;
+                        requiredCode = "M54.2";
+                        requiredKeywords = ["lạc chẩm", "đau vùng cổ gáy", "cổ gáy"];
+                    }
+
+                    if (isTarget) {
+                        totalCaCayChi++;
+                        const b1Row = mapB1.get(maLK);
+                        
+                        let thoiGian = b3Row['NGAY_TH_YL'] || b3Row['NGAY_YL'] || b3Row['NGAY_KQ'] || '';
+                        let cchnBS = b3Row['MA_BAC_SI'] || b3Row['NGUOI_THUC_HIEN'] || '';
+                        let tenBS = mapDoctor[cchnBS] ? `${mapDoctor[cchnBS]} (${cchnBS})` : cchnBS;
+
+                        if (!b1Row) {
+                            errorList.push({
+                                maLK, patientName: "Không có trong B1", 
+                                service: b3Row['TEN_DICH_VU'], currentDiag: "Mất liên kết XML1",
+                                requiredDiag: `Cần chứa ${requiredCode}`, doctor: tenBS, time: formatTime(thoiGian), rawB1: null
+                            });
+                            return;
+                        }
+
+                        const chanDoanRV = (b1Row['CHAN_DOAN_RV'] || '').toString().toLowerCase();
+                        
+                        // LOGIC KIỂM TRA MÃ VÀ CHỮ
+                        let isValid = false;
+                        
+                        // Phải chứa mã bệnh
+                        if (chanDoanRV.includes(requiredCode.toLowerCase())) {
+                            // Kiểm tra xem có chứa M54.2 không nếu là Đau lưng (vì M54.2 cũng chứa M54)
+                            if (requiredCode === "M54" && chanDoanRV.includes("m54.2") && !chanDoanRV.replace("m54.2","").includes("m54")) {
+                                isValid = false; 
+                            } else {
+                                // Kiểm tra từ khoá (phải chứa 1 trong các từ khóa)
+                                isValid = requiredKeywords.some(kw => chanDoanRV.includes(kw));
+                            }
+                        }
+
+                        // Nếu text chuẩn ghi nhận có cả ngoặc "(M54) Yêu thống [Đau lưng]", ưu tiên kiểm tra exact match mở rộng
+                        if (requiredCode === "M54" && (chanDoanRV.includes("(m54) yêu thống") || chanDoanRV.includes("yêu thống [đau lưng]"))) isValid = true;
+                        if (requiredCode === "M54.2" && (chanDoanRV.includes("(m54.2) lạc chẩm") || chanDoanRV.includes("lạc chẩm [đau vùng cổ gáy]"))) isValid = true;
+
+                        if (isValid) {
+                            validCount++;
+                        } else {
+                            // Ghi nhận lỗi
+                            let yeuCauHienThi = requiredCode === "M54" ? "(M54) Yêu thống [Đau lưng]" : "(M54.2) Lạc chẩm [Đau vùng cổ gáy]";
+                            
+                            errorList.push({
+                                maLK: maLK,
+                                patientName: b1Row['HO_TEN'] || 'N/A',
+                                service: b3Row['TEN_DICH_VU'],
+                                currentDiag: b1Row['CHAN_DOAN_RV'] || '',
+                                requiredDiag: yeuCauHienThi,
+                                doctor: tenBS,
+                                time: formatTime(thoiGian),
+                                rawB1: b1Row
+                            });
+                        }
+                    }
+                });
+
+                // Hiển thị kết quả
+                document.getElementById('statTotal').innerText = dataB3.length.toLocaleString('vi-VN');
+                document.getElementById('statCayChi').innerText = totalCaCayChi.toLocaleString('vi-VN');
+                document.getElementById('statValid').innerText = validCount.toLocaleString('vi-VN');
+                document.getElementById('statErrors').innerText = errorList.length.toLocaleString('vi-VN');
+
+                renderErrorTable();
+
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('resultSection').classList.remove('hidden');
+                
+                if (errorList.length > 0) showToast(`Phát hiện ${errorList.length} ca chỉ định sai!`, 'error');
+                else showToast(`Hoàn hảo! Không có lỗi chỉ định.`, 'success');
+
+            }, 800); // Giả lập độ trễ để thấy UI loading mượt
+        }
+
+        // -- 4. RENDER UI --
+        function renderErrorTable() {
+            const tbody = document.getElementById('errorTableBody');
+            const noData = document.getElementById('noErrorMsg');
+            tbody.innerHTML = '';
+
+            if (errorList.length === 0) {
+                tbody.parentElement.classList.add('hidden');
+                noData.classList.remove('hidden');
+                return;
+            }
+
+            tbody.parentElement.classList.remove('hidden');
+            noData.classList.add('hidden');
+
+            errorList.forEach((err, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-red-50/50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4 text-slate-500">${idx + 1}</td>
+                    <td class="p-4 font-bold text-slate-800">${err.patientName}</td>
+                    <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded text-xs text-slate-600 font-mono">${err.maLK}</span></td>
+                    <td class="p-4 text-blue-700 font-medium">${err.service}</td>
+                    <td class="p-4">
+                        <div class="max-w-[200px] truncate text-red-600 font-medium" title="${err.currentDiag}">
+                            <i class="fa-solid fa-xmark mr-1"></i> ${err.currentDiag || '<Trống>'}
+                        </div>
+                    </td>
+                    <td class="p-4 text-green-700 text-xs font-bold bg-green-50/50">${err.requiredDiag}</td>
+                    <td class="p-4 text-slate-600 text-sm">${err.doctor}</td>
+                    <td class="p-4 text-slate-500 text-sm whitespace-nowrap">${err.time}</td>
+                    <td class="p-4 text-center">
+                        <button onclick='viewDetail(${idx})' class="text-primary hover:text-white border border-primary hover:bg-primary px-3 py-1.5 rounded-lg transition-all text-xs font-semibold">
+                            Chi tiết
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function viewDetail(index) {
+            const err = errorList[index];
+            const b1 = err.rawB1;
+            const content = document.getElementById('patientDetailContent');
+            
+            if(!b1) {
+                content.innerHTML = `<div class="col-span-2 text-center text-red-500 py-10">Không có dữ liệu Bảng 1 cho mã LK này!</div>`;
+            } else {
+                content.innerHTML = `
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-slate-800 border-b pb-2 mb-3">Thông tin hành chính</h4>
+                        <div class="grid grid-cols-3 gap-2 text-sm border-b border-dashed border-slate-200 pb-2">
+                            <span class="text-slate-500 col-span-1">Mã LK:</span>
+                            <span class="font-mono font-bold text-slate-800 col-span-2">${b1.MA_LK || ''}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-sm border-b border-dashed border-slate-200 pb-2">
+                            <span class="text-slate-500 col-span-1">Bệnh nhân:</span>
+                            <span class="font-bold text-blue-700 col-span-2 text-base">${b1.HO_TEN || ''}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-sm border-b border-dashed border-slate-200 pb-2">
+                            <span class="text-slate-500 col-span-1">Giới tính:</span>
+                            <span class="font-medium text-slate-800 col-span-2">${b1.GIOI_TINH == 1 ? 'Nam' : 'Nữ'}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-sm border-b border-dashed border-slate-200 pb-2">
+                            <span class="text-slate-500 col-span-1">Ngày sinh:</span>
+                            <span class="font-medium text-slate-800 col-span-2">${formatTime(b1.NGAY_SINH, true)}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-sm">
+                            <span class="text-slate-500 col-span-1">Mã Thẻ BHYT:</span>
+                            <span class="font-medium text-green-700 col-span-2">${b1.MA_THE_BHYT || ''}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4 bg-slate-50 p-4 rounded-xl">
+                        <h4 class="font-bold text-slate-800 border-b pb-2 mb-3">Thông tin khám bệnh</h4>
+                        <div class="grid grid-cols-1 gap-1 text-sm mb-3">
+                            <span class="text-slate-500">Chẩn đoán ra viện:</span>
+                            <span class="font-bold text-red-600">${b1.CHAN_DOAN_RV || '<Trống>'}</span>
+                        </div>
+                        <div class="grid grid-cols-1 gap-1 text-sm mb-3">
+                            <span class="text-slate-500">Mã bệnh chính:</span>
+                            <span class="font-mono bg-white px-2 py-1 rounded border border-slate-200 w-fit">${b1.MA_BENH_CHINH || ''}</span>
+                        </div>
+                        <div class="grid grid-cols-1 gap-1 text-sm mb-3">
+                            <span class="text-slate-500">Bệnh kèm theo:</span>
+                            <span class="font-mono bg-white px-2 py-1 rounded border border-slate-200">${b1.MA_BENH_KT || ''}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-sm mt-4 border-t border-slate-200 pt-3">
+                            <div>
+                                <span class="text-slate-500 block text-xs">Ngày vào:</span>
+                                <span class="font-medium text-slate-800">${formatTime(b1.NGAY_VAO)}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 block text-xs">Ngày ra:</span>
+                                <span class="font-medium text-slate-800">${formatTime(b1.NGAY_RA)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('patientModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('patientModal').classList.add('hidden');
+        }
+
+        // -- 5. UTILS --
+        function formatTime(str, isDateOnly = false) {
+            if (!str) return '';
+            str = str.toString();
+            if (str.length >= 12) {
+                const y = str.substring(0,4);
+                const m = str.substring(4,6);
+                const d = str.substring(6,8);
+                const h = str.substring(8,10);
+                const mi = str.substring(10,12);
+                return isDateOnly ? `${d}/${m}/${y}` : `${h}:${mi} ${d}/${m}/${y}`;
+            }
+            if (str.length === 8) { // Date only e.g. 20260101
+                const y = str.substring(0,4);
+                const m = str.substring(4,6);
+                const d = str.substring(6,8);
+                return `${d}/${m}/${y}`;
+            }
+            return str;
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const txt = document.getElementById('toastMsg');
+            
+            txt.innerText = msg;
+            if (type === 'success') {
+                icon.className = "fa-solid fa-circle-check text-green-400";
+            } else {
+                icon.className = "fa-solid fa-triangle-exclamation text-red-400";
+            }
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function exportExcel() {
+            if (errorList.length === 0) return;
+            
+            // Format data for excel
+            const exportData = errorList.map((e, i) => ({
+                'STT': i + 1,
+                'Mã LK': e.maLK,
+                'Tên bệnh nhân': e.patientName,
+                'Dịch vụ Cấy chỉ': e.service,
+                'Chẩn đoán RV (B1)': e.currentDiag,
+                'Chẩn đoán bắt buộc': e.requiredDiag,
+                'Mã Bệnh Chính (B1)': e.rawB1 ? e.rawB1['MA_BENH_CHINH'] : '',
+                'Bác sĩ chỉ định': e.doctor,
+                'Thời gian thực hiện': e.time
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // Auto size columns
+            const colWidths = [
+                { wch: 5 }, { wch: 15 }, { wch: 25 }, { wch: 35 }, 
+                { wch: 40 }, { wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 20 }
+            ];
+            ws['!cols'] = colWidths;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Loi_ChiDinh_YHCT");
+            XLSX.writeFile(wb, `BaoCao_Loi_YHCT_${new Date().getTime()}.xlsx`);
+        }
+    </script>
+</body>
+</html>
