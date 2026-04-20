@@ -202,10 +202,9 @@
                                     <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
                                         <th class="p-4 font-semibold">STT</th>
                                         <th class="p-4 font-semibold">Bệnh Nhân</th>
-                                        <th class="p-4 font-semibold">Mã LK</th>
                                         <th class="p-4 font-semibold">Dịch vụ cấy chỉ</th>
                                         <th class="p-4 font-semibold">Chẩn đoán hiện tại (B1)</th>
-                                        <th class="p-4 font-semibold">Chẩn đoán yêu cầu</th>
+                                        <th class="p-4 font-semibold">Lỗi phát hiện (Thiếu)</th>
                                         <th class="p-4 font-semibold">Bác sĩ CĐ (B3)</th>
                                         <th class="p-4 font-semibold">Thời gian</th>
                                         <th class="p-4 font-semibold text-center">Thao tác</th>
@@ -424,7 +423,7 @@
                             errorList.push({
                                 maLK, patientName: "Không có trong B1", 
                                 service: b3Row['TEN_DICH_VU'], currentDiag: "Mất liên kết XML1",
-                                requiredDiag: `Cần chứa ${requiredCode}`, doctor: tenBS, time: formatTime(thoiGian), rawB1: null
+                                requiredDiag: `Thiếu chẩn đoán chứa ${requiredCode}`, doctor: tenBS, time: formatTime(thoiGian), rawB1: null
                             });
                             return;
                         }
@@ -453,7 +452,9 @@
                             validCount++;
                         } else {
                             // Ghi nhận lỗi
-                            let yeuCauHienThi = requiredCode === "M54" ? "(M54) Yêu thống [Đau lưng]" : "(M54.2) Lạc chẩm [Đau vùng cổ gáy]";
+                            let yeuCauHienThi = requiredCode === "M54" 
+                                ? "Thiếu mã M54 hoặc từ khóa (yêu thống, đau lưng)" 
+                                : "Thiếu mã M54.2 hoặc từ khóa (lạc chẩm, cổ gáy)";
                             
                             errorList.push({
                                 maLK: maLK,
@@ -507,14 +508,17 @@
                 tr.innerHTML = `
                     <td class="p-4 text-slate-500">${idx + 1}</td>
                     <td class="p-4 font-bold text-slate-800">${err.patientName}</td>
-                    <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded text-xs text-slate-600 font-mono">${err.maLK}</span></td>
                     <td class="p-4 text-blue-700 font-medium">${err.service}</td>
                     <td class="p-4">
-                        <div class="max-w-[200px] truncate text-red-600 font-medium" title="${err.currentDiag}">
-                            <i class="fa-solid fa-xmark mr-1"></i> ${err.currentDiag || '<Trống>'}
+                        <div class="max-w-[200px] truncate text-slate-600 font-medium" title="${err.currentDiag}">
+                            ${err.currentDiag || '<Trống>'}
                         </div>
                     </td>
-                    <td class="p-4 text-green-700 text-xs font-bold bg-green-50/50">${err.requiredDiag}</td>
+                    <td class="p-4 text-red-600 text-xs font-bold whitespace-normal min-w-[200px]">
+                        <div class="bg-red-50 border border-red-100 p-2 rounded-lg">
+                            <i class="fa-solid fa-circle-exclamation mr-1"></i> ${err.requiredDiag}
+                        </div>
+                    </td>
                     <td class="p-4 text-slate-600 text-sm">${err.doctor}</td>
                     <td class="p-4 text-slate-500 text-sm whitespace-nowrap">${err.time}</td>
                     <td class="p-4 text-center">
