@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần mềm Kiểm tra Lỗi BHYT</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#1e40af', // blue-800
+                        secondary: '#3b82f6', // blue-500
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Thư viện SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body { background-color: #f8fafc; }
+        
+        /* Smooth Fade In */
+        .fade-in { animation: fadeIn 0.4s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            width: 24px; height: 24px; border-radius: 50%;
+            border-left-color: #ffffff;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Custom Scrollbar cho bảng */
+        .table-container::-webkit-scrollbar { width: 6px; height: 6px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* File Upload Card Hover Effect */
+        .file-card { transition: all 0.2s ease; border: 2px dashed #e2e8f0; }
+        .file-card:hover { border-color: #3b82f6; background-color: #eff6ff; transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col font-sans overflow-hidden antialiased">
+
+    <!-- ==================== MÀN HÌNH ĐĂNG NHẬP ==================== -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all fade-in">
+            <div class="flex justify-center mb-6">
+                <div class="p-3 bg-blue-100 rounded-full text-blue-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold text-center text-slate-800 mb-2">Hệ thống Đối soát BHYT</h2>
+            <p class="text-center text-slate-500 mb-8 text-sm">Vui lòng nhập mật khẩu để truy cập hệ thống</p>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm text-center tracking-widest text-lg" autofocus autocomplete="off">
+                    <p id="loginError" class="text-red-500 text-sm mt-2 text-center hidden font-medium">Mật khẩu không chính xác!</p>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5">
+                    Đăng Nhập
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MÀN HÌNH ỨNG DỤNG CHÍNH ==================== -->
+    <div id="appScreen" class="hidden opacity-0 transition-opacity duration-500 flex-grow flex flex-col h-full w-full">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-800 to-blue-600 text-white shadow-lg p-4 flex-shrink-0 z-10">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight">Đối Soát Lỗi BHYT</h1>
+                        <p class="text-xs text-blue-200 font-medium">Phiên bản nội bộ &bull; Bảo mật dữ liệu</p>
+                    </div>
+                </div>
+                <button onclick="exportToExcel()" id="btnExport" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-5 rounded-lg shadow-md transition-all flex items-center transform hover:-translate-y-0.5">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Xuất Excel Báo Cáo
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow flex flex-col max-w-7xl mx-auto w-full p-6 gap-6 overflow-hidden">
+            
+            <!-- Khu vực tải file -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex-shrink-0 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
+                <h2 class="text-lg font-semibold text-slate-800 mb-5 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Tải lên dữ liệu đầu vào (Excel / CSV)
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <!-- Component File Upload -->
+                    <label class="file-card relative flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer bg-slate-50 group">
+                        <svg class="w-8 h-8 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="text-sm font-semibold text-slate-700">Bảng 1</span>
+                        <span class="text-xs text-slate-400 mt-1">Thông tin BN</span>
+                        <input type="file" id="fileB1" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName('fileB1', 'nameB1')">
+                        <div id="nameB1" class="absolute bottom-1 w-full text-center text-[10px] text-blue-600 font-medium px-2 truncate hidden"></div>
+                    </label>
+
+                    <label class="file-card relative flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer bg-slate-50 group">
+                        <svg class="w-8 h-8 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        <span class="text-sm font-semibold text-slate-700">Bảng 2</span>
+                        <span class="text-xs text-slate-400 mt-1">Chi tiết Thuốc</span>
+                        <input type="file" id="fileB2" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName('fileB2', 'nameB2')">
+                        <div id="nameB2" class="absolute bottom-1 w-full text-center text-[10px] text-blue-600 font-medium px-2 truncate hidden"></div>
+                    </label>
+
+                    <label class="file-card relative flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer bg-slate-50 group">
+                        <svg class="w-8 h-8 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        <span class="text-sm font-semibold text-slate-700">Bảng 3</span>
+                        <span class="text-xs text-slate-400 mt-1">Dịch vụ & CLS</span>
+                        <input type="file" id="fileB3" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName('fileB3', 'nameB3')">
+                        <div id="nameB3" class="absolute bottom-1 w-full text-center text-[10px] text-blue-600 font-medium px-2 truncate hidden"></div>
+                    </label>
+
+                    <label class="file-card relative flex flex-col items-center justify-center p-4 rounded-xl cursor-pointer bg-slate-50 group">
+                        <svg class="w-8 h-8 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg>
+                        <span class="text-sm font-semibold text-slate-700">DS CCHN</span>
+                        <span class="text-xs text-slate-400 mt-1">Chứng chỉ Bác sĩ</span>
+                        <input type="file" id="fileCCHN" accept=".csv, .xlsx, .xls" class="hidden" onchange="updateFileName('fileCCHN', 'nameCCHN')">
+                        <div id="nameCCHN" class="absolute bottom-1 w-full text-center text-[10px] text-blue-600 font-medium px-2 truncate hidden"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <button onclick="runValidation()" id="btnProcess" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow transition-all duration-200 transform hover:-translate-y-0.5 flex items-center justify-center min-w-[160px]">
+                        Bắt đầu Đối Soát
+                    </button>
+                    <div id="loading" class="hidden flex items-center text-blue-600 font-medium bg-blue-50 px-4 py-2 rounded-lg">
+                        <div class="spinner mr-3"></div> <span>Đang xử lý dữ liệu...</span>
+                    </div>
+                </div>
+                <div id="statusMessage" class="mt-3 text-sm transition-all duration-300"></div>
+            </div>
+
+            <!-- Khu vực kết quả -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 flex-grow flex flex-col overflow-hidden relative">
+                <div class="p-4 border-b flex justify-between items-center bg-slate-50/80 backdrop-blur-md flex-shrink-0 z-20">
+                    <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Danh sách hồ sơ lỗi
+                    </h2>
+                    <span id="errorCount" class="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full border border-red-200 hidden transition-all">0 lỗi</span>
+                </div>
+                <div class="overflow-auto flex-grow table-container p-0 bg-white">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0 shadow-sm z-10 border-b border-slate-200">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 font-semibold w-16">STT</th>
+                                <th scope="col" class="px-6 py-4 font-semibold w-48">Tên Bệnh Nhân</th>
+                                <th scope="col" class="px-6 py-4 font-semibold w-32">Ngày Sinh</th>
+                                <th scope="col" class="px-6 py-4 font-semibold w-32">Ngày Khám</th>
+                                <th scope="col" class="px-6 py-4 font-semibold w-56">Bác Sĩ</th>
+                                <th scope="col" class="px-6 py-4 font-semibold w-40">Loại Lỗi</th>
+                                <th scope="col" class="px-6 py-4 font-semibold">Chi tiết lỗi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultBody" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="7" class="px-6 py-16 text-center text-slate-400 fade-in">
+                                    <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <p class="text-base font-medium">Chưa có dữ liệu</p>
+                                    <p class="text-xs mt-1">Vui lòng tải lên đủ 4 file và nhấn "Bắt đầu Đối Soát".</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- LOGIC XỬ LÝ ĐĂNG NHẬP ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('passwordInput').value;
+            const errorMsg = document.getElementById('loginError');
+            
+            if (pass === '1402') {
+                errorMsg.classList.add('hidden');
+                const loginScreen = document.getElementById('loginScreen');
+                const appScreen = document.getElementById('appScreen');
+                
+                // Hiệu ứng mờ dần
+                loginScreen.classList.remove('backdrop-blur-sm');
+                loginScreen.style.opacity = '0';
+                
+                setTimeout(() => {
+                    loginScreen.classList.add('hidden');
+                    appScreen.classList.remove('hidden');
+                    // Buộc reflow để kích hoạt transition
+                    void appScreen.offsetWidth;
+                    appScreen.classList.remove('opacity-0');
+                    appScreen.classList.add('opacity-100');
+                }, 300);
+            } else {
+                errorMsg.classList.remove('hidden');
+                // Hiệu ứng rung nhẹ khi sai pass
+                const input = document.getElementById('passwordInput');
+                input.classList.add('border-red-500');
+                input.classList.remove('border-slate-300');
+                input.value = '';
+                setTimeout(() => {
+                    input.classList.remove('border-red-500');
+                    input.classList.add('border-slate-300');
+                }, 1500);
+            }
+        }
+
+        // --- HIỂN THỊ TÊN FILE SAU KHI CHỌN ---
+        function updateFileName(inputId, displayId) {
+            const input = document.getElementById(inputId);
+            const display = document.getElementById(displayId);
+            if (input.files && input.files.length > 0) {
+                display.textContent = input.files[0].name;
+                display.classList.remove('hidden');
+            } else {
+                display.classList.add('hidden');
+            }
+        }
+
+        // --- LOGIC XỬ LÝ ĐỐI SOÁT (GIỮ NGUYÊN) ---
+        let globalErrors = [];
+
+        async function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                        resolve(json);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function normalizeData(dataArray) {
+            return dataArray.map(row => {
+                const newRow = {};
+                for (let key in row) {
+                    const cleanKey = key.trim().toUpperCase().replace(/^"|"$/g, '');
+                    newRow[cleanKey] = typeof row[key] === 'string' ? row[key].trim() : row[key];
+                }
+                return newRow;
+            });
+        }
+
+        function parseCCHNData(dataArray) {
+            const parsed = [];
+            let key_macchn = null, key_phongkham = null, key_tenbs = null;
+            if (dataArray.length === 0) return parsed;
+            const sampleRow = dataArray[0];
+            for (let key in sampleRow) {
+                const upperKey = key.toUpperCase();
+                if (upperKey.includes("MA CCHN") || upperKey.includes("MÃ CCHN")) key_macchn = key;
+                if (upperKey.includes("PHÒNG KHÁM") || upperKey.includes("PHONG KHAM")) key_phongkham = key;
+                if (upperKey.includes("TEN BS") || upperKey.includes("TÊN BS")) key_tenbs = key;
+            }
+            dataArray.forEach(row => {
+                let ma = key_macchn ? row[key_macchn] : "";
+                let pk = key_phongkham ? row[key_phongkham] : "";
+                let ten = key_tenbs ? row[key_tenbs] : "";
+                if (typeof ma === 'string') ma = ma.trim();
+                if (typeof pk === 'string') pk = pk.trim();
+                if (typeof ten === 'string') ten = ten.trim();
+                if (ma) parsed.push({ MA_CCHN: ma, PHONG_KHAM: pk, TEN_BS: ten });
+            });
+            return parsed;
+        }
+
+        function setStatus(msg, isError = false) {
+            const el = document.getElementById('statusMessage');
+            el.innerHTML = `<span class="px-3 py-1 rounded-full font-medium ${isError ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}">${msg}</span>`;
+        }
+
+        async function runValidation() {
+            const fileB1 = document.getElementById('fileB1').files[0];
+            const fileB2 = document.getElementById('fileB2').files[0];
+            const fileB3 = document.getElementById('fileB3').files[0];
+            const fileCCHN = document.getElementById('fileCCHN').files[0];
+
+            if (!fileB1 || !fileB2 || !fileB3 || !fileCCHN) {
+                alert("Vui lòng tải lên đầy đủ 4 file trước khi kiểm tra!");
+                return;
+            }
+
+            const btnProcess = document.getElementById('btnProcess');
+            const loading = document.getElementById('loading');
+            
+            btnProcess.classList.add('hidden');
+            loading.classList.remove('hidden');
+            document.getElementById('btnExport').classList.add('hidden');
+            setStatus("Đang đọc file...", false);
+            
+            document.getElementById('resultBody').innerHTML = '';
+            document.getElementById('errorCount').classList.add('hidden');
+            globalErrors = [];
+
+            try {
+                const [rawB1, rawB2, rawB3, rawCCHN] = await Promise.all([
+                    readExcelFile(fileB1), readExcelFile(fileB2),
+                    readExcelFile(fileB3), readExcelFile(fileCCHN)
+                ]);
+
+                setStatus("Đang chuẩn hóa dữ liệu...", false);
+                const b1 = normalizeData(rawB1);
+                const b2 = normalizeData(rawB2);
+                const b3 = normalizeData(rawB3);
+                const cchn = parseCCHNData(rawCCHN);
+
+                setStatus("Đang đối soát logic...", false);
+                
+                const b1Map = new Map();
+                b1.forEach(row => {
+                    if (row.MA_LK) {
+                        b1Map.set(String(row.MA_LK), {
+                            hoTen: row.HO_TEN || 'Không rõ',
+                            ngaySinh: row.NGAY_SINH || '',
+                            ngayKham: row.NGAY_VAO || ''
+                        });
+                    }
+                });
+
+                const cchnMap = new Map(); 
+                cchn.forEach(row => {
+                    if(!cchnMap.has(row.MA_CCHN)) cchnMap.set(row.MA_CCHN, []);
+                    cchnMap.get(row.MA_CCHN).push({ pk: row.PHONG_KHAM, ten: row.TEN_BS });
+                });
+
+                const b2ByLk = new Map();
+                b2.forEach(row => {
+                    const lk = String(row.MA_LK);
+                    if (!b2ByLk.has(lk)) b2ByLk.set(lk, []);
+                    b2ByLk.get(lk).push(row);
+                });
+
+                const b3ByLk = new Map();
+                const allLkSet = new Set([...b1Map.keys(), ...b2ByLk.keys()]);
+                b3.forEach(row => {
+                    const lk = String(row.MA_LK);
+                    if (!b3ByLk.has(lk)) b3ByLk.set(lk, []);
+                    b3ByLk.get(lk).push(row);
+                    allLkSet.add(lk);
+                });
+
+                const errors = [];
+                const isExam = (tenDichVu) => String(tenDichVu || "").toLowerCase().includes('khám');
+
+                allLkSet.forEach(ma_lk => {
+                    const patientInfo = b1Map.get(ma_lk) || { hoTen: "Không tìm thấy trong Bảng 1", ngaySinh: "", ngayKham: "" };
+                    const formatYYYYMMDD = (str) => {
+                        if(!str) return "";
+                        const s = String(str).trim();
+                        if(s.length >= 8) return `${s.substring(6,8)}/${s.substring(4,6)}/${s.substring(0,4)}`;
+                        return s;
+                    };
+                    const dob = formatYYYYMMDD(patientInfo.ngaySinh);
+                    const examDate = formatYYYYMMDD(patientInfo.ngayKham);
+
+                    const b2Records = b2ByLk.get(ma_lk) || [];
+                    const b3Records = b3ByLk.get(ma_lk) || [];
+                    const doctorMap = new Map();
+                    const getDocStats = (bs) => {
+                        if (!doctorMap.has(bs)) doctorMap.set(bs, { hasOtherActivity: false, exams: [] });
+                        return doctorMap.get(bs);
+                    };
+
+                    let patientHasOtherActivity = false;
+                    let patientTotalExams = 0;
+
+                    b2Records.forEach(row => {
+                        const bs = row.MA_BAC_SI ? String(row.MA_BAC_SI).trim() : null;
+                        if (bs) getDocStats(bs).hasOtherActivity = true;
+                        patientHasOtherActivity = true;
+                    });
+
+                    b3Records.forEach(row => {
+                        const bs = row.MA_BAC_SI ? String(row.MA_BAC_SI).trim() : null;
+                        const tenDichVu = row.TEN_DICH_VU ? String(row.TEN_DICH_VU).trim() : "";
+
+                        if (isExam(tenDichVu)) {
+                            patientTotalExams++;
+                            if (bs) {
+                                getDocStats(bs).exams.push(tenDichVu);
+                            } else {
+                                errors.push({
+                                    ten_bn: patientInfo.hoTen, ngay_sinh: dob, ngay_kham: examDate,
+                                    bac_si: "Không xác định", loai_loi: "Thiếu Mã Bác Sĩ",
+                                    chi_tiet: `Công khám "${tenDichVu}" không có mã bác sĩ.`
+                                });
+                            }
+                        } else {
+                            if (bs) getDocStats(bs).hasOtherActivity = true;
+                            patientHasOtherActivity = true;
+                        }
+                    });
+
+                    if (patientTotalExams === 0 && patientHasOtherActivity) {
+                        errors.push({
+                            ten_bn: patientInfo.hoTen, ngay_sinh: dob, ngay_kham: examDate,
+                            bac_si: "Nhiều Bác sĩ / Toàn hồ sơ", loai_loi: "Thiếu Công Khám",
+                            chi_tiet: `Hồ sơ có phát sinh thuốc/CLS nhưng không có bất kỳ công khám nào.`
+                        });
+                    }
+
+                    doctorMap.forEach((stats, bs) => {
+                        const examCount = stats.exams.length;
+                        let bsName = bs;
+                        if (cchnMap.has(bs)) {
+                            const records = cchnMap.get(bs);
+                            const rWithTen = records.find(r => r.ten);
+                            if (rWithTen) bsName = `${rWithTen.ten} (${bs})`;
+                        }
+
+                        if (examCount > 1) {
+                            errors.push({
+                                ten_bn: patientInfo.hoTen, ngay_sinh: dob, ngay_kham: examDate,
+                                bac_si: bsName, loai_loi: "Dư Công Khám",
+                                chi_tiet: `Có ${examCount} công khám (${stats.exams.join(', ')}). Mỗi bác sĩ chỉ được tính 1 công khám.`
+                            });
+                        }
+
+                        stats.exams.forEach(tenDichVu => {
+                            const cchnRecords = cchnMap.get(bs);
+                            if (!cchnRecords) {
+                                errors.push({
+                                    ten_bn: patientInfo.hoTen, ngay_sinh: dob, ngay_kham: examDate,
+                                    bac_si: bsName, loai_loi: "Sai CCHN",
+                                    chi_tiet: `Không có trong danh sách CCHN nhưng thực hiện "${tenDichVu}".`
+                                });
+                            } else {
+                                let matched = false;
+                                let allowedRooms = [];
+                                for (let r of cchnRecords) {
+                                    if (r.pk) allowedRooms.push(r.pk);
+                                    if (r.pk && r.pk.toLowerCase() === tenDichVu.toLowerCase()) {
+                                        matched = true; break;
+                                    }
+                                }
+                                if (!matched) {
+                                    errors.push({
+                                        ten_bn: patientInfo.hoTen, ngay_sinh: dob, ngay_kham: examDate,
+                                        bac_si: bsName, loai_loi: "Sai Phòng Khám CCHN",
+                                        chi_tiet: `Thực hiện "${tenDichVu}" nhưng đăng ký CCHN là: ${allowedRooms.length > 0 ? [...new Set(allowedRooms)].join(', ') : 'Trống'}.`
+                                    });
+                                }
+                            }
+                        });
+                    });
+                });
+
+                displayResults(errors);
+                globalErrors = errors;
+                setStatus(`<svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Hoàn tất quét ${allLkSet.size} hồ sơ.`, false);
+
+                if(errors.length > 0) {
+                    document.getElementById('btnExport').classList.remove('hidden');
+                    document.getElementById('btnExport').classList.add('fade-in');
+                }
+
+            } catch (err) {
+                console.error(err);
+                setStatus("Có lỗi định dạng file: " + err.message, true);
+                alert("Đã xảy ra lỗi khi xử lý dữ liệu. Vui lòng kiểm tra lại cấu trúc file tải lên.");
+            } finally {
+                loading.classList.add('hidden');
+                btnProcess.classList.remove('hidden');
+            }
+        }
+
+        function displayResults(errors) {
+            const tbody = document.getElementById('resultBody');
+            const errorCountBadge = document.getElementById('errorCount');
+            
+            tbody.innerHTML = '';
+
+            if (errors.length === 0) {
+                tbody.innerHTML = `
+                    <tr class="fade-in">
+                        <td colspan="7" class="px-6 py-12 text-center text-emerald-600 bg-emerald-50/50">
+                            <div class="flex flex-col items-center justify-center">
+                                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-3 text-emerald-500">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </div>
+                                <span class="font-semibold text-lg">Tuyệt vời! Dữ liệu hoàn toàn sạch sẽ.</span>
+                                <span class="text-sm mt-1 opacity-80">Không phát hiện lỗi công khám hay CCHN nào.</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                errorCountBadge.classList.add('hidden');
+                return;
+            }
+
+            errorCountBadge.textContent = `${errors.length} lỗi`;
+            errorCountBadge.classList.remove('hidden');
+
+            errors.forEach((err, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b border-slate-100 transition-colors fade-in";
+                tr.style.animationDelay = `${index * 0.02}s`;
+                
+                let badgeClass = "bg-red-100 text-red-700 border-red-200";
+                if(err.loai_loi === "Sai Phòng Khám CCHN" || err.loai_loi === "Sai CCHN") badgeClass = "bg-orange-100 text-orange-700 border-orange-200";
+                if(err.loai_loi === "Thiếu Công Khám") badgeClass = "bg-purple-100 text-purple-700 border-purple-200";
+                if(err.loai_loi === "Dư Công Khám") badgeClass = "bg-yellow-100 text-yellow-700 border-yellow-200";
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 text-slate-500 font-medium">${index + 1}</td>
+                    <td class="px-6 py-4 font-semibold text-slate-800">${err.ten_bn}</td>
+                    <td class="px-6 py-4 text-slate-600">${err.ngay_sinh}</td>
+                    <td class="px-6 py-4 text-slate-600">${err.ngay_kham}</td>
+                    <td class="px-6 py-4 text-slate-700 font-medium">${err.bac_si}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-md text-xs font-semibold border ${badgeClass}">${err.loai_loi}</span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600 whitespace-normal break-words max-w-sm leading-relaxed">${err.chi_tiet}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportToExcel() {
+            if (globalErrors.length === 0) return;
+
+            const exportData = globalErrors.map((err, index) => ({
+                "STT": index + 1,
+                "Tên Bệnh Nhân": err.ten_bn,
+                "Ngày Sinh": err.ngay_sinh,
+                "Ngày Khám": err.ngay_kham,
+                "Bác Sĩ": err.bac_si,
+                "Loại Lỗi": err.loai_loi,
+                "Chi Tiết Lỗi": err.chi_tiet
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Danh Sach Loi");
+
+            const colWidths = [
+                { wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, 
+                { wch: 30 }, { wch: 20 }, { wch: 80 }
+            ];
+            ws['!cols'] = colWidths;
+
+            const date = new Date();
+            const filename = `BaoCao_LoiBHYT_${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+    </script>
+</body>
+</html>
